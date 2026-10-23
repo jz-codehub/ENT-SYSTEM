@@ -30,38 +30,48 @@ body.ent-tk-page {
 }
 
 /* ------------------------------ header ------------------------------- */
-/* .header / .header-content come from index.css (sky gradient, shared by
-   every page). Here the header carries only a Back link and the user
-   slot, so it stays one slim row. */
-.ent-tk-header { margin-bottom: 14px; }
-.ent-tk-header .header-content { display: flex; align-items: center; gap: 12px; }
-/* Back to Menu wears the SAME solid slate button the cf4 form wears
-   (.back-button.back-button-solid in auth.css) - what the clinic calls
-   "the black one" - instead of the plain light .ent-btn chip. Written as
-   .ent-tk-back:hover too so it also outranks auth.css's .ent-btn:hover
-   (equal specificity; this file loads later anyway). */
-.ent-tk-back {
-    text-decoration: none;
+.ent-tk-header { margin-bottom: 18px; }
+.ent-tk-header .header-bar {
+    width: min(100%, 1200px);
+    min-height: 82px;
+    margin: 0 auto;
+    padding: 10px 18px;
+    flex-wrap: nowrap;
+}
+.ent-tk-header .header-brand {
+    flex: 1 1 auto;
+    justify-content: center;
+}
+.ent-tk-header .header-titles h1,
+.ent-cca-header .header-titles h1 {
+    text-transform: uppercase;
+}
+.ent-page-nav {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 12px;
+}
+.ent-page-nav .ent-page-back {
+    flex: 0 0 auto;
     white-space: nowrap;
     padding: 8px 14px;
-    font-size: 12px;
     border-radius: 9px;
-    border: 1px solid transparent;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
     background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
-    color: #ffffff;
+    color: #fff;
     box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3);
 }
-.ent-tk-back:hover {
+.ent-page-nav .ent-page-back:hover {
     background: linear-gradient(135deg, var(--secondary-hover-color), #334155);
-    border-color: transparent;
-    color: #ffffff;
+    color: #fff;
     box-shadow: 0 4px 10px rgba(100, 116, 139, 0.38);
 }
-.ent-tk-headtools {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.ent-tk-header .ent-conn {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+    color: var(--secondary-text-color);
 }
 
 /* ------------------------------- main -------------------------------- */
@@ -775,12 +785,30 @@ body.ent-tk-page {
 }
 @media (max-width: 560px) {
     .ent-tk-main { padding: 0 10px 32px; }
+    .ent-tk-header .header-bar { gap: 8px; padding: 8px 10px; }
+    .ent-tk-header .header-brand { gap: 6px; }
+    .ent-tk-header .logo { width: 34px; height: 34px; }
+    .ent-tk-header .header-titles h1 { font-size: 0.82rem; }
+    .ent-tk-header .header-hospital { font-size: 0.48rem; }
+    .ent-tk-header .header-meta { gap: 5px; }
+    .ent-tk-header .ent-conn { display: none; }
+    .ent-page-nav .ent-page-back { padding: 7px 10px; font-size: 0.68rem; }
     .ent-tk-hero { padding: 14px; gap: 12px; }
     .ent-tk-hero-ic { display: none; }
     .ent-tk-newbtn { width: 100%; justify-content: center; }
     .ent-tf-scopes { grid-template-columns: 1fr; }
     .ent-tf-row { grid-template-columns: 1fr; gap: 0; }
     .ent-tk-stat-l { white-space: normal; }
+}
+
+@media (max-width: 760px) {
+    .ent-tk-header .header-bar { flex-wrap: wrap; }
+    .ent-tk-header .header-meta { order: 1; width: auto; margin-left: auto; }
+    .ent-tk-header .header-brand {
+        width: 100%;
+        flex: 1 0 100%;
+        justify-content: center;
+    }
 }
 
 /* ================================ print =============================== */
@@ -797,9 +825,4 @@ body.ent-tk-page {
     .ent-tk-detail-body { overflow: visible; }
     .ent-ticket { break-inside: avoid; }
 }
-
-
-
-
-
 

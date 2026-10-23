@@ -610,12 +610,33 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        && !exitGuard.includes("if (!form || !bridge")
        && exitGuard.includes('const bridge = window.EntFormBridge;'),
      'Back to Menu and dirty tracking are installed without an early bridge dependency')
+  is('D92', 'the exit warning only appears when current form data differs from its clean baseline',
+     exitGuard.includes('function snapshotForm()')
+       && exitGuard.includes('function updateDirtyState()')
+       && exitGuard.includes('currentSnapshot !== cleanSnapshot')
+       && exitGuard.includes("addEventListener('formDataRestored', setClean)"),
+     'restore/save establish a baseline; harmless form-state events do not mark unchanged reports dirty')
   is('D90', 'all form pages load the refreshed exit guard',
-     formPages.every(html => html.includes('function/formExitGuard.js?v=v2')),
+     formPages.every(html => html.includes('function/formExitGuard.js?v=v3')),
      'CF4, nasal and laryngeal bypass stale cached guard scripts')
+  const endoscopyPages = ['nasalEndoscopy.html', 'laryngealEndoscopy.html']
+    .map(name => readFileSync(join(APP, 'pages', name), 'utf8'))
+  is('D93', 'endoscopy toolbar icons use inline SVG without corrupted emoji text',
+     endoscopyPages.every(html =>
+       !html.includes('\u00f0\u0178')
+       && !html.includes('\u00e2\u0153')
+       && !html.includes('\u00e2\u02dc')
+       && html.includes('id="saveDataBtn"')
+       && html.includes('<svg')),
+     'Nasal and Laryngeal toolbar controls contain clean SVG icons and no mojibake')
   const draftsJs = readFileSync(join(APP, 'function', 'draftsBrowser.js'), 'utf8')
   const dbRecordsJs = readFileSync(join(APP, 'function', 'dbRecords.js'), 'utf8')
   const recordsCss = readFileSync(join(APP, 'style', 'patient-records.css'), 'utf8')
+  const duplicateModalZ = Number((recordsCss.match(/\.ent-dup-modal\s*\{[^}]*z-index:\s*(\d+)/) || [])[1])
+  const exitModalZ = Number((recordsCss.match(/\.form-exit-overlay\s*\{[^}]*z-index:\s*(\d+)/) || [])[1])
+  is('D91', 'the same-date duplicate prompt appears above the unsaved-report prompt',
+     duplicateModalZ > exitModalZ,
+     `duplicate modal z-index ${duplicateModalZ} is higher than exit modal z-index ${exitModalZ}`)
   is('D85', 'database saves clear the dirty-form state',
      dbRecordsJs.includes("new Event('databaseRecordSaved')")
        && exitGuard.includes("addEventListener('databaseRecordSaved'"),

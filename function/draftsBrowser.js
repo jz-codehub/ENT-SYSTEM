@@ -178,6 +178,9 @@
     }
 
     let modal = null;
+    let offlineRecordsModal = null;
+    let offlineRecordsSearch = '';
+    let offlineRecordsPreviousOverflow = '';
     let confirmBox = null;
     let confirmResolver = null;
     let listElement = null;
@@ -1160,6 +1163,195 @@
         const firstButton = actions.querySelector('button');
         if (firstButton) firstButton.focus();
         return promise;
+    }
+
+    function closeOfflineRecordsFallback() {
+        if (!offlineRecordsModal) return;
+        offlineRecordsModal.classList.remove('is-open');
+        document.body.style.overflow = offlineRecordsPreviousOverflow;
+    }
+
+    async function renderOfflineRecordsFallback() {
+        if (!offlineRecordsModal) return;
+        const bridge = getBridge();
+        const store = window.EntOfflineStore;
+        const list = offlineRecordsModal.querySelector('.ent-drafts-list');
+        const summary = offlineRecordsModal.querySelector('.ent-drafts-summary');
+        if (!bridge || !store || typeof store.listRecords !== 'function') {
+            list.textContent = 'Offline records are not available on this page.';
+            summary.textContent = '';
+            return;
+        }
+        try {
+            const records = await store.listRecords(bridge.reportType);
+            const query = offlineRecordsSearch.trim().toLowerCase();
+            const filtered = records.filter(function (record) {
+                return [record.patientName, record.patientId, record.caseNumber, record.fileName,
+                    record.procedureDate].some(function (value) {
+                    return String(value || '').toLowerCase().includes(query);
+                });
+            });
+            list.innerHTML = '';
+            if (!filtered.length) {
+                const empty = document.createElement('div');
+                empty.className = 'ent-drafts-empty';
+                empty.textContent = query ? 'No records match this search.' : 'No offline records saved yet.';
+                list.appendChild(empty);
+            } else {
+                filtered.forEach(function (record) {
+                    const card = document.createElement('article');
+                    card.className = 'ent-drafts-card';
+                    const details = document.createElement('div');
+                    details.className = 'ent-drafts-main';
+                    const top = document.createElement('div');
+                    top.className = 'ent-drafts-top';
+                    const type = document.createElement('span');
+                    type.className = 'ent-drafts-badge';
+                    type.textContent = TYPE_LABELS[bridge.reportType] || bridge.reportType;
+                    const status = document.createElement('span');
+                    status.className = 'ent-drafts-state' + (record.syncStatus === 'failed' ? ' is-error' : (record.synced ? ' is-shared' : ''));
+                    status.textContent = record.syncStatus === 'failed' ? 'Sync Failed' : (record.synced ? 'Synced' : 'Pending Sync');
+                    top.append(type, status);
+                    const name = document.createElement('h3');
+                    name.className = 'ent-drafts-name';
+                    name.textContent = record.patientName || 'Unnamed patient';
+                    const meta = document.createElement('div');
+                    meta.className = 'ent-drafts-meta';
+                    const identifier = record.patientId || record.caseNumber;
+                    if (identifier) {
+                        const id = document.createElement('span');
+                        id.className = 'ent-drafts-id';
+                        id.textContent = 'ID ' + identifier;
+                        meta.appendChild(id);
+                    }
+                    const savedAt = document.createElement('span');
+                    savedAt.textContent = 'Saved ' + formatTimestamp(record.offlineSavedAt || record.savedAt || record.createdAt);
+                    meta.appendChild(savedAt);
+                    if (record.photosLocalOnly) {
+                        const photoNote = document.createElement('span');
+                        photoNote.className = 'ent-drafts-local-photo-note';
+                        photoNote.textContent = 'Photos remain on this device · not synced';
+                        details.append(top, name, meta, photoNote);
+                    } else {
+                        details.append(top, name, meta);
+                    }
+                    const actions = document.createElement('div');
+                    actions.className = 'ent-drafts-actions is-compact';
+                    [['open', 'Open'], ['delete', 'Delete']].forEach(function (action) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = action[0] === 'open' ? 'ent-drafts-open' : 'ent-drafts-delete';
+                        button.dataset.offlineAction = action[0];
+                        button.dataset.recordKey = record.key;
+                        button.textContent = action[0] === 'open' ? 'Open' : 'Delete';
+                        actions.appendChild(button);
+                    });
+                    card.append(details, actions);
+                    list.appendChild(card);
+                });
+            }
+            summary.textContent = `${filtered.length} shown · ${records.length} ${bridge.reportType} offline record${records.length === 1 ? '' : 's'}`;
+        } catch (error) {
+            console.error('[EntDrafts] Could not load offline records:', error);
+            list.textContent = 'Could not load offline records. Please try again.';
+            summary.textContent = '';
+        }
+    }
+
+    function openOfflineRecordsFallback() {
+        const bridge = getBridge();
+        if (!bridge || REPORT_TYPES.indexOf(bridge.reportType) === -1) {
+            showAlert('Offline records are not available on this page.', 'Offline Records');
+            return;
+        }
+        if (!offlineRecordsModal) {
+            offlineRecordsModal = document.createElement('div');
+            offlineRecordsModal.className = 'ent-drafts-modal no-print';
+            offlineRecordsModal.id = 'offlineRecordsModal';
+            offlineRecordsModal.setAttribute('role', 'dialog');
+            offlineRecordsModal.setAttribute('aria-modal', 'true');
+            offlineRecordsModal.setAttribute('aria-label', bridge.reportType + ' offline records');
+            offlineRecordsModal.innerHTML = `
+                <div class="ent-drafts-dialog" role="document">
+                    <div class="ent-drafts-header">
+                        <div class="ent-drafts-heading">
+                            <h2>Offline Records</h2>
+                            <p class="ent-drafts-subtitle">Only ${escapeHtml(TYPE_LABELS[bridge.reportType] || bridge.reportType)} records saved on this device.</p>
+                        </div>
+                        <button type="button" class="ent-drafts-close" aria-label="Close Offline Records">&times;</button>
+                    </div>
+                    <div class="ent-drafts-toolbar">
+                        <input type="search" class="ent-drafts-search" placeholder="Search patient name or ID..." aria-label="Search offline records">
+                    </div>
+                    <div class="ent-drafts-list"></div>
+                    <div class="ent-drafts-footer">
+                        <span class="ent-drafts-summary"></span>
+                    </div>
+                </div>`;
+            offlineRecordsModal.addEventListener('click', function (event) {
+                if (event.target === offlineRecordsModal) closeOfflineRecordsFallback();
+            });
+            offlineRecordsModal.querySelector('.ent-drafts-close').addEventListener('click', closeOfflineRecordsFallback);
+            offlineRecordsModal.querySelector('.ent-drafts-search').addEventListener('input', function (event) {
+                offlineRecordsSearch = event.target.value;
+                renderOfflineRecordsFallback();
+            });
+            offlineRecordsModal.querySelector('.ent-drafts-list').addEventListener('click', async function (event) {
+                const button = event.target.closest('button[data-offline-action]');
+                if (!button) return;
+                const store = window.EntOfflineStore;
+                const key = button.dataset.recordKey;
+                if (button.dataset.offlineAction === 'delete') {
+                    if (!window.confirm('Delete this offline record?')) return;
+                    if (!store || typeof store.deleteRecord !== 'function' || !(await store.deleteRecord(key))) {
+                        showAlert('Could not delete this offline record.', 'Delete Failed');
+                        return;
+                    }
+                    await renderOfflineRecordsFallback();
+                    return;
+                }
+                const record = store && typeof store.getRecord === 'function' ? await store.getRecord(key) : null;
+                const currentBridge = getBridge();
+                if (!record || !currentBridge) {
+                    showAlert('This offline record is no longer available.', 'Offline Record');
+                    await renderOfflineRecordsFallback();
+                    return;
+                }
+                try {
+                    currentBridge.restore(record.formData || record);
+                    if (window.PatientRecords && typeof window.PatientRecords.recordOpen === 'function') {
+                        window.PatientRecords.recordOpen(record.reportType, record.formData || record, {
+                            format: 'Draft',
+                            fileName: record.fileName
+                        });
+                    }
+                    closeOfflineRecordsFallback();
+                    await showFeedbackModal({
+                        eyebrow: 'READY TO CONTINUE',
+                        title: 'Record opened',
+                        description: `${record.patientName || 'The saved record'} is now loaded in the form.`,
+                        details: [TYPE_LABELS[record.reportType] || record.reportType, 'Continue editing, then save your changes.'],
+                        actions: [{ label: 'Continue editing', value: true, primary: true }]
+                    });
+                } catch (error) {
+                    console.error('[EntDrafts] Could not open offline record:', error);
+                    showAlert('Could not open this offline record: ' + error.message, 'Open Failed');
+                }
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && offlineRecordsModal.classList.contains('is-open')) {
+                    closeOfflineRecordsFallback();
+                }
+            });
+            document.body.appendChild(offlineRecordsModal);
+        }
+        offlineRecordsSearch = '';
+        offlineRecordsModal.querySelector('.ent-drafts-search').value = '';
+        offlineRecordsPreviousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        offlineRecordsModal.classList.add('is-open');
+        renderOfflineRecordsFallback();
+        offlineRecordsModal.querySelector('.ent-drafts-search').focus();
     }
 
     async function openDraft(draft) {
@@ -2285,7 +2477,7 @@
         }).then(function (action) {
             if (action === 'offline-records') {
                 if (window.EntOfflineViewer) window.EntOfflineViewer.open();
-                else openModal();
+                else openOfflineRecordsFallback();
             } else if (action === 'my-drafts') {
                 openModal();
             }
@@ -2360,11 +2552,11 @@
             // its offlineBound flag can never see it - the old check here
             // bound anyway and BOTH modals opened on one click. The
             // ownership decision therefore happens at CLICK time: when the
-            // offline viewer owns the button, stay out of its way. Pages
-            // without the viewer (cf4) keep opening the drafts shelf here.
+            // offline viewer owns the button, stay out of its way. CF4 uses
+            // this fallback viewer because it does not load index.js.
             browseButton.addEventListener('click', () => {
                 if (browseButton.dataset.offlineBound) return;
-                openModal();
+                openOfflineRecordsFallback();
             });
         }
         // Handed over from another form page (?ent_draft=<key>): read the
@@ -2378,6 +2570,7 @@
         saveOfflineDraft,
         saveAndOpen,
         openModal,
+        openOfflineRecords: openOfflineRecordsFallback,
         showSavedToast,
         showFeedbackModal,
         readDrafts,

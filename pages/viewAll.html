@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v32c">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/view-all.css?v=v39d">
+    <link rel="stylesheet" href="../style/view-all.css?v=v39e">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
 <body class="ent-cca-page">
@@ -38,18 +38,18 @@
          Drafts never appear at all: ent_view_all_index filters is_draft =
          false server-side and no query parameter can undo that.
     ------------------------------------------------------------------ -->
-    <!-- The page title leads the header; Back to Menu sits at the start
-         of the content, where the title used to be. -->
-    <div class="header ent-cca-header">
-        <div class="header-content">
-            <div class="ent-cca-brand ent-cca-header-brand">
-                <span class="ent-cca-brand-icon" aria-hidden="true">&#128101;</span>
-                <span class="ent-cca-brand-text">
-                    <h1>View All Patients</h1>
+    <header class="report-header no-print ent-cca-header">
+        <div class="header-bar">
+            <div class="header-brand">
+                <img src="../image/cumc-logo.png" alt="Capitol University Medical Center" class="logo">
+                <span class="header-titles">
+                    <span class="header-hospital">CAPITOL UNIVERSITY MEDICAL CENTER</span>
+                    <h1>VIEW ALL PATIENTS</h1>
                     <small>Every clinic&rsquo;s patients &mdash; <b>metadata only</b> until a permission says otherwise</small>
                 </span>
+                <img src="../image/ent-logo.webp" alt="ENT Endoscopy System" class="logo">
             </div>
-            <div class="ent-cca-actions">
+            <div class="header-meta">
                 <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">connecting&hellip;</span></span>
                 <button type="button" class="ent-btn ent-cca-iconbtn" id="ccaRefresh" title="Reload the patient list">
                     <span aria-hidden="true">&#10227;</span> Refresh
@@ -57,14 +57,14 @@
                 <div class="header-user-slot" id="headerUserSlot"></div>
             </div>
         </div>
-    </div>
+    </header>
 
     <main class="ent-cca-main">
+        <div class="ent-page-nav">
+            <a class="back-button back-button-solid ent-page-back" href="../index.html" title="Back to Menu">&larr; Back to Menu</a>
+        </div>
         <p class="ent-cca-notice" id="ccaNotice" role="status" hidden></p>
 
-        <div class="ent-cca-page-nav">
-            <a class="ent-btn ent-cca-back" href="../index.html" title="Back to Menu">&larr; Back to Menu</a>
-        </div>
         <span class="ent-cca-scope-line ent-cca-scope-body" id="ccaScope">Checking what you can see&hellip;</span>
 
         <!-- THE TWO LISTS ARE POP-UPS now. These two buttons park where

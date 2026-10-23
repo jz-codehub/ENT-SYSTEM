@@ -9,11 +9,47 @@
         let isStartingNew = false;
         let isSaving = false;
         let databaseSaveCompleted = false;
+        let cleanSnapshot = null;
         let modal = null;
         let pendingAction = null;
         let opener = null;
 
+        function snapshotForm() {
+            const bridge = window.EntFormBridge;
+            if (bridge && typeof bridge.getData === 'function') {
+                try {
+                    return JSON.stringify(bridge.getData());
+                } catch (error) {
+                    console.warn('[Form exit] Could not snapshot report data:', error);
+                }
+            }
+            return JSON.stringify(Array.from(form.elements).map(element => ({
+                id: element.id || '',
+                name: element.name || '',
+                type: element.type || '',
+                value: element.type === 'checkbox' || element.type === 'radio'
+                    ? !!element.checked
+                    : element.value
+            })));
+        }
+
+        function updateDirtyState() {
+            if (isStartingNew || cleanSnapshot === null) return;
+            const currentSnapshot = snapshotForm();
+            isDirty = currentSnapshot !== cleanSnapshot;
+        }
+
+        function markFormEdited(event) {
+            if (isStartingNew || !form.contains(event.target)) return;
+            if (cleanSnapshot === null) {
+                isDirty = true;
+                return;
+            }
+            updateDirtyState();
+        }
+
         function setClean() {
+            cleanSnapshot = snapshotForm();
             isDirty = false;
         }
 
@@ -104,7 +140,7 @@
                     return;
                 }
                 isStartingNew = false;
-                isDirty = false;
+                setClean();
                 if (opener && opener.isConnected) opener.focus();
                 opener = null;
                 window.setTimeout(() => {
@@ -162,14 +198,10 @@
             dialog.querySelector('.form-exit-keep').focus();
         }
 
-        document.addEventListener('input', event => {
-            if (!isStartingNew && form.contains(event.target)) isDirty = true;
-        });
-        document.addEventListener('change', event => {
-            if (!isStartingNew && form.contains(event.target)) isDirty = true;
-        });
+        document.addEventListener('input', markFormEdited);
+        document.addEventListener('change', markFormEdited);
         document.addEventListener('formStateChanged', () => {
-            if (!isStartingNew) isDirty = true;
+            updateDirtyState();
         });
         document.addEventListener('formDataRestored', setClean);
         document.addEventListener('databaseRecordSaved', () => {
@@ -197,6 +229,7 @@
             const backLink = event.target.closest('.back-button');
             const newFormButton = event.target.closest('#newFormBtn');
             if (!backLink && !newFormButton) return;
+            updateDirtyState();
             if (!isDirty) return;
 
             event.preventDefault();

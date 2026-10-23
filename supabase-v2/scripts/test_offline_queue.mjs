@@ -137,6 +137,25 @@ const image = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQ
 }
 
 {
+  const { win } = makeWindow()
+  for (const reportType of ['nasal', 'laryngeal', 'cf4']) {
+    await win.EntOfflineStore.recordSaved({
+      key: `${reportType}|type-filter-test`,
+      reportType,
+      patientName: `${reportType} patient`,
+      formData: { images: [] }
+    })
+  }
+  const nasal = await win.EntOfflineStore.listRecords('nasal')
+  const laryngeal = await win.EntOfflineStore.listRecords('laryngeal')
+  const cf4 = await win.EntOfflineStore.listRecords('cf4')
+  assert('OQ-06b', nasal.length === 1 && nasal[0].reportType === 'nasal' &&
+    laryngeal.length === 1 && laryngeal[0].reportType === 'laryngeal' &&
+    cf4.length === 1 && cf4[0].reportType === 'cf4',
+    'offline records can be filtered to only the current report type')
+}
+
+{
   const { win, posts } = makeWindow({
     remoteRows: [{
       id: 'remote-report',
@@ -172,6 +191,13 @@ assert('OQ-12', ['function/photoStore.js', 'function/offlineStore.js', 'function
 const build = readFileSync(join(APP, 'build-pages.mjs'), 'utf8')
 assert('OQ-13', /const PAGES = \[[\s\S]*?'pages\/offlineWorkspace\.html'/.test(build),
   'the deployment allowlist publishes the page required by the worker')
+const viewer = readFileSync(join(APP, 'function', 'index.js'), 'utf8')
+assert('OQ-14', /function loadOfflineRecords\(\)[\s\S]*?store\.listRecords\(reportType\)/.test(viewer),
+  'Offline Records only loads records matching the active form type')
+const drafts = readFileSync(join(APP, 'function', 'draftsBrowser.js'), 'utf8')
+assert('OQ-15', drafts.includes('store.listRecords(bridge.reportType)') &&
+  drafts.includes('else openOfflineRecordsFallback();'),
+  'the CF4 offline-records button also shows only its active report type')
 
 console.log(failed ? `\n${failed} offline queue check(s) failed.` : '\nAll offline queue checks passed.')
 process.exitCode = failed ? 1 : 0

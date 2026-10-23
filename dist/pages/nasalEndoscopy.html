@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v32d">
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
-    <link rel="stylesheet" href="../style/patient-records.css?v=v36f">
+    <link rel="stylesheet" href="../style/patient-records.css?v=v36g">
     <link rel="stylesheet" href="../style/auth.css?v=v36f">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
@@ -40,8 +40,8 @@
         <!-- ROW 2 - the action toolbar, grouped, wraps on its own lines -->
         <div class="header-actions">
             <!-- The "Records / saved patients" quick-view button was removed:
-                 the cloud Database â–¸ DB Records panel already lists saved reports. -->
-            <!-- The old quiet "â† Menu" chip used to live here, which meant two
+                 the cloud Database / DB Records panel already lists saved reports. -->
+            <!-- The old quiet "Menu" chip used to live here, which meant two
                  back links on one page: that one plus the one below in the
                  main area. Both went to the same place. The lower button was
                  kept - it is the slate-gray .back-button - and moved up here
@@ -56,15 +56,15 @@
             <div class="header-btn-group group-work no-print" role="group" aria-label="Offline mode: save and open your work">
                 <span class="group-label">Offline Mode</span>
                 <button type="button" id="saveDataBtn" class="btn-save-draft" title="Save your work to this device's offline database. Works with or without signal - it syncs to the cloud automatically when you are back online.">
-                    <span class="btn-icon">ðŸ’¾</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2z"/><path d="M7 3v6h10V3M7 21v-7h10v7"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Save to Offline Mode</span>
                         <span class="btn-sub">works without signal</span>
                     </span>
-                    <span class="btn-flash" aria-hidden="true">âœ“ Saved</span>
+                    <span class="btn-flash" aria-hidden="true">&#10003; Saved</span>
                 </button>
                 <button type="button" id="localDraftsBtn" class="btn-local-drafts" title="Browse records saved in offline mode on this device (IndexedDB). Open one to continue editing. These sync to the cloud automatically when online.">
-                    <span class="btn-icon">ðŸ—‚ï¸</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h7l2 2h9v10H3z"/><path d="M3 7.5v-2a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v2"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Offline Records</span>
                         <span class="btn-sub">saved on this device</span>
@@ -72,7 +72,7 @@
                 </button>
                 <span class="btn-group-divider" aria-hidden="true"></span>
                 <button type="button" id="myDraftsBtn" class="btn-open-file" title="Browse saved drafts and open one to continue editing.">
-                    <span class="btn-icon">ðŸ“‚</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h7l2 2h9v10H3z"/><path d="M3 7.5v-2a1 1 0 0 1 1-1h5l2 2"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">My Drafts</span>
                         <span class="btn-sub">saved work</span>
@@ -84,14 +84,14 @@
             <div class="header-btn-group group-database no-print" role="group" aria-label="Cloud database">
                 <span class="group-label">Database</span>
                 <button type="button" id="saveToDbBtn" class="btn-save-db" title="Save this report as a final record to the shared cloud database.">
-                    <span class="btn-icon">â˜ï¸</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 1 1 .6-7.96A6 6 0 0 1 19 12a3 3 0 0 1-1 6z"/><path d="M12 16V9m-3 3 3-3 3 3"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Save to Database</span>
                         <span class="btn-sub">final save</span>
                     </span>
                 </button>
                 <button type="button" id="dbRecordsBtn" class="btn-db-records" title="Browse records saved in the cloud database and open one for editing.">
-                    <span class="btn-icon">ðŸ—„ï¸</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">DB Records</span>
                         <span class="btn-sub">browse &amp; edit</span>
@@ -103,14 +103,14 @@
             <div class="header-btn-group group-output no-print" role="group" aria-label="Create the final copy">
                 <span class="group-label">Final Copy</span>
                 <button type="button" id="savePdfBtn" title="Save the completed report as a PDF file.">
-                    <span class="btn-icon">ðŸ“„</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v6h5M9 14h7M9 18h7"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Save PDF</span>
                         <span class="btn-sub">final copy</span>
                     </span>
                 </button>
                 <button type="button" id="printBtn" title="Open the print dialog to print the report.">
-                    <span class="btn-icon">ðŸ–¨ï¸</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Print</span>
                         <span class="btn-sub">paper copy</span>
@@ -118,7 +118,7 @@
                 </button>
                 <!-- NEW FORM: starts a fresh blank form of the same type for the next patient -->
                 <button type="button" id="newFormBtn" title="Start a new blank form for the next patient.">
-                    <span class="btn-icon">ðŸ†•</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M14 3v6h6M12 15h7m-3.5-3.5v7"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">New Form</span>
                         <span class="btn-sub">next patient</span>
@@ -129,19 +129,19 @@
             <!-- TOOLS -->
             <div class="header-btn-group group-tools no-print" role="group" aria-label="Tools" style="background: transparent; border: none; box-shadow: none;">
                 <button type="button" id="clearFormBtn" class="btn-danger-action" title="Clear all fields and images to start a new report.">
-                    <span class="btn-icon">ðŸ—‘ï¸</span>
+                    <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m4 4v7m6-7v7"/></svg></span>
                     <span class="btn-label">
                         <span class="btn-main">Clear Form</span>
                     </span>
                 </button>
-                <button type="button" id="helpBtn" title="Show help for using this page.">â“ Help</button>
-                <button type="button" id="tutorialBtn" title="Take a quick tour of the buttons.">ðŸŽ“ Tutorial</button>
+                <button type="button" id="helpBtn" title="Show help for using this page."><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.4 1.6c-.9 1-2 1.2-2 2.9M12 17h.01"/></svg></span><span>Help</span></button>
+                <button type="button" id="tutorialBtn" title="Take a quick tour of the buttons."><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 10-5 10 5-10 5z"/><path d="M6 11v5c3.5 3 8.5 3 12 0v-5M22 9v6"/></svg></span><span>Tutorial</span></button>
             </div>
         </div>
     </header>
 
     <main class="main-content">
-        <!-- The "â† Back to Menu" button that used to sit here was moved into the
+        <!-- The Back to Menu button that used to sit here was moved into the
              header above, so the page now has exactly one back link instead of
              two, and it is no longer floating in the middle of the form. -->
 
@@ -274,7 +274,7 @@
 <!-- Procedure Description -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
     <label for="procedureDescription" class="form-label" style="margin-bottom: 0;">Procedure Description</label>
-    <button type="button" id="resetProcedureDescBtn" style="background: transparent; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; padding: 0; min-width: auto; box-shadow: none; height: auto; text-transform: none; letter-spacing: normal;">â†º Reset to Default</button>
+    <button type="button" id="resetProcedureDescBtn" style="background: transparent; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; padding: 0; min-width: auto; box-shadow: none; height: auto; text-transform: none; letter-spacing: normal;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36L3 8"/><path d="M3 3v5h5"/></svg> Reset to Default</button>
 </div>
 <textarea id="procedureDescription" name="procedureDescription" rows="12"></textarea>
 
@@ -359,7 +359,7 @@
                 <div class="form-group">
                     <label for="imageInput" class="form-label">Attach Endoscopy Images</label>
                     <input type="file" id="imageInput" multiple accept="image/*">
-                    <button type="button" id="clearImagesBtn" class="btn-clear-images">ðŸ—‘ï¸ Clear Images</button>
+                    <button type="button" id="clearImagesBtn" class="btn-clear-images"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m4 4v7m6-7v7"/></svg></span> Clear Images</button>
                     <div id="preview" class="image-preview"></div>
                 </div>
             </div>
@@ -398,18 +398,18 @@
         <div class="modal-content" style="max-width: 600px; text-align: left;">
             <h2 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0;">Button Guide</h2>
             <div style="margin-top: 15px; line-height: 1.6;">
-                <h3 style="font-size: 1em; color: var(--success-color); margin: 14px 0 6px;">ðŸ’¾ SAVE &amp; EDIT YOUR WORK (Draft Files)</h3>
-                <p style="margin: 4px 0;"><strong>ðŸ’¾ Save Draft:</strong> Saves your current work as a file on this computer/tablet. Open this file <em>later</em> to continue editing the report.</p>
-                <p style="margin: 4px 0;"><strong>ðŸ“‚ My Drafts:</strong> Browse saved drafts and open one to keep editing an existing report.</p>
-                <h3 style="font-size: 1em; color: var(--primary-color); margin: 14px 0 6px;">ðŸ“„ FINAL COPY &amp; PRINTING</h3>
-                <p style="margin: 4px 0;"><strong>ðŸ“„ Save PDF:</strong> Creates the <em>final</em> PDF copy of the completed report. Use this for printing, sending, or archiving.</p>
-                <p style="margin: 4px 0;"><strong>ðŸ–¨ï¸ Print:</strong> Opens the print dialog to print the report directly on paper.</p>
+                <h3 style="font-size: 1em; color: var(--success-color); margin: 14px 0 6px;">SAVE &amp; EDIT YOUR WORK (Draft Files)</h3>
+                <p style="margin: 4px 0;"><strong>Save Draft:</strong> Saves your current work as a file on this computer/tablet. Open this file <em>later</em> to continue editing the report.</p>
+                <p style="margin: 4px 0;"><strong>My Drafts:</strong> Browse saved drafts and open one to keep editing an existing report.</p>
+                <h3 style="font-size: 1em; color: var(--primary-color); margin: 14px 0 6px;">FINAL COPY &amp; PRINTING</h3>
+                <p style="margin: 4px 0;"><strong>Save PDF:</strong> Creates the <em>final</em> PDF copy of the completed report. Use this for printing, sending, or archiving.</p>
+                <p style="margin: 4px 0;"><strong>Print:</strong> Opens the print dialog to print the report directly on paper.</p>
                 <h3 style="font-size: 1em; color: var(--danger-color); margin: 14px 0 6px;">OTHER BUTTONS</h3>
-                <p style="margin: 4px 0;"><strong>ðŸ†• New Form:</strong> Starts a blank form of the same type for the next patient. Your current entries are cleared but you can undo this.</p>
-                <p style="margin: 4px 0;"><strong>ðŸ—‘ï¸ Clear Form:</strong> Removes all fields and images to start fresh (you can undo this).</p>
-                <p style="margin: 4px 0;"><strong>â“ Help:</strong> Shows this button guide.</p>
-                <p style="margin: 4px 0;"><strong>ðŸŽ“ Tutorial:</strong> Walks you through the main buttons one by one.</p>
-                <p style="margin-top: 10px; padding: 8px 10px; background: var(--primary-light, #e0f2fe); border-radius: 6px;"><strong>ðŸ’¡ Tip:</strong> Always use <strong>Save Draft</strong> while you are still working on a report. Use <strong>Save PDF</strong> only when the report is finished.</p>
+                <p style="margin: 4px 0;"><strong>New Form:</strong> Starts a blank form of the same type for the next patient. Your current entries are cleared but you can undo this.</p>
+                <p style="margin: 4px 0;"><strong>Clear Form:</strong> Removes all fields and images to start fresh (you can undo this).</p>
+                <p style="margin: 4px 0;"><strong>Help:</strong> Shows this button guide.</p>
+                <p style="margin: 4px 0;"><strong>Tutorial:</strong> Walks you through the main buttons one by one.</p>
+                <p style="margin-top: 10px; padding: 8px 10px; background: var(--primary-light, #e0f2fe); border-radius: 6px;"><strong>Tip:</strong> Always use <strong>Save Draft</strong> while you are still working on a report. Use <strong>Save PDF</strong> only when the report is finished.</p>
             </div>
             <div style="text-align: right; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                 <button id="closeHelpBtn" class="btn-secondary">Close</button>
@@ -476,10 +476,10 @@
      mirror into the IndexedDB offline database. An un-stamped local
      draft is now SHOWN but never SHARED: allowing it to be pushed is what
      re-created the duplicates after a clean delete (38 -> 69 on every refresh). -->
-    <script src="../function/draftsBrowser.js?v=v35f" defer></script>
+    <script src="../function/draftsBrowser.js?v=v35g" defer></script>
     <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
-    <script src="../function/index.js?v=v36i" defer></script>
-    <script src="../function/formExitGuard.js?v=v2" defer></script>
+    <script src="../function/index.js?v=v36j" defer></script>
+    <script src="../function/formExitGuard.js?v=v3" defer></script>
     
 </body>
 </html>

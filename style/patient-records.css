@@ -374,7 +374,7 @@ body.cf4-page #patientRecordsBtn .btn-sub {
    POSSIBLE EXISTING PATIENT MODAL
    ========================================= */
 .ent-dup-modal {
-    z-index: 10005;
+    z-index: 10070;
     padding: 16px;
 }
 .ent-dup-dialog {

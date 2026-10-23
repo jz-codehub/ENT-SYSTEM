@@ -6025,8 +6025,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         if (!store || typeof store.listRecords !== 'function') {
             return [];
         }
+        const bridge = window.EntFormBridge;
+        const reportType = String((bridge && bridge.reportType) || '').trim().toLowerCase();
+        if (['nasal', 'laryngeal', 'cf4'].indexOf(reportType) === -1) {
+            return [];
+        }
         try {
-            const records = await store.listRecords();
+            const records = await store.listRecords(reportType);
             return Array.isArray(records) ? records.filter(Boolean) : [];
         } catch (error) {
             console.warn('[OfflineViewer] Failed to load offline records:', error);

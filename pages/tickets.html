@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v33ak">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/tickets.css?v=v33am">
+    <link rel="stylesheet" href="../style/tickets.css?v=v33an">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
 <body class="ent-tk-page">
@@ -21,16 +21,26 @@
          Security note: the browser never names an owner. clinic_id,
          created_by and author_id are STAMPED server-side from the caller's
          live staff_profiles row, and RLS narrows every read to this clinic. -->
-    <header class="header ent-tk-header">
-        <div class="header-content">
-            <a class="ent-btn ent-tk-back" href="../index.html" title="Back to the dashboard">&larr; Back to Menu</a>
-            <div class="ent-tk-headtools">
+    <header class="report-header no-print ent-tk-header">
+        <div class="header-bar">
+            <div class="header-brand">
+                <img src="../image/cumc-logo.png" alt="Capitol University Medical Center" class="logo">
+                <span class="header-titles">
+                    <span class="header-hospital">CAPITOL UNIVERSITY MEDICAL CENTER</span>
+                    <h1>REPORT A PROBLEM</h1>
+                </span>
+                <img src="../image/ent-logo.webp" alt="ENT Endoscopy System" class="logo">
+            </div>
+            <div class="header-meta">
                 <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">connecting&hellip;</span></span>
                 <div class="header-user-slot" id="headerUserSlot"></div>
             </div>
         </div>
     </header>
     <main class="ent-tk-main">
+        <div class="ent-page-nav">
+            <a class="back-button back-button-solid ent-page-back" href="../index.html" title="Back to Menu">&larr; Back to Menu</a>
+        </div>
         <!-- THE HERO. Answers two questions before anything is clicked:
              how much of my work is still open, and where do I start?
              The button is the only loud thing here, on purpose. -->
