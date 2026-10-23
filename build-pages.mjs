@@ -38,6 +38,7 @@ const OUT = join(ROOT, 'dist')
 // gets published - audit_frontend.mjs asserts against the same set. A page
 // that nobody adds here is NOT published, which is the safe default.
 const PAGES = [
+  '_redirects',
   'index.html',
   'pages/login.html',
   'pages/offlineWorkspace.html',
