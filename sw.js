@@ -1107,19 +1107,34 @@ async function matchCachedNavigation(req) {
     const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
     const requestedPath = requestedUrl.pathname.replace(/\/+$/, '');
     const hasTrailingSlash = requestedUrl.pathname.endsWith('/');
-    // At root scope '/' the old `scopePath + '/'` produced '//', which never
-    // matches a real path, so every sub-page navigation (e.g. /pages/*) was
-    // wrongly treated as out-of-scope and sent to the login fallback.
-    const scopePrefix = scopePath === '/' ? '/' : scopePath + '/';
+
+    // Scope prefix used to test whether a navigation is within the worker's
+    // scope, and to strip the scope when building candidate cache keys.
+    //   - Root scope '/'  -> scopePath is '', prefix is '/'
+    //   - Sub-path scope  -> scopePath is '/app', prefix is '/app/'
+    const scopePrefix = scopePath === '' ? '/' : scopePath + '/';
     if (requestedPath !== scopePath && !requestedPath.startsWith(scopePrefix)) return null;
 
     const candidates = [];
-    if (requestedPath === scopePath || requestedPath === scopePath + '/index.html') {
+
+    // Root: / or /index.html
+    if (requestedPath === scopePath || requestedPath === scopePrefix + 'index.html') {
         candidates.push(new URL('index.html', scopeUrl).href);
-    } else if (hasTrailingSlash) {
-        candidates.push(new URL(requestedPath.slice(scopePath.length + 1) + '/index.html', scopeUrl).href);
-    } else if (!/\.[^/]+$/.test(requestedPath)) {
-        candidates.push(new URL(requestedPath.slice(scopePath.length + 1) + '.html', scopeUrl).href);
+    }
+    // Trailing-slash directory: /pages/ -> /pages/index.html
+    else if (hasTrailingSlash) {
+        const rel = requestedPath.slice(scopePrefix.length);
+        candidates.push(new URL(rel + 'index.html', scopeUrl).href);
+    }
+    // Clean URL without extension: /pages/nasalEndoscopy -> /pages/nasalEndoscopy.html
+    else if (!/\.[^/]+$/.test(requestedPath)) {
+        const rel = requestedPath.slice(scopePrefix.length);
+        candidates.push(new URL(rel + '.html', scopeUrl).href);
+    }
+    // URL WITH .html that failed exact match: try the clean URL cache key too
+    else if (/\.html?$/i.test(requestedPath)) {
+        const rel = requestedPath.replace(/\.html?$/i, '').slice(scopePrefix.length);
+        candidates.push(new URL(rel, scopeUrl).href);
     }
 
     for (const candidate of candidates) {
