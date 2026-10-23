@@ -859,7 +859,9 @@
 //      retaining their primary doctor scope; no other role gets local access.
 // v45: cached pages/resources now survive slow-network timeouts, HTTP error
 //      responses, and Cloudflare clean-URL navigation.
-const CACHE_NAME = 'ent-report-system-v45-offline-navigation';
+// v46: request clean report-page URLs directly from Cloudflare on navigation,
+//      avoiding its .html -> clean-URL 307 while preserving .html cache keys.
+const CACHE_NAME = 'ent-report-system-v46-page-navigation';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
@@ -1128,8 +1130,7 @@ async function matchCachedNavigation(req) {
     }
     // Clean URL without extension: /pages/nasalEndoscopy -> /pages/nasalEndoscopy.html
     else if (!/\.[^/]+$/.test(requestedPath)) {
-        const rel = requestedPath.slice(scopePrefix.length);
-        candidates.push(new URL(rel + '.html', scopeUrl).href);
+        candidates.push(new URL(requestedPath.slice(scopePrefix.length) + '.html', scopeUrl).href);
     }
     // URL WITH .html that failed exact match: try the clean URL cache key too
     else if (/\.html?$/i.test(requestedPath)) {
@@ -1156,7 +1157,26 @@ self.addEventListener('fetch', (evt) => {
         let fresh = null;
         let networkError = null;
         try {
-            fresh = await fetchWithTimeout(req);
+            let networkRequest = req;
+            if (isNav && sameOrigin) {
+                const requestUrl = new URL(req.url);
+                const scopeUrl = new URL(self.registration.scope);
+                const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
+                const scopePrefix = scopePath ? scopePath + '/' : '/';
+                const relativePath = requestUrl.pathname.startsWith(scopePrefix)
+                    ? requestUrl.pathname.slice(scopePrefix.length)
+                    : '';
+                if (/^pages\/.*\.html?$/i.test(relativePath)) {
+                    requestUrl.pathname = requestUrl.pathname.replace(/\.html?$/i, '');
+                    networkRequest = new Request(requestUrl.href, {
+                        method: req.method,
+                        headers: req.headers,
+                        credentials: req.credentials,
+                        redirect: 'follow'
+                    });
+                }
+            }
+            fresh = await fetchWithTimeout(networkRequest);
             // Refresh the cache from the copy we just received, so the next
             // offline load is still warm. Only successful same-origin GETs
             // are stored; an HTTP error is treated like a network failure so

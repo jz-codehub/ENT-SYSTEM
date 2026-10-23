@@ -113,7 +113,12 @@
         function targetPage() {
             const raw = new URLSearchParams(window.location.search).get('next') || '';
             const name = decodeURIComponent(raw).split('?')[0].split('/').pop() || '';
-            return /^[a-z0-9_-]+\.html$/i.test(name) ? name : '';
+            // Cloudflare Pages (and the local static server) may strip the
+            // ".html" extension, so accept a bare page name too and re-add the
+            // extension so EntPaths/pageUrl keep resolving correctly.
+            const base = name.replace(/\.html?$/i, '');
+            if (!/^[a-z0-9_-]+$/i.test(base)) return '';
+            return base + '.html';
         }
 
         /* Turn a page NAME into a URL that resolves from HERE.
