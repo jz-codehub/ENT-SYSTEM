@@ -285,6 +285,8 @@
            so offline work is stamped with the REAL owner and later sync
            lands on the right shelf. Nothing here can STATE a role: the
            snapshot is only ever copied from a live staff_profiles row.
+           Doctors retain their own shelf; secretaries are limited to their
+           assigned primary doctor's shelf while offline.
          · LOCAL ONLY. Offline access reads/writes THIS DEVICE's data. Every
            cloud call still needs a live Supabase session - apiRequest fails
            closed without one and RLS is untouched - and while the device is
@@ -392,7 +394,9 @@
             raw = JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY) || 'null');
         } catch (e) { raw = null; }
         if (!raw || raw.v !== 2 || !raw.username || !raw.salt || !raw.verifier ||
-            !raw.profile || !raw.profile.id || raw.profile.role !== 'doctor') {
+            !raw.profile || !raw.profile.id ||
+            (raw.profile.role !== 'doctor' &&
+                !(raw.profile.role === 'secretary' && raw.profile.assigned_doctor_id))) {
             return null;
         }
         const grantedAt = Number(raw.grantedAt);
@@ -416,7 +420,11 @@
        this device will not have offline access until the next sign-in. */
     async function writeOfflineGrant(username, password, profile) {
         try {
-            if (!profile || !profile.id || profile.role !== 'doctor' || !password) return false;
+            const supportedRole = profile && (
+                profile.role === 'doctor' ||
+                (profile.role === 'secretary' && profile.assigned_doctor_id)
+            );
+            if (!profile || !profile.id || !supportedRole || !password) return false;
             const subtle = subtleCrypto();
             if (!subtle) return false;
             // getRandomValues lives on crypto, not on subtle.
@@ -1233,13 +1241,15 @@
         // written. Awaited but never allowed to block the sign-in.
         try { await flushFailedAttempts(); } catch (e) { /* ignore */ }
         try { await logActivity('LOGIN', 'Signed in'); } catch (e) { /* ignore */ }
-        // OFFLINE ACCESS GRANT (v36a): THIS is the only moment a device ever
-        // earns offline access - GoTrue accepted the password AND the live
+        // OFFLINE ACCESS GRANT: THIS is the only moment a device ever earns
+        // offline access - GoTrue accepted the password AND the live
         // staff_profiles row passed every check. Store a PBKDF2 verifier of
         // the password plus the profile snapshot the offline UI needs; never
-        // the password itself. The sessionStorage mark means THIS tab signed
-        // in, so a reload after the wifi drops does not demand the password
-        // twice - closing the tab does, which is the point.
+        // the password itself. Doctors retain their own shelf; secretaries
+        // are granted only when a primary assigned doctor is present. The
+        // sessionStorage mark means THIS tab signed in, so a reload after the
+        // wifi drops does not demand the password twice - closing the tab
+        // does, which is the point.
         try {
             await writeOfflineGrant(username, password, currentProfile);
         } catch (e) { /* offline access is a convenience, never a failure reason */ }

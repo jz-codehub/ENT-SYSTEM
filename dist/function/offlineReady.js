@@ -263,7 +263,7 @@
                     ? window.EntAuth.getOfflineGrant()
                     : null;
                 if (!grant) {
-                    setState('needs-grant', 'App files ready. Sign in online on this device to prepare offline access.');
+                    setState('needs-grant', 'App files ready. Sign in online on this device as a Doctor or assigned Secretary to prepare offline access.');
                     return;
                 }
                 const expiry = new Date(grant.expiresAt);

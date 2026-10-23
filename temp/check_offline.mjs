@@ -35,7 +35,7 @@ const DIST = join(APP, 'dist')
 const shipsIn = (ref) => existsSync(join(DIST, ref))
 
 // --------------------------------------------------------------- page refs --
-const pages = ['index.html', 'pages/login.html', 'pages/admin.html', 'pages/settings.html',
+const pages = ['index.html', 'pages/login.html', 'pages/offlineWorkspace.html', 'pages/admin.html', 'pages/settings.html',
   'pages/nasalEndoscopy.html', 'pages/laryngealEndoscopy.html', 'pages/cf4Form.html',
   'pages/viewAll.html', 'pages/tickets.html', 'pages/records-doctor.html']
 
@@ -89,13 +89,13 @@ const deadCache = cacheEntries.filter(e => {
 ok('R4', 'every FILES_TO_CACHE entry exists (one 404 = install fails)',
   deadCache.length === 0, deadCache.join(' | '))
 
-// the doctor's offline path, entry by entry
-const offlinePath = ['pages/login.html', 'pages/nasalEndoscopy.html', 'pages/laryngealEndoscopy.html',
+// the report workflow offline path, entry by entry
+const offlinePath = ['pages/login.html', 'pages/offlineWorkspace.html', 'pages/nasalEndoscopy.html', 'pages/laryngealEndoscopy.html',
   'pages/cf4Form.html', 'function/index.js', 'function/cf4.js', 'function/offlineStore.js',
   'function/syncEngine.js', 'function/draftsBrowser.js', 'function/dbRecords.js',
   'function/auth.js', 'function/supabaseClient.js', 'js/lib/supabase.min.js', 'manifest.json']
 const notCached = offlinePath.filter(p => !cacheSet.has(p))
-ok('R5', 'the whole doctor offline path (login -> forms -> offline store -> sync) is pre-cached',
+ok('R5', 'the offline path (login -> workspace -> forms -> offline store -> sync) is pre-cached',
   notCached.length === 0, notCached.join(' | '))
 
 const notPublished = offlinePath.filter(p => !shipsIn(p))
@@ -104,10 +104,16 @@ ok('R6', 'and every one of those ships in dist/', notPublished.length === 0, not
 // fetch fallback must tolerate ?v=... or the offline start misses versioned URLs
 ok('R7', 'offline cache lookup uses ignoreSearch (so ?v=... script URLs resolve)',
   /caches\.match\(req,\s*\{\s*ignoreSearch:\s*true\s*\}\)/.test(sw))
-ok('R8', 'navigation falls back to index.html when a deep link is not cached',
-  /isNav[\s\S]{0,200}caches\.match\('index\.html'\)/.test(sw))
+ok('R8', 'offline entry and uncached navigation fall back to the cached login page',
+  /if \(isNav\) \{[\s\S]*?const loginUrl = new URL\('pages\/login\.html', self\.registration\.scope\);[\s\S]*?if \(loginPage\) return Response\.redirect\(loginUrl\.href, 302\)/.test(sw))
 ok('R9', 'install uses waitUntil + skipWaiting (SW goes live without a reload dance)',
   /addEventListener\('install'[\s\S]{0,300}skipWaiting\(\)/.test(sw))
+ok('R10', 'slow/offline requests time out so cached resources are used without waiting for the browser network timeout',
+  /const NETWORK_TIMEOUT_MS = 4000/.test(sw) && /Promise\.race\(\[\s*fetch\(req\)/.test(sw))
+ok('R11', 'non-success HTTP responses also fall back to cached resources',
+  /if \(fresh && fresh\.ok\) return fresh;[\s\S]*?const cached = sameOrigin/.test(sw))
+ok('R12', 'Cloudflare clean page URLs can resolve to their cached .html page',
+  /async function matchCachedNavigation\(req\)[\s\S]*?requestedPath\.slice\([^)]*\) \+ '\.html'/.test(sw))
 
 console.log('\n  ' + passed + ' passed, ' + failed + ' failed\n')
 process.exit(failed ? 1 : 0)

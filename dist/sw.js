@@ -855,7 +855,11 @@
 // v43: keep offline setup status visible until preparation completes. A
 //      five-second timer was hiding "Preparing offline access" before the
 //      worker could finish caching and verifying the app shell.
-const CACHE_NAME = 'ent-report-system-v43-offline-status';
+// v44: enable password-verified offline grants for assigned secretaries,
+//      retaining their primary doctor scope; no other role gets local access.
+// v45: cached pages/resources now survive slow-network timeouts, HTTP error
+//      responses, and Cloudflare clean-URL navigation.
+const CACHE_NAME = 'ent-report-system-v46-offline-workspace-switch';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
@@ -1078,6 +1082,49 @@ self.addEventListener('message', (evt) => {
 //  repeat visit, which is worth nothing next to serving a page that
 //  matches its own scripts.
 // =====================================================================
+const NETWORK_TIMEOUT_MS = 4000;
+
+async function fetchWithTimeout(req) {
+    let timer = null;
+    try {
+        return await Promise.race([
+            fetch(req),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('Network request timed out.')), NETWORK_TIMEOUT_MS);
+            })
+        ]);
+    } finally {
+        if (timer !== null) clearTimeout(timer);
+    }
+}
+
+async function matchCachedNavigation(req) {
+    const exact = await caches.match(req, { ignoreSearch: true });
+    if (exact) return exact;
+
+    const requestedUrl = new URL(req.url);
+    const scopeUrl = new URL(self.registration.scope);
+    const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
+    const requestedPath = requestedUrl.pathname.replace(/\/+$/, '');
+    const hasTrailingSlash = requestedUrl.pathname.endsWith('/');
+    if (requestedPath !== scopePath && !requestedPath.startsWith(scopePath + '/')) return null;
+
+    const candidates = [];
+    if (requestedPath === scopePath || requestedPath === scopePath + '/index.html') {
+        candidates.push(new URL('index.html', scopeUrl).href);
+    } else if (hasTrailingSlash) {
+        candidates.push(new URL(requestedPath.slice(scopePath.length + 1) + '/index.html', scopeUrl).href);
+    } else if (!/\.[^/]+$/.test(requestedPath)) {
+        candidates.push(new URL(requestedPath.slice(scopePath.length + 1) + '.html', scopeUrl).href);
+    }
+
+    for (const candidate of candidates) {
+        const cached = await caches.match(candidate, { ignoreSearch: true });
+        if (cached) return cached;
+    }
+    return null;
+}
+
 self.addEventListener('fetch', (evt) => {
     const req = evt.request;
     if (req.method !== 'GET') return;
@@ -1086,45 +1133,43 @@ self.addEventListener('fetch', (evt) => {
     let sameOrigin = false;
     try { sameOrigin = new URL(req.url).origin === self.location.origin; }
     catch (e) { sameOrigin = false; }
-
     evt.respondWith((async function () {
+        let fresh = null;
+        let networkError = null;
         try {
-            const fresh = await fetch(req);
+            fresh = await fetchWithTimeout(req);
             // Refresh the cache from the copy we just received, so the next
-            // offline load is still warm. Only same-origin GETs are stored.
-            if (fresh && fresh.status === 200 && sameOrigin) {
+            // offline load is still warm. Only successful same-origin GETs
+            // are stored; an HTTP error is treated like a network failure so
+            // it cannot replace a working offline copy.
+            if (fresh && fresh.ok && sameOrigin) {
                 const copy = fresh.clone();
                 caches.open(CACHE_NAME)
                     .then(function (cache) { return cache.put(req, copy); })
                     .catch(function () { /* a full disk must not fail the page */ });
             }
-            return fresh;
+            if (fresh && fresh.ok) return fresh;
         } catch (err) {
-            // Offline. The cache is the entire reason it exists.
-            // ignoreSearch: the app versions its scripts/stylesheets with
-            // ?v=... and hands drafts over with ?ent_draft=... - without
-            // this, a cold offline start misses every versioned URL while
-            // the pre-cache stores the same file without its query.
-            if (isNav) {
-                const requestedUrl = new URL(req.url);
-                const scopeUrl = new URL(self.registration.scope);
-                const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
-                const requestedPath = requestedUrl.pathname.replace(/\/+$/, '');
-                const isAppEntry = requestedPath === scopePath
-                    || requestedPath === scopePath + '/index.html';
-                const loginUrl = new URL('pages/login.html', self.registration.scope);
-                const loginPage = await caches.match(loginUrl.href, { ignoreSearch: true });
-
-                // A cold offline entry must land on the cached sign-in page
-                // rather than the network-only dashboard. Login verifies the
-                // user's prepared offline credential before opening the workspace.
-                if (loginPage && (isAppEntry || !await caches.match(req, { ignoreSearch: true }))) {
-                    return Response.redirect(loginUrl.href, 302);
-                }
-            }
-            const cached = await caches.match(req, { ignoreSearch: true });
-            if (cached) return cached;
-            throw err;
+            networkError = err;
         }
+
+        // Offline, slow connection, or an HTTP error: serve the cached
+        // resource. ignoreSearch supports versioned script/style URLs.
+        const cached = sameOrigin
+            ? (isNav ? await matchCachedNavigation(req) : await caches.match(req, { ignoreSearch: true }))
+            : null;
+        if (cached) return cached;
+
+        if (isNav) {
+            const loginUrl = new URL('pages/login.html', self.registration.scope);
+            const loginPage = await caches.match(loginUrl.href, { ignoreSearch: true });
+
+            // A cold offline entry or uncached route must go to the cached
+            // sign-in page rather than the browser's network error screen.
+            if (loginPage) return Response.redirect(loginUrl.href, 302);
+        }
+
+        if (fresh) return fresh;
+        throw networkError || new Error('Network request failed and no cached response exists.');
     })());
 });

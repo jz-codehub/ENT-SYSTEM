@@ -20,7 +20,8 @@
 //      guard() passes, scope() is the doctor's real shelf
 //   A9 ONLINE with only the offline mark: ready() refuses - a real
 //      Supabase sign-in is required again
-//   A10 logout() clears grant + mark + legacy key
+//   A10 logout() clears the verified session mark but keeps the password-
+//      protected grant for a later offline sign-in
 //   A11 auth.js registers the service worker on every page
 //   A12 readSession().offline marks the session as offline access
 //
@@ -218,6 +219,37 @@ const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
      !!A.currentUser() && A.currentUser().id === 'u-doc',
      JSON.stringify(A.currentUser() && A.currentUser().id));
 
+  /* ===== A4d: assigned secretary gets a grant limited to her doctor ===== */
+  const secretaryProfile = {
+    id: 'u-sec', username: 'testsec1', full_name: 'Secretary Test', role: 'secretary',
+    clinic_id: 'c1', assigned_doctor_id: 'u-assigned-doc',
+    assigned_doctor_name: 'Dr Assigned', is_active: true, must_change_password: false
+  };
+  const secretaryWindow = makeWindow({
+    ls: new Map(), ss: new Map(), onLine: true, pathname: '/pages/login.html'
+  });
+  secretaryWindow.__setRows([secretaryProfile]);
+  secretaryWindow.__session = { access_token: 'JWT-SECRETARY', user: { id: 'u-sec' } };
+  secretaryWindow.__signInResult = {
+    data: { user: { id: 'u-sec', email: 'testsec1@zztest.invalid' } }, error: null
+  };
+  try { loadScripts(secretaryWindow, ['paths.js', 'supabaseClient.js', 'auth.js']); }
+  catch (e) { console.log('  (secretary load error) ' + e); }
+  const secretaryAuth = secretaryWindow.EntAuth;
+  const secretaryLogin = await secretaryAuth.login('testsec1', 'Secretary-Pass-1');
+  const secretaryGrant = JSON.parse(secretaryWindow.localStorage.getItem('entOfflineGrantV2') || 'null');
+  ok('A4d', 'online sign-in grants an assigned secretary offline access',
+     secretaryLogin.success === true && !!secretaryGrant &&
+     secretaryGrant.profile.role === 'secretary' &&
+     secretaryGrant.profile.assigned_doctor_id === 'u-assigned-doc');
+  secretaryWindow.navigator.onLine = false;
+  const secretaryOffline = await secretaryAuth.loginOffline('testsec1', 'Secretary-Pass-1');
+  ok('A4e', 'offline secretary sign-in keeps her real identity and assigned-doctor scope',
+     secretaryOffline.success === true && secretaryOffline.user.role === 'secretary' &&
+     secretaryAuth.scope().doctorId === 'u-assigned-doc' &&
+     secretaryAuth.scope().seeAll === false,
+     JSON.stringify(secretaryAuth.scope()));
+
   /* ===== A8: reload the app OFFLINE (same storage, fresh window) ===== */
   const w2 = makeWindow({ ls: sharedLS, ss: sharedSS, onLine: false, pathname: '/pages/login.html' });
   w2.__setRows([PROFILE]);
@@ -259,14 +291,15 @@ const tick = (ms = 20) => new Promise(r => setTimeout(r, ms));
   ok('A9', 'ONLINE: the offline session is refused until Supabase signs in again',
      u4 === null, JSON.stringify(u4));
 
-  /* ===== A10: logout kills offline access entirely ===== */
+  /* ===== A10: logout clears the verified session but keeps the grant ===== */
   await w1.EntAuth.logout();
-  ok('A10a', 'logout clears the device offline grant',
-     w1.localStorage.getItem('entOfflineGrantV2') === null);
+  ok('A10a', 'logout keeps the password-protected grant for a later offline sign-in',
+     !!w1.localStorage.getItem('entOfflineGrantV2'));
   ok('A10b', 'logout clears any legacy plaintext key',
      w1.localStorage.getItem('entSavedLoginV1') === null);
   ok('A10c', 'logout clears this tab\'s offline session mark',
      w1.sessionStorage.getItem('entOfflineSessionV1') === null);
+  await secretaryAuth.logout();
 
   console.log(`\n  ${passed} passed, ${failed} failed\n`);
   process.exit(failed ? 1 : 0);
