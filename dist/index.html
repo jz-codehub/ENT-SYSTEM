@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="./style/index.css?v=v33y">
     <link rel="stylesheet" href="./style/auth.css?v=v33al">
-    <link rel="stylesheet" href="./style/dashboard.css?v=v36t">
+    <link rel="stylesheet" href="./style/dashboard.css?v=v36u">
     <link rel="stylesheet" href="./style/mobile.css?v=v8">
 </head>
 <body class="ent-dash-page">
@@ -453,6 +453,26 @@
             </div>
         </div>
     </div>
+    <div id="signOutModal" class="modal-overlay signout-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="signOutModalTitle" aria-describedby="signOutModalText" aria-hidden="true">
+        <div class="signout-dialog">
+            <span class="signout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 17l5-5-5-5M15 12H3"/>
+                    <path d="M12 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>
+                </svg>
+            </span>
+            <p class="signout-eyebrow">SESSION</p>
+            <h2 id="signOutModalTitle">Sign out?</h2>
+            <p id="signOutModalText">You can sign back in anytime. Are you sure you want to sign out of this device?</p>
+            <div class="signout-actions">
+                <button id="cancelSignOutBtn" type="button" class="signout-cancel">Stay signed in</button>
+                <button id="confirmSignOutBtn" type="button" class="signout-confirm">
+                    <span>Sign out</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
     </main>
 
     <!-- paths.js FIRST, and deliberately not deferred. It resolves page and
@@ -465,13 +485,13 @@
     <script src="function/supabaseClient.js" defer></script>
     <script src="function/offlineStore.js"></script>
 <script src="function/photoStore.js?v=v31ai" defer></script>
-<script src="function/auth.js?v=v36f" defer></script>
+<script src="function/auth.js?v=v36g" defer></script>
     <!-- v36a: offline preparation status pill (Preparing offline access /
          Offline-ready / Retry). Lives on the dashboard and the login page,
          the two pages every visit passes through. It registers nothing that
          auth.js has not already registered; it verifies the cache and
          reports the truth, including "not prepared yet" offline. -->
-    <script src="function/offlineReady.js?v=v36b" defer></script>
+    <script src="function/offlineReady.js?v=v36c" defer></script>
     <!-- syncEngine.js?v=v35c carries the OWNERSHIP GATE: this device may only
      push local records it actually created, which is what stopped one
      doctor's patients being copied onto a new doctor's shelf. -->

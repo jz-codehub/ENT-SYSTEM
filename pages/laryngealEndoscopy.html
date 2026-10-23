@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../style/index.css?v=v32d">
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
     <link rel="stylesheet" href="../style/patient-records.css?v=v36d">
-    <link rel="stylesheet" href="../style/auth.css?v=v36e">
+    <link rel="stylesheet" href="../style/auth.css?v=v36f">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
 <body>
@@ -211,6 +211,41 @@
                         <fieldset class="procedure-details-fieldset">
                             <legend>Procedure Details</legend>
                             
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="operationStarted" class="form-label">Operation Started</label>
+                                    <input type="time" id="operationStarted" name="operationStarted">
+                                </div>
+                                <div class="form-col">
+                                    <label for="operationEnded" class="form-label">Operation Ended</label>
+                                    <input type="time" id="operationEnded" name="operationEnded">
+                                </div>
+                                <div class="form-col">
+                                    <label for="durationOfOperation" class="form-label">Duration of Operation</label>
+                                    <input type="text" id="durationOfOperation" name="durationOfOperation" placeholder="e.g., 30 mins">
+                                </div>
+                                <div class="form-col">
+                                    <label for="scrubNurse" class="form-label">Scrub Nurse</label>
+                                    <input type="text" id="scrubNurse" name="scrubNurse" list="scrubNurseList" placeholder="Select or type...">
+                                    <datalist id="scrubNurseList"></datalist>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="classification" class="form-label">Classification</label>
+                                    <input type="text" id="classification" name="classification">
+                                </div>
+                                <div class="form-col">
+                                    <label for="rvsCode" class="form-label">RVS Code</label>
+                                    <input type="text" id="rvsCode" name="rvsCode" placeholder="e.g., 31290">
+                                </div>
+                                <div class="form-col">
+                                    <label for="icd10Code" class="form-label">ICD 10 Code</label>
+                                    <input type="text" id="icd10Code" name="icd10Code" placeholder="e.g., J38.0">
+                                </div>
+                            </div>
+
                             <!-- PRE-OPERATIVE DIAGNOSIS first -->
 <div class="form-row">
     <div class="form-col">
@@ -417,7 +452,7 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/auth.js?v=v36g" defer></script>
     <script src="../function/syncEngine.js?v=v35c" defer></script>
     <script src="../function/offlineStore.js?v=v35b" defer></script>
     <script src="../function/patientRecords.js?v=v33ak" defer></script>

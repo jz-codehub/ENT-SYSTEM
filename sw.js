@@ -852,7 +852,10 @@
 // v42: publish offlineWorkspace.html from the Pages allowlist. The worker
 //      already required this file in FILES_TO_CACHE, so excluding it from
 //      the deployed build returned a 404 and rejected the full SW install.
-const CACHE_NAME = 'ent-report-system-v42-offline-workspace';
+// v43: keep offline setup status visible until preparation completes. A
+//      five-second timer was hiding "Preparing offline access" before the
+//      worker could finish caching and verifying the app shell.
+const CACHE_NAME = 'ent-report-system-v43-offline-status';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

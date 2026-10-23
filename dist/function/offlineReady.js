@@ -70,7 +70,8 @@
                     'animation:entOrPulse .9s infinite alternate}',
                     '#entOfflineReady.is-ready .ent-or-dot{background:#22c55e}',
                     '#entOfflineReady.is-failed .ent-or-dot,',
-                    '#entOfflineReady.is-needs-internet .ent-or-dot{background:#f59e0b}',
+                    '#entOfflineReady.is-needs-internet .ent-or-dot,',
+                    '#entOfflineReady.is-needs-grant .ent-or-dot{background:#f59e0b}',
                     '#entOfflineReady.is-needs-internet{background:#7c2d12}',
                     '#entOfflineReady .ent-or-retry{border:0;border-radius:999px;padding:3px 10px;',
                     'font:inherit;background:#f59e0b;color:#111827;cursor:pointer}',
@@ -127,10 +128,11 @@
         // Retry helps whenever something is missing or could not start; it
         // is hidden only for "ready" and for "this browser has no service
         // worker support at all" (retrying would not change that).
-        retryBtn.hidden = (kind === 'ready' || kind === 'no-sw');
+        retryBtn.hidden = (kind === 'ready' || kind === 'no-sw' || kind === 'needs-grant');
         lastState = kind;
-        // Keep every status brief; progress updates do not restart the timer.
-        if (stateChanged) {
+        // Keep preparation and actionable states visible until the user can
+        // see whether this device is ready; only transient failures fade.
+        if (stateChanged && kind === 'failed') {
             hideTimer = setTimeout(function () {
                 hideTimer = null;
                 pill.classList.remove('is-visible');
@@ -257,7 +259,17 @@
                 return;
             }
             if (report.ok) {
-                setState('ready', 'Offline-ready \u2713 (' + report.total + ' files saved)');
+                const grant = window.EntAuth && typeof window.EntAuth.getOfflineGrant === 'function'
+                    ? window.EntAuth.getOfflineGrant()
+                    : null;
+                if (!grant) {
+                    setState('needs-grant', 'App files ready. Sign in online on this device to prepare offline access.');
+                    return;
+                }
+                const expiry = new Date(grant.expiresAt);
+                const date = Number.isNaN(expiry.getTime()) ? '' : ' \u00b7 access through ' +
+                    new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(expiry);
+                setState('ready', 'Offline-ready \u2713 (' + report.total + ' files saved)' + date);
                 return;
             }
             const missing = (report.missing || []).length;

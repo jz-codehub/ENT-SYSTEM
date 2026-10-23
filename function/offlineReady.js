@@ -130,9 +130,9 @@
         // worker support at all" (retrying would not change that).
         retryBtn.hidden = (kind === 'ready' || kind === 'no-sw' || kind === 'needs-grant');
         lastState = kind;
-        // Keep actionable and ready states visible so preparation can be
-        // verified before travel; transient failures and progress still fade.
-        if (stateChanged && kind !== 'ready' && kind !== 'needs-grant') {
+        // Keep preparation and actionable states visible until the user can
+        // see whether this device is ready; only transient failures fade.
+        if (stateChanged && kind === 'failed') {
             hideTimer = setTimeout(function () {
                 hideTimer = null;
                 pill.classList.remove('is-visible');

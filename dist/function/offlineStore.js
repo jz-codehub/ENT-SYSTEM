@@ -72,6 +72,17 @@
 
     function nowIso() { return new Date().toISOString(); }
 
+    function newSyncId() {
+        const bytes = new Uint8Array(16);
+        if (!window.crypto || typeof window.crypto.getRandomValues !== 'function') {
+            throw new Error('Secure randomness is unavailable; this report cannot be queued safely.');
+        }
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes, function (byte) {
+            return byte.toString(16).padStart(2, '0');
+        }).join('');
+    }
+
     function queueChanged() {
         try {
             window.dispatchEvent(new CustomEvent('ent-offline:queue-changed'));
@@ -168,7 +179,9 @@
                 const list = lsRead(FALLBACK_RECORDS)
                     .filter(function (item) { return item && item.key !== record.key; });
                 list.unshift(record);
-                lsWrite(FALLBACK_RECORDS, list.slice(0, QUEUE_LIMIT));
+                if (!lsWrite(FALLBACK_RECORDS, list.slice(0, QUEUE_LIMIT))) {
+                    throw new Error('Local storage is full; this report was not saved to the offline store.');
+                }
                 return record;
             }
             return new Promise(function (resolve, reject) {
@@ -230,7 +243,9 @@
                 const list = lsRead(FALLBACK_QUEUE)
                     .filter(function (item) { return item && item.id !== job.id; });
                 list.unshift(job);
-                lsWrite(FALLBACK_QUEUE, list.slice(0, QUEUE_LIMIT));
+                if (!lsWrite(FALLBACK_QUEUE, list.slice(0, QUEUE_LIMIT))) {
+                    throw new Error('Local storage is full; this report was saved but could not be queued for sync.');
+                }
                 return job;
             }
             return new Promise(function (resolve, reject) {
@@ -351,26 +366,79 @@
             reportType: reportTypeOf(draft.reportType),
             offlineSavedAt: nowIso(),
             synced: false,
-            lastSyncError: ''
+            syncStatus: 'pending',
+            lastSyncError: '',
+            waitForCloudPush: !!(cloudPush && typeof cloudPush.then === 'function')
         });
-        return putRecord(record).then(function () {
-            return enqueue(record.key);
-        }).then(function () {
-            if (cloudPush && typeof cloudPush.then === 'function') {
-                cloudPush.then(function (ok) {
-                    if (ok) markSynced(record.key).catch(function () { /* queue keeps it */ });
-                }).catch(function () { /* offline: the queue keeps the job */ });
+        return getRecord(record.key).then(function (previous) {
+            if (!record.baseUpdatedAt && previous && previous.baseUpdatedAt) {
+                record.baseUpdatedAt = previous.baseUpdatedAt;
             }
-            return record;
+            try {
+                record.syncId = newSyncId();
+            } catch (error) {
+                record.syncStatus = 'failed';
+                record.lastSyncError = error.message;
+                record.waitForCloudPush = false;
+                return putRecord(record).then(function () {
+                    return { saved: true, queued: false, record: record, error: record.lastSyncError, savedResult: true };
+                });
+            }
+            return putRecord(record).then(function () {
+                return enqueue(record.key, record.syncId);
+            });
+        }).then(function (job) {
+            if (job && job.savedResult) return job;
+            if (!job) {
+                record.syncStatus = 'failed';
+                record.lastSyncError = 'The report is saved locally, but could not be added to the sync queue.';
+                record.waitForCloudPush = false;
+                return putRecord(record).then(function () {
+                    return { saved: true, queued: false, record: record, error: record.lastSyncError };
+                });
+            }
+            if (cloudPush && typeof cloudPush.then === 'function') {
+                cloudPush.then(function (result) {
+                    const ok = result === true || !!(result && result.success === true);
+                    return getRecord(record.key).then(function (current) {
+                        if (!current || current.syncId !== record.syncId) return null;
+                        if (!ok) {
+                            current.waitForCloudPush = false;
+                            return putRecord(current);
+                        }
+                        const baseVersion = result && typeof result === 'object' ? result.sharedAt : '';
+                        const photoCount = record.formData && Array.isArray(record.formData.images)
+                            ? record.formData.images.filter(function (image) {
+                                return typeof image === 'string' && image.indexOf('data:image') === 0;
+                            }).length
+                            : 0;
+                        return markSynced(record.key, baseVersion, photoCount).then(function (synced) {
+                            if (!synced) throw new Error('The cloud save succeeded, but its local sync status could not be saved.');
+                            return markJobDone(job.id);
+                        });
+                    });
+                }).catch(function (error) {
+                    console.warn('[EntOfflineStore] immediate cloud save did not finish:', error);
+                    getRecord(record.key).then(function (current) {
+                        if (!current) return;
+                        current.waitForCloudPush = false;
+                        return putRecord(current);
+                    }).catch(function (storageError) {
+                        console.warn('[EntOfflineStore] could not release deferred sync:', storageError);
+                    });
+                });
+            }
+            return { saved: true, queued: true, record: record };
         }).catch(function (error) {
-            console.warn('[EntOfflineStore] could not save offline:', error);
-            return null;
+            console.error('[EntOfflineStore] could not save offline:', error);
+            return { saved: false, queued: false, record: null,
+                error: (error && error.message) || 'Could not save this report to offline storage.' };
         });
     }
 
     // One job per record key: a re-save refreshes the SAME job (attempts
     // reset) rather than stacking a second one for the same patient.
-    function enqueue(recordKey) {
+    function enqueue(recordKey, syncId) {
         const key = String(recordKey || '');
         if (!key) return Promise.resolve(null);
         return allJobs().then(function (jobs) {
@@ -382,6 +450,7 @@
                 existing.attempts = 0;
                 existing.nextRetryAt = 0;
                 existing.lastError = '';
+                existing.syncId = syncId || existing.syncId;
                 existing.updatedAt = nowIso();
                 return putJob(existing).then(function (saved) {
                     queueChanged();
@@ -396,6 +465,7 @@
             const job = {
                 id: 'q|' + key,
                 recordKey: key,
+                syncId: syncId || '',
                 status: 'pending',
                 attempts: 0,
                 nextRetryAt: 0,
@@ -418,13 +488,18 @@
     function dueJobs(now) {
         const at = typeof now === 'number' ? now : Date.now();
         return allJobs().then(function (jobs) {
-            return jobs
+            const due = jobs
                 .filter(function (job) {
                     return job && job.status === 'pending' && Number(job.nextRetryAt || 0) <= at;
                 })
                 .sort(function (a, b) {
                     return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
                 });
+            return Promise.all(due.map(function (job) {
+                if (job.syncId) return job;
+                job.syncId = newSyncId();
+                return putJob(job);
+            }));
         });
     }
 
@@ -443,20 +518,53 @@
             job.lastError = String(message || 'sync failed');
             job.nextRetryAt = Date.now() + (Number(delayMs) > 0 ? Number(delayMs) : 15000);
             job.updatedAt = nowIso();
-            return putJob(job);
+            return putJob(job).then(function (saved) {
+                return getRecord(job.recordKey).then(function (record) {
+                    if (!record) return saved;
+                    record.syncStatus = 'failed';
+                    record.lastSyncError = job.lastError;
+                    return putRecord(record).then(function () { return saved; });
+                });
+            });
+        }).catch(function () { return null; });
+    }
+
+    function markJobConflict(id, message) {
+        return allJobs().then(function (jobs) {
+            const job = jobs.filter(function (item) { return item && item.id === id; })[0];
+            if (!job) return null;
+            job.status = 'conflict';
+            job.lastError = String(message || 'Remote data changed; review before syncing.');
+            job.updatedAt = nowIso();
+            return putJob(job).then(function (saved) {
+                return getRecord(job.recordKey).then(function (record) {
+                    if (!record) return saved;
+                    record.syncStatus = 'failed';
+                    record.lastSyncError = job.lastError;
+                    return putRecord(record).then(function () { return saved; });
+                });
+            });
         }).catch(function () { return null; });
     }
 
     // The record made it to Supabase. The flag lives on the record (for
     // the UI and for diagnostics); the job is removed by markJobDone.
-    function markSynced(key) {
+    function markSynced(key, baseUpdatedAt, localPhotoCount) {
         return getRecord(key).then(function (record) {
             if (!record) return null;
             record.synced = true;
             record.syncedAt = nowIso();
+            record.syncStatus = 'synced';
             record.lastSyncError = '';
+            record.waitForCloudPush = false;
+            record.baseUpdatedAt = baseUpdatedAt || record.baseUpdatedAt || record.sharedAt || '';
+            record.localPhotoCount = Math.max(0, Number(localPhotoCount) || 0);
+            record.photosLocalOnly = record.localPhotoCount > 0;
             return putRecord(record);
-        }).catch(function () { return null; });
+        }).catch(function (error) {
+            console.error('[EntOfflineStore] could not persist synced status:', error);
+            return null;
+        });
     }
 
     function listRecords(reportType) {
@@ -517,9 +625,7 @@
 
     function jobCount() {
         return allJobs().then(function (jobs) {
-            return jobs.filter(function (job) {
-                return job && job.status === 'pending';
-            }).length;
+            return jobs.filter(Boolean).length;
         }).catch(function () { return 0; });
     }
 
@@ -552,6 +658,7 @@
         dueJobs,
         markJobDone,
         markJobFailed,
+        markJobConflict,
         markSynced,
         listRecords,
         getRecord,

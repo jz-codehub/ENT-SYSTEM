@@ -781,7 +781,7 @@
 //        viewer (an IIFE) into the MIDDLE of index.js's PDF html2canvas
 //        fallback try/catch, so index.js failed to parse and every header
 //        button it binds died on the nasal + laryngeal pages: Save to
-//        Offline Mode, Offline Records, Open Draft File, Save PDF, Print,
+//        Offline Mode, Offline Records, My Drafts, Save PDF, Print,
 //        New Form - and window.EntFormBridge, which dbRecords.js needs for
 //        Save to Database / DB Records (getBridge() returns null without
 //        it). The viewer IIFE now lives at the END of index.js, top level,
@@ -845,9 +845,20 @@
 // v36o: tablet and laptop breakpoints for reports and shared content.
 // v36p: dismiss offline setup errors after five seconds.
 // v36t: polish the dashboard header for phone-sized screens.
-const CACHE_NAME = 'ent-report-system-v36t-mobile-dashboard-header';
+// v36u: keep report-page sync and queue flushing out of offline-auth sessions.
+// v39a: add formExitGuard.js to the offline app shell. The three report
+//       pages use it to keep unfinished CF4, nasal and laryngeal reports in
+//       My Drafts before leaving or starting a new form.
+// v42: publish offlineWorkspace.html from the Pages allowlist. The worker
+//      already required this file in FILES_TO_CACHE, so excluding it from
+//      the deployed build returned a 404 and rejected the full SW install.
+// v43: keep offline setup status visible until preparation completes. A
+//      five-second timer was hiding "Preparing offline access" before the
+//      worker could finish caching and verifying the app shell.
+const CACHE_NAME = 'ent-report-system-v43-offline-status';
 const FILES_TO_CACHE = [
     './pages/login.html',
+    'pages/offlineWorkspace.html',
     './',
     'index.html',
     // Every page except index.html moved into pages/. These entries are
@@ -855,6 +866,7 @@ const FILES_TO_CACHE = [
     // written with the pages/ prefix and not as "../pages/..." - sw.js is not
     // inside pages/, so a "../" here would escape the app entirely.
     'pages/login.html',
+    'pages/offlineWorkspace.html',
     'pages/admin.html',
     'manifest.json',
     'pages/nasalEndoscopy.html',
@@ -878,6 +890,7 @@ const FILES_TO_CACHE = [
     'js/lib/supabase.min.js',
     'css/lib/cropper.min.css',
     'style/auth.css',
+    'style/offlineWorkspace.css',
     'style/admin.css',
     'style/dashboard.css',
     'style/index.css',
@@ -899,12 +912,14 @@ const FILES_TO_CACHE = [
     'function/patientRecords.js',
     'function/dbRecords.js',
     'function/draftsBrowser.js',
+    'function/formExitGuard.js',
     // OFFLINE MODE (v35c): the IndexedDB local database + pending sync
     // queue. Missing from the cache means the three form pages lose
     // "Save to Offline Mode" the moment the device goes offline - the
     // very situation the module exists for.
     'function/offlineStore.js',
     'function/offlineReady.js',
+    'function/offlineWorkspace.js',
     'function/storageStats.js',
     'function/photoStore.js',
     'function/ticketForm.js',
@@ -983,12 +998,12 @@ self.addEventListener('install', (evt) => {
     );
 });
 
-// Activate service worker: Removes old caches and takes control immediately
+// Activate service worker: replace only this app's previous versioned caches.
 self.addEventListener('activate', (evt) => {
     evt.waitUntil(
         caches.keys().then((keyList) => {
             return Promise.all(keyList.map((key) => {
-                if (key !== CACHE_NAME) {
+                if (key !== CACHE_NAME && key.indexOf('ent-report-system-v') === 0) {
                     console.log('[ServiceWorker] Removing old cache', key);
                     return caches.delete(key);
                 }
@@ -1090,12 +1105,25 @@ self.addEventListener('fetch', (evt) => {
             // ?v=... and hands drafts over with ?ent_draft=... - without
             // this, a cold offline start misses every versioned URL while
             // the pre-cache stores the same file without its query.
+            if (isNav) {
+                const requestedUrl = new URL(req.url);
+                const scopeUrl = new URL(self.registration.scope);
+                const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
+                const requestedPath = requestedUrl.pathname.replace(/\/+$/, '');
+                const isAppEntry = requestedPath === scopePath
+                    || requestedPath === scopePath + '/index.html';
+                const loginUrl = new URL('pages/login.html', self.registration.scope);
+                const loginPage = await caches.match(loginUrl.href, { ignoreSearch: true });
+
+                // A cold offline entry must land on the cached sign-in page
+                // rather than the network-only dashboard. Login verifies the
+                // user's prepared offline credential before opening the workspace.
+                if (loginPage && (isAppEntry || !await caches.match(req, { ignoreSearch: true }))) {
+                    return Response.redirect(loginUrl.href, 302);
+                }
+            }
             const cached = await caches.match(req, { ignoreSearch: true });
             if (cached) return cached;
-            if (isNav) {
-                const home = await caches.match('index.html');
-                if (home) return home;
-            }
             throw err;
         }
     })());

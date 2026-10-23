@@ -1971,6 +1971,353 @@ body.dark-mode .ent-db-card .ent-db-card-editable { background: rgba(245, 158, 1
     background: linear-gradient(135deg, var(--primary-color, #0ea5e9), #0369a1);
 }
 
+/* Unsaved-form exit prompt */
+.form-exit-overlay {
+    z-index: 10060;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.66);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.form-exit-overlay.is-open { opacity: 1; }
+.form-exit-overlay.is-closing { opacity: 0; }
+.form-exit-dialog {
+    width: min(100%, 460px);
+    padding: 30px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -20%, rgba(14, 165, 233, 0.14), transparent 60%),
+        var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    text-align: center;
+    box-shadow: 0 30px 90px rgba(2, 12, 27, 0.36);
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.form-exit-overlay.is-open .form-exit-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.form-exit-overlay.is-closing .form-exit-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.form-exit-icon {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 15px;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 19px;
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.15), rgba(2, 132, 199, 0.06));
+    color: var(--primary-color, #0ea5e9);
+}
+.form-exit-icon svg { width: 30px; height: 30px; }
+.form-exit-eyebrow {
+    margin: 0 0 6px;
+    color: var(--primary-color, #0ea5e9);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+.form-exit-dialog h2 {
+    margin: 0;
+    color: var(--text-color, #1f2937);
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.3;
+}
+.form-exit-dialog > p:last-of-type {
+    max-width: 350px;
+    margin: 10px auto 22px;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.91rem;
+    line-height: 1.6;
+}
+.form-exit-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+}
+.form-exit-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-color, #1f2937);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.form-exit-actions button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.1);
+}
+.form-exit-actions .form-exit-save {
+    grid-column: 1 / -1;
+    border: 0;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.24);
+}
+.form-exit-actions .form-exit-save:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow: 0 9px 20px rgba(3, 105, 161, 0.3);
+}
+.form-exit-actions .form-exit-discard {
+    border-color: rgba(220, 62, 75, 0.22);
+    background: rgba(220, 62, 75, 0.07);
+    color: #b42332;
+}
+.form-exit-actions button:disabled { cursor: wait; opacity: 0.7; }
+.form-exit-actions button:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.42);
+    outline-offset: 3px;
+}
+.form-exit-actions svg { width: 17px; height: 17px; flex: 0 0 auto; }
+
+/* Database save and record-loaded feedback */
+.db-feedback-overlay {
+    z-index: 10110;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.68);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.db-feedback-overlay.is-open { opacity: 1; }
+.db-feedback-overlay.is-closing { opacity: 0; }
+.db-feedback-dialog {
+    width: min(100%, 440px);
+    padding: 30px 28px 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -18%, rgba(22, 163, 74, 0.11), transparent 58%),
+        var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    text-align: center;
+    box-shadow: 0 30px 90px rgba(2, 12, 27, 0.38);
+    opacity: 0;
+    transform: translateY(13px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.db-feedback-overlay.is-open .db-feedback-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.db-feedback-overlay.is-closing .db-feedback-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.db-feedback-icon {
+    display: grid;
+    place-items: center;
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 16px;
+    border: 1px solid rgba(22, 163, 74, 0.2);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.06));
+    color: #16a34a;
+}
+.db-feedback-icon.is-loaded {
+    border-color: rgba(14, 165, 233, 0.2);
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.15), rgba(2, 132, 199, 0.06));
+    color: var(--primary-color, #0ea5e9);
+}
+.db-feedback-icon svg { width: 34px; height: 34px; }
+.db-feedback-eyebrow {
+    margin: 0 0 6px;
+    color: #15803d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+}
+.db-feedback-icon.is-loaded + .db-feedback-eyebrow { color: var(--primary-color, #0ea5e9); }
+.db-feedback-dialog h2 {
+    margin: 0;
+    color: var(--text-color, #1f2937);
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.3;
+}
+.db-feedback-dialog > p:nth-of-type(2) {
+    margin: 10px auto 17px;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.93rem;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+.db-feedback-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 21px;
+    padding: 13px 14px;
+    border: 1px solid rgba(22, 163, 74, 0.16);
+    border-radius: 13px;
+    background: rgba(22, 163, 74, 0.055);
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: left;
+}
+.db-feedback-detail strong { color: var(--text-color, #1f2937); }
+.db-feedback-detail-check {
+    display: grid;
+    place-items: center;
+    flex: 0 0 21px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background: #16a34a;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+.db-feedback-detail-check.is-blue { background: var(--primary-color, #0ea5e9); }
+.db-feedback-done {
+    width: 100%;
+    min-height: 47px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #15803d, #16a34a);
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.24);
+    font-size: 0.82rem;
+}
+.db-feedback-icon.is-loaded ~ .db-feedback-done {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.24);
+}
+.db-feedback-done:hover { transform: translateY(-1px); }
+.db-feedback-done:focus-visible {
+    outline: 3px solid rgba(22, 163, 74, 0.4);
+    outline-offset: 3px;
+}
+
+/* The shared feedback dialog is used after final database saves and record opens. */
+#messageModal {
+    z-index: 10100 !important;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.66);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+#messageModal .modal-content {
+    width: min(100%, 430px);
+    max-width: 430px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 21px !important;
+    background: var(--panel-bg-color, #fff);
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.34) !important;
+    animation: feedback-modal-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#messageModal .modal-header {
+    padding: 17px 21px !important;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.02em;
+}
+#messageModal .modal-body { padding: 22px 21px !important; font-size: 0.94rem !important; }
+#messageModal .modal-body p { color: var(--text-color, #1f2937); }
+#messageModal .modal-footer {
+    padding: 14px 18px !important;
+    background: var(--bg-color, #f8fafc) !important;
+    border-color: var(--border-color, #e2e8f0) !important;
+}
+#messageModal .modal-footer button {
+    min-width: 100px;
+    min-height: 42px;
+    padding: 10px 19px;
+    border-radius: 11px;
+    font-size: 0.8rem;
+}
+
+/* Record-open confirmation sits above the DB browser and uses the same polished surface. */
+.ent-db-confirm {
+    background: rgba(8, 20, 38, 0.68);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.ent-db-confirm-dialog {
+    width: min(430px, 94vw);
+    padding: 28px;
+    border-radius: 22px;
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.36);
+    transform: translateY(8px) scale(0.98);
+    animation: db-confirm-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.ent-db-confirm-icon {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 14px;
+    border: 1px solid rgba(14, 165, 233, 0.18);
+    border-radius: 18px;
+    background: rgba(14, 165, 233, 0.1);
+    color: var(--primary-color, #0ea5e9);
+}
+.ent-db-confirm-icon svg { width: 27px; height: 27px; }
+.ent-db-confirm-title { text-align: center; font-size: 1.2rem; letter-spacing: -0.025em; }
+.ent-db-confirm-text { margin: 10px 0 22px; color: var(--secondary-text-color, #64748b); text-align: center; }
+.ent-db-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ent-db-confirm-actions button {
+    min-height: 45px;
+    padding: 10px 12px;
+    border-radius: 11px;
+    font-size: 0.8rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ent-db-confirm-no { background: var(--bg-color, #f8fafc); }
+.ent-db-confirm-yes { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+@keyframes db-confirm-in { to { transform: translateY(0) scale(1); } }
+@keyframes feedback-modal-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+    .form-exit-dialog { padding: 26px 20px 20px; border-radius: 21px; }
+    .form-exit-actions { grid-template-columns: 1fr; }
+    .form-exit-actions .form-exit-save { grid-column: auto; grid-row: 1; }
+    .form-exit-actions .form-exit-keep { grid-row: 2; }
+    .form-exit-actions .form-exit-discard { grid-row: 3; }
+    .ent-db-confirm-actions { grid-template-columns: 1fr; }
+    .db-feedback-dialog { padding: 27px 20px 20px; border-radius: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .form-exit-overlay,
+    .form-exit-dialog,
+    .form-exit-actions button { transition-duration: 0.01ms; }
+    .ent-db-confirm-dialog { animation-duration: 0.01ms; }
+    #messageModal .modal-content { animation-duration: 0.01ms; }
+    .db-feedback-overlay,
+    .db-feedback-dialog { transition-duration: 0.01ms; }
+}
+
 @media (max-width: 600px) {
     .ent-drafts-card {
         flex-direction: column;

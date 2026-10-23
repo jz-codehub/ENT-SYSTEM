@@ -39,8 +39,8 @@
                 <input type="checkbox" id="rememberDevice" checked>
                 <span class="ent-remember-check" aria-hidden="true"></span>
                 <span class="ent-remember-copy">
-                    <strong>Remember me</strong>
-                    <small id="passwordManagerHint">Save your username and password on this device for your next sign-in.</small>
+                    <strong>Remember username</strong>
+                    <small id="passwordManagerHint">Only your username is saved on this device. Your password is never saved by ENT-SYSTEM.</small>
                 </span>
                 <span class="ent-remember-device" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -69,7 +69,7 @@
         <p class="ent-login-note">
             Records are separated per doctor &mdash; secretaries only see the patients of
             the doctor they are assigned to.<br>
-            This device stays authorized offline until you press Log out. Use only on a trusted device.<br>
+            Offline access is available for up to 180 days after you prepare this device with an online sign-in. Log out to lock the workspace; your reports remain on this device.<br>
             Forgot your password? Ask the clinic administrator.
         </p>
     </form>
@@ -78,12 +78,12 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js"></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36f"></script>
+    <script src="../function/auth.js?v=v36g"></script>
     <script src="../function/offlineStore.js"></script>
     <!-- v36a: "Preparing offline access / Offline-ready" status + retry.
          defer is fine: it registers with the service worker auth.js just
          registered and only draws a small status pill. -->
-    <script src="../function/offlineReady.js?v=v36b" defer></script>
+    <script src="../function/offlineReady.js?v=v36c" defer></script>
     <script>
     (function () {
         'use strict';
@@ -134,6 +134,10 @@
         function landingPage(user) {
             const next = targetPage();
             const isAdmin = !!(user && user.role === 'admin');
+            if (window.EntAuth && typeof window.EntAuth.isOfflineSession === 'function' &&
+                window.EntAuth.isOfflineSession()) {
+                return pageUrl('offlineWorkspace.html');
+            }
             // An admin never belongs on the doctor dashboard. index.html is
             // built for ONE doctor or secretary at a time, so putting an
             // admin there just shows the "Administrator access" gate. This
@@ -170,38 +174,24 @@
         const REMEMBERED_PASSWORD_KEY = 'entRememberedPasswordV1';
         rememberDeviceEl.checked = true;
 
-        function rememberUsername(username) {
+        function rememberCredentials(username, password) {
             try {
                 if (rememberDeviceEl.checked) {
                     localStorage.setItem(REMEMBERED_USERNAME_KEY, String(username || '').trim());
-                } else {
-                    localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-                }
-            } catch (error) {
-                console.warn('Unable to remember the username on this device.', error);
-            }
-        }
-
-        function rememberPassword(password) {
-            try {
-                if (rememberDeviceEl.checked) {
                     localStorage.setItem(REMEMBERED_PASSWORD_KEY, String(password || ''));
                 } else {
+                    localStorage.removeItem(REMEMBERED_USERNAME_KEY);
                     localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
                 }
             } catch (error) {
-                console.warn('Unable to remember the password on this device.', error);
+                console.warn('Unable to remember credentials on this device.', error);
             }
         }
 
         rememberDeviceEl.addEventListener('change', function () {
             rememberDeviceEl.closest('.ent-remember-control').classList.toggle('is-remembering', rememberDeviceEl.checked);
-            if (rememberDeviceEl.checked) rememberUsername(userEl.value);
-            else {
-                rememberUsername('');
-                rememberPassword('');
-                passEl.value = '';
-            }
+            if (rememberDeviceEl.checked) rememberCredentials(userEl.value, passEl.value);
+            else rememberCredentials('', '');
             updatePasswordManagerHint();
         });
         rememberDeviceEl.closest('.ent-remember-control').classList.toggle('is-remembering', rememberDeviceEl.checked);
@@ -209,9 +199,9 @@
         function updatePasswordManagerHint() {
             if (!passwordManagerHint) return;
             if (!rememberDeviceEl.checked) {
-                passwordManagerHint.textContent = 'Your username and password will not be saved on this device.';
+                passwordManagerHint.textContent = 'Your credentials will not be saved on this device.';
             } else {
-                passwordManagerHint.textContent = 'Your username and password will be saved on this device after sign-in.';
+                passwordManagerHint.textContent = 'Your username and password are saved on this device. Anyone with access to this device can sign in.';
             }
         }
 
@@ -227,17 +217,27 @@
             window.location.href = landingPage(result.user);
         }
 
-        function prefillSavedLogin() {
+        function prefillSavedUsername() {
             if (!rememberDeviceEl.checked) return;
             try {
                 const username = localStorage.getItem(REMEMBERED_USERNAME_KEY) || '';
-                const password = localStorage.getItem(REMEMBERED_PASSWORD_KEY) || '';
                 // Never fight the browser's own autofill or a user who already
                 // started typing: only fill an empty box.
                 if (username && !userEl.value) userEl.value = username;
+            } catch (error) {
+                console.warn('Unable to restore the remembered username.', error);
+            }
+        }
+
+        function prefillSavedPassword() {
+            if (!rememberDeviceEl.checked) return;
+            try {
+                const password = localStorage.getItem(REMEMBERED_PASSWORD_KEY) || '';
+                // Never fight the browser's own autofill or a user who already
+                // started typing: only fill an empty box.
                 if (password && !passEl.value) passEl.value = password;
             } catch (error) {
-                console.warn('Unable to restore the remembered sign-in.', error);
+                console.warn('Unable to restore the remembered password.', error);
             }
         }
 
@@ -338,14 +338,9 @@
                     passEl.select();
                     return;
                 }
-                rememberUsername(username);
-                rememberPassword(password);
+                rememberCredentials(username, passEl.value);
                 if (result.offline) {
-                    showError('Signed in with OFFLINE ACCESS (no internet). You are working with this device\u2019s previously authorized local data \u2014 cloud sync resumes after a sign-in with signal.', 'ok');
-                    btn.type = 'button';
-                    btn.disabled = false;
-                    btn.textContent = 'Continue anyway';
-                    btn.onclick = function () { window.location.href = landingPage(result.user); };
+                    window.location.replace(landingPage(result.user));
                     return;
                 }
                 continueToApplication(result);
@@ -419,7 +414,8 @@
 
         // Signed in here before? Come back with the boxes already filled,
         // so it is just "Sign in". Harmless when there is nothing saved.
-        prefillSavedLogin();
+        prefillSavedUsername();
+        prefillSavedPassword();
         updatePasswordManagerHint();
 
         /* OFFLINE ACCESS EXPLAINED (v36a)

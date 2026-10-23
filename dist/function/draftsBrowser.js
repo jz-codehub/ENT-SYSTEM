@@ -650,6 +650,11 @@
         draft.formData = formData;
         draft.savedAt = timestamp;
         draft.saveCount = Number(draft.saveCount || 0) + 1;
+        const offlineSnapshot = Object.assign({}, draft, {
+            formData: Object.assign({}, formData, {
+                images: Array.isArray(formData.images) ? formData.images.slice() : []
+            })
+        });
         drafts.unshift(draft);
 
         writeDrafts(drafts);
@@ -657,7 +662,9 @@
         // Silently skipped when offline; the Share button can retry later.
         const cloudPush = options && options.offlineOnly
             ? Promise.resolve(false)
-            : autoShareDraft(draft);
+            : autoShareDraft(draft).then(function (ok) {
+                return ok ? { success: true, sharedAt: draft.sharedAt || '' } : false;
+            });
         // OFFLINE MODE: mirror the draft into the IndexedDB offline database
         // (offlineStore.js) and put it on the pending-sync queue. The
         // autoShareDraft promise rides along so a save that already reached
@@ -665,10 +672,21 @@
         // second time by the sync engine.
         if (window.EntOfflineStore && typeof window.EntOfflineStore.recordSaved === 'function') {
             try {
-                window.EntOfflineStore.recordSaved(draft, cloudPush);
+                draft.offlinePersistPromise = window.EntOfflineStore.recordSaved(offlineSnapshot, cloudPush);
             } catch (error) {
                 console.warn('[EntDrafts] offline store mirror failed:', error);
+                draft.offlinePersistPromise = Promise.resolve({
+                    saved: false,
+                    queued: false,
+                    error: (error && error.message) || 'Could not save to offline storage.'
+                });
             }
+        } else {
+            draft.offlinePersistPromise = Promise.resolve({
+                saved: false,
+                queued: false,
+                error: 'Offline storage is unavailable on this device.'
+            });
         }
         return draft;
     }
@@ -809,6 +827,8 @@
             headers: { 'Prefer': 'resolution=merge-duplicates' },
             body: JSON.stringify([row])
         }).then(function () {
+            draft.sharedAt = now;
+            draft.sharedBy = me.username || '';
             const list = readDrafts();
             const target = list.filter(function (item) { return item.id === draft.id; })[0];
             if (!target) return true;
@@ -1599,15 +1619,15 @@
             : (shareBroken
                 ? '<span class="ent-drafts-state is-error" title="' + escapeHtml(draft.shareError) + '">&#9888; Not shared</span>'
                 : (shared
-                    ? '<span class="ent-drafts-state is-shared" title="Sent automatically. Your paired doctor or secretary can see this patient on their dashboard right now.">&#9989; Shared</span>'
-                    : '<span class="ent-drafts-state" title="Sharing to your team is automatic, so this draft is still only on this device (usually saved while offline). It will be sent by itself.">&#128228; On this device</span>'));
+                    ? '<span class="ent-drafts-state is-shared" title="A confirmed copy was shared with your paired doctor or secretary.">&#9989; Shared</span>'
+                    : '<span class="ent-drafts-state" title="This draft is only on this device and has not been confirmed in the cloud.">&#128228; On this device</span>'));
         // A doctor and his/her secretary are one team, so sharing is automatic:
         // there is no Share button on a healthy draft. It only shows when the
         // team copy is missing (failed send, or a draft from before it was
         // automatic), because that is the one case where a retry is useful.
         const shareTitle = shareBroken
             ? escapeHtml(draft.shareError)
-            : 'Send this draft to your team now (it is normally sent by itself)';
+            : 'Send this draft to your team now';
         // No Share button on a healthy draft (sharing is automatic), and none
         // at all on somebody else's: re-sending their draft would push THEIR
         // form under MY account's name.
@@ -1978,7 +1998,7 @@
                 <div class="ent-drafts-header">
                     <div class="ent-drafts-heading">
                         <h2>🗂️ Saved Drafts</h2>
-                        <p class="ent-drafts-subtitle">Kept on this device and <strong>sent to your team by itself</strong> (your paired doctor or secretary). Nothing to press — use "Open" to continue editing, or "Save copy" to keep a file. <strong>Team Drafts</strong> is the same shelf seen from your side: what your doctor \u2014 or your secretary \u2014 is working on.</p>
+                        <p class="ent-drafts-subtitle">Drafts are kept on this device. A cloud/team copy is shown only after Supabase confirms it. Use "Open" to continue editing, or "Save copy" to keep a file. <strong>Team Drafts</strong> is the same shelf seen from your side: what your doctor \u2014 or your secretary \u2014 is working on.</p>
                     </div>
                     <button type="button" class="ent-drafts-close" title="Close saved drafts" aria-label="Close saved drafts">&times;</button>
                 </div>
@@ -2117,7 +2137,7 @@
         if (toastElement) toastElement.classList.remove('is-visible');
     }
 
-    function showSavedToast(draft) {
+    function showSavedToast(draft, offlineResult) {
         if (!draft) return;
         const toast = buildToast();
         toastDraftId = draft.id || null;
@@ -2125,21 +2145,22 @@
         const detail = toast.querySelector('.ent-saved-toast-detail');
         const when = new Date(draft.savedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const who = `${draft.patientName || 'Untitled patient'} · ${draft.reportLabel || 'Draft'} · ${when}`;
-        // OFFLINE MODE: with no signal the save went into this device's
-        // offline database (IndexedDB) and joined the pending-sync queue.
-        // Keeping the old "nothing was uploaded" wording here would read
-        // like the work was thrown away - the doctor must see that it will
-        // reach the database BY ITSELF the moment the device finds a
-        // connection again.
+        // OFFLINE MODE: distinguish a locally persisted save from a confirmed
+        // cloud save; connectivity returning does not guarantee synchronization.
         const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
         if (offline) {
             toast.classList.add('is-offline');
-            if (title) title.textContent = '\uD83D\uDCE5 Saved to Offline Mode';
-            if (detail) detail.textContent = `${who} · will be saved to the database automatically when you have signal`;
+            const queued = !!(offlineResult && offlineResult.queued);
+            if (title) title.textContent = queued
+                ? '\uD83D\uDCE5 Saved Locally · Pending Sync'
+                : '\uD83D\uDCE5 Saved Locally · Sync Failed';
+            if (detail) detail.textContent = queued
+                ? `${who} · Supabase sync will be confirmed only after the server accepts it`
+                : `${who} · sync queue unavailable; this report is not confirmed in Supabase`;
         } else {
             toast.classList.remove('is-offline');
             if (title) title.textContent = 'Draft saved on this device';
-            if (detail) detail.textContent = `${who} · nothing was uploaded`;
+            if (detail) detail.textContent = `${who} · cloud sharing is confirmed separately`;
         }
         toast.classList.add('is-visible');
         if (toastTimer) clearTimeout(toastTimer);
@@ -2151,13 +2172,11 @@
         }, offline ? 16000 : 12000);
     }
 
-    // OFFLINE MODE: the doctor asked for a clear POPUP MODAL when saving with
-    // no signal. It says the record is saved to offline mode AND that it will
-    // reach the database by itself the moment the signal returns - so the
-    // doctor never has to wonder whether the work was really kept.
+    // OFFLINE MODE: the doctor gets a clear confirmation of local persistence
+    // and whether a sync job was queued, without claiming a cloud save.
     // Reuses the app's existing ent-modal / ent-modal-card (backdrop + animation)
     // and ent-btn.primary (OK button) so it looks like every other modal.
-    function showOfflineSaveModal(draft) {
+    function showOfflineSaveModal(draft, queued) {
         const existing = document.getElementById('entOfflineSaveModal');
         if (existing) existing.remove();
         const box = document.createElement('div');
@@ -2165,7 +2184,7 @@
         box.className = 'ent-modal';
         box.setAttribute('role', 'dialog');
         box.setAttribute('aria-modal', 'true');
-        box.setAttribute('aria-label', 'Saved to offline mode');
+        box.setAttribute('aria-label', queued ? 'Saved locally, pending sync' : 'Saved locally, sync unavailable');
         const patient = escapeHtml(draft.patientName || 'Untitled patient');
         const label = escapeHtml(draft.reportLabel || 'Draft');
         const when = new Date(draft.savedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2181,8 +2200,9 @@
             '<p style="margin:0 0 18px;font-size:0.99rem;line-height:1.55;color:var(--text-color);">' +
             '<strong>' + patient + '</strong> &middot; ' + label + '<br>' +
             'Naka-save na ang record ng pasyenteng ito sa offline mode ng device na ito.<br>' +
-            '<strong>Kapag balik na ang signal, awtomatikong ma-i-save ito sa inyong database.</strong><br>' +
-            'Walang kailangang gawin pa para ma-upload ito.' +
+            (queued
+                ? '<strong>Pending Sync.</strong> Makukumpirma lang ang save sa Supabase kapag tinanggap na ito ng server.'
+                : '<strong>Sync Failed.</strong> Nananatili ang lokal na kopya, pero hindi ito naka-queue para sa Supabase.') +
             '</p>' +
             '<div class="ent-modal-actions">' +
             '<button type="button" class="ent-btn primary" id="entOfflineSaveModalOk">OK</button>' +
@@ -2232,13 +2252,29 @@
         }
         const draft = saveDraft(reportType, formData, fileName, siteOverride);
         if (!draft) return null;
+        const offlineResult = await draft.offlinePersistPromise;
+        if (!offlineResult || !offlineResult.saved) {
+            showAlert(
+                'This report could not be confirmed in offline storage. Do not close this page yet. '
+                + ((offlineResult && offlineResult.error) || ''),
+                'Offline save failed'
+            );
+            setStatus('Offline save failed. Keep this page open and retry.', true);
+            return null;
+        }
+        if (!offlineResult.queued) {
+            showAlert(
+                'The report was saved on this device, but it could not be queued for synchronization. '
+                + 'It will not be reported as synced.',
+                'Sync queue unavailable'
+            );
+        }
+        document.dispatchEvent(new Event('formDataSaved'));
         flashSaveButton();
-        showSavedToast(draft);
-        // OFFLINE MODE: show the popup modal on top of the toast so the save
-        // confirmation cannot be missed - saved offline, auto-syncs to the
-        // database when the signal returns.
+        showSavedToast(draft, offlineResult);
+        // OFFLINE MODE: show local persistence and queue status clearly.
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-            showOfflineSaveModal(draft);
+            showOfflineSaveModal(draft, offlineResult.queued);
         }
         return draft;
     }
@@ -2291,7 +2327,3 @@
     }
 
 })(window);
-
-
-
-

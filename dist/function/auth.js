@@ -291,15 +291,24 @@
            online, ready() refuses the offline session and asks for a real
            sign-in, so "offline access to local data" and "authenticated
            against Supabase" can never be confused.
-         · LIFETIME. The device grant and offline sign-in marker persist
-           until explicit sign-out. A server-side revocation or deactivation
-           cannot reach a device while it is offline; offline access is only
-           to local data and cloud calls still require a live Supabase session.
+         · LIFETIME. The device grant lasts 180 days; an offline tab session
+           lasts at most 12 hours and explicit sign-out clears only that
+           session. A server-side revocation or deactivation cannot reach a
+           device while it is offline; cloud calls still require live auth.
        ------------------------------------------------------------------ */
     const OFFLINE_GRANT_KEY = 'entOfflineGrantV2';
     const OFFLINE_SESSION_KEY = 'entOfflineSessionV1';
     const LEGACY_SAVED_LOGIN_KEY = 'entSavedLoginV1';       // plaintext era: deleted
+    const REMEMBERED_PASSWORD_KEY = 'entRememberedPasswordV1';
     const PBKDF2_ITERATIONS = 210000;
+    const OFFLINE_GRANT_DAYS = 180;
+    const OFFLINE_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+    const OFFLINE_ALLOWED_PAGES = [
+        'offlineworkspace.html',
+        'nasalendoscopy.html',
+        'laryngealendoscopy.html',
+        'cf4form.html'
+    ];
     let offlineSessionActive = false;
 
     // The plaintext era is over - delete any legacy entry on sight, even
@@ -383,7 +392,14 @@
             raw = JSON.parse(localStorage.getItem(OFFLINE_GRANT_KEY) || 'null');
         } catch (e) { raw = null; }
         if (!raw || raw.v !== 2 || !raw.username || !raw.salt || !raw.verifier ||
-            !raw.profile || !raw.profile.id) {
+            !raw.profile || !raw.profile.id || raw.profile.role !== 'doctor') {
+            return null;
+        }
+        const grantedAt = Number(raw.grantedAt);
+        const expiresAt = Number(raw.expiresAt);
+        if (!Number.isFinite(grantedAt) || !Number.isFinite(expiresAt) ||
+            expiresAt <= Date.now() || expiresAt <= grantedAt) {
+            try { localStorage.removeItem(OFFLINE_GRANT_KEY); } catch (e) { /* ignore */ }
             return null;
         }
         // A grant for an already-inactive account is never usable.
@@ -400,7 +416,7 @@
        this device will not have offline access until the next sign-in. */
     async function writeOfflineGrant(username, password, profile) {
         try {
-            if (!profile || !profile.id || !password) return false;
+            if (!profile || !profile.id || profile.role !== 'doctor' || !password) return false;
             const subtle = subtleCrypto();
             if (!subtle) return false;
             // getRandomValues lives on crypto, not on subtle.
@@ -415,7 +431,8 @@
                 salt: salt,
                 verifier: verifier,
                 profile: profileSnapshot(profile),
-                grantedAt: Date.now()
+                grantedAt: Date.now(),
+                expiresAt: Date.now() + OFFLINE_GRANT_DAYS * 24 * 60 * 60 * 1000
             }));
             try { localStorage.removeItem(LEGACY_SAVED_LOGIN_KEY); } catch (e) { /* ignore */ }
             return true;
@@ -428,7 +445,11 @@
     // a box and nothing else - never the verifier, never the raw profile.
     function getOfflineGrant() {
         const grant = readOfflineGrant();
-        return grant ? { username: grant.username, grantedAt: grant.grantedAt } : null;
+        return grant ? {
+            username: grant.username,
+            grantedAt: grant.grantedAt,
+            expiresAt: grant.expiresAt
+        } : null;
     }
 
     function hasOfflineGrant() {
@@ -437,22 +458,23 @@
 
     function markOfflineSession(username) {
         try {
-            localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify({
+            sessionStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify({
                 username: String(username || ''),
                 at: Date.now()
             }));
-        } catch (e) { /* storage unavailable: offline entry then needs the password */ }
+            return true;
+        } catch (e) { return false; }
     }
 
     function readOfflineSessionMark() {
         try {
-            const raw = JSON.parse(localStorage.getItem(OFFLINE_SESSION_KEY) || 'null');
+            const raw = JSON.parse(sessionStorage.getItem(OFFLINE_SESSION_KEY) || 'null');
             return (raw && raw.username) ? raw : null;
         } catch (e) { return null; }
     }
 
     function clearOfflineSession() {
-        try { localStorage.removeItem(OFFLINE_SESSION_KEY); } catch (e) { /* ignore */ }
+        try { sessionStorage.removeItem(OFFLINE_SESSION_KEY); } catch (e) { /* ignore */ }
         offlineSessionActive = false;
     }
 
@@ -478,6 +500,10 @@
             const grant = readOfflineGrant();
             if (!grant) { clearOfflineSession(); return false; }
             if (String(mark.username).toLowerCase() !== String(grant.username).toLowerCase()) {
+                clearOfflineSession(); return false;
+            }
+            if (!Number.isFinite(Number(mark.at)) ||
+                Date.now() - Number(mark.at) > OFFLINE_SESSION_MAX_AGE_MS) {
                 clearOfflineSession(); return false;
             }
             if (signedInUser && signedInUser.id && String(grant.profile.id) !== String(signedInUser.id)) {
@@ -512,7 +538,7 @@
         const grant = readOfflineGrant();
         if (!grant || String(grant.username).toLowerCase() !== name.toLowerCase()) {
             if (!grant) {
-                return { success: false, error: 'This device is not ready for offline access. Connect to the internet and sign in once.' };
+                return { success: false, error: 'This device has no valid offline grant. Connect to the internet and sign in again to prepare offline access.' };
             }
             return { success: false, error: 'Wrong username or password.' };
         }
@@ -523,13 +549,15 @@
         }
         // Verified. The snapshot becomes the current user for THIS tab only;
         // no server was asked, and none will be until the device is online.
+        if (!markOfflineSession(grant.username)) {
+            return { success: false, error: 'This browser could not start a secure offline session. Check browser storage settings and try again.' };
+        }
         signedInUser = {
             id: grant.profile.id,
             email: grant.profile.username ? toEmail(grant.profile.username) : ''
         };
         currentProfile = grant.profile;
         offlineSessionActive = true;
-        markOfflineSession(grant.username);
         readyResolved = true;
         readyPromise = Promise.resolve(buildSafeUser());
         return { success: true, offline: true, user: buildSafeUser() };
@@ -1297,25 +1325,28 @@
        ------------------------------------------------------------------ */
     async function logout(options) {
         const opts = options || {};
+        const wasOfflineSession = offlineSessionActive;
         // Second line of defence. A second logout() while one is already
         // running must not re-enter and re-log.
         if (logoutBusy) return;
         logoutBusy = true;
         try {
-            try { await logActivity('LOGOUT', 'Signed out'); } catch (e) { /* ignore */ }
+            if (!wasOfflineSession) {
+                try { await logActivity('LOGOUT', 'Signed out'); } catch (e) { /* ignore */ }
+            }
             stopHeartbeat();
             try {
                 const sb = window.EntSupabase && window.EntSupabase.getClient
                     ? window.EntSupabase.getClient() : null;
-                if (sb) await sb.auth.signOut();
+                if (sb) {
+                    await sb.auth.signOut(wasOfflineSession ? { scope: 'local' } : undefined);
+                }
             } catch (e) { /* sign out locally regardless */ }
             clearSession();
-            // Signing out kills OFFLINE ACCESS TOO (v36a): the device-level
-            // grant, the legacy plaintext entry and this tab's offline
-            // marker all go with the cloud session. A shared clinic machine
-            // that was signed out must not still open local records in
-            // airplane mode.
-            clearOfflineAccess();
+            // Logout ends this tab's authenticated session but leaves the
+            // device grant available for a later password-verified offline
+            // sign-in. Patient drafts and queued reports are stored separately.
+            clearOfflineSession();
             if (!opts.silent) window.location.href = pageUrl('login.html');
         } finally {
             logoutBusy = false;
@@ -1394,6 +1425,58 @@
             .map(part => part[0].toUpperCase()).join('') || '?';
     }
 
+    function bindOfflineBackToMenu() {
+        const backButton = document.querySelector('.back-button');
+        if (!backButton || backButton.dataset.offlineMenuBound === 'true') return;
+        backButton.dataset.offlineMenuBound = 'true';
+        backButton.href = pageUrl('offlineWorkspace.html');
+        backButton.addEventListener('click', async function (event) {
+            if (!offlineSessionActive) return;
+            event.preventDefault();
+            backButton.setAttribute('aria-busy', 'true');
+            backButton.classList.add('is-saving-offline');
+            try {
+                const bridge = window.EntFormBridge;
+                const drafts = window.EntDrafts;
+                const data = bridge && typeof bridge.getData === 'function' ? bridge.getData() : null;
+                const draft = data && drafts && typeof drafts.saveOfflineDraft === 'function'
+                    ? drafts.saveOfflineDraft(bridge.reportType, data)
+                    : null;
+                if (draft && draft.offlinePersistPromise) {
+                    const result = await draft.offlinePersistPromise;
+                    if (result && result.saved) {
+                        window.location.href = pageUrl('offlineWorkspace.html');
+                        return;
+                    }
+                    const reason = result && result.error
+                        ? '\n\n' + result.error
+                        : '';
+                    if (!window.confirm(
+                        'This form could not be confirmed in local storage.' + reason +
+                        '\n\nReturn to the Offline Mode menu anyway? Unsaved changes may be lost.'
+                    )) return;
+                } else {
+                    const reason = data
+                        ? 'This form has not been saved as a local draft (a patient name may be required).'
+                        : 'The form data could not be read for a local draft save.';
+                    if (!window.confirm(
+                        reason + '\n\nReturn to the Offline Mode menu anyway? Unsaved changes may be lost.'
+                    )) return;
+                }
+                window.location.href = pageUrl('offlineWorkspace.html');
+            } catch (error) {
+                console.error('[EntAuth] Could not save the form before returning to Offline Mode:', error);
+                if (window.confirm(
+                    'The form could not be saved locally.' +
+                    '\n\nReturn to the Offline Mode menu anyway? Unsaved changes may be lost.'
+                )) window.location.href = pageUrl('offlineWorkspace.html');
+            } finally {
+                backButton.removeAttribute('aria-busy');
+                backButton.classList.remove('is-saving-offline');
+            }
+        });
+    }
+
     function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, c => (
             { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -1469,7 +1552,83 @@
             ${user.role === 'admin' ? '<a class="ent-user-settings" href="' + escapeHtml(pageUrl('settings.html')) + '" title="Form settings - letterhead, doctors, cloud sync" aria-label="Form settings"><span aria-hidden="true">&#9881;</span></a>' : ''}
             <button type="button" class="ent-user-logout" title="Sign out of this device" aria-label="Sign out"><span class="ent-user-logout-icon" aria-hidden="true">&#9099;</span><span class="ent-user-logout-text">Sign out</span></button>
         `;
-        chip.querySelector('.ent-user-logout').addEventListener('click', () => logout());
+        const logoutButton = chip.querySelector('.ent-user-logout');
+        logoutButton.addEventListener('click', () => {
+            let modal = document.getElementById('signOutModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'signOutModal';
+                modal.className = 'modal-overlay signout-overlay';
+                modal.style.display = 'none';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-labelledby', 'signOutModalTitle');
+                modal.setAttribute('aria-describedby', 'signOutModalText');
+                modal.setAttribute('aria-hidden', 'true');
+                modal.innerHTML = `
+                    <div class="signout-dialog">
+                        <span class="signout-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10 17l5-5-5-5M15 12H3"/>
+                                <path d="M12 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>
+                            </svg>
+                        </span>
+                        <p class="signout-eyebrow">SESSION</p>
+                        <h2 id="signOutModalTitle">Sign out?</h2>
+                        <p id="signOutModalText">You can sign back in anytime. Are you sure you want to sign out of this device?</p>
+                        <div class="signout-actions">
+                            <button id="cancelSignOutBtn" type="button" class="signout-cancel">Stay signed in</button>
+                            <button id="confirmSignOutBtn" type="button" class="signout-confirm">
+                                <span>Sign out</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            const confirmButton = document.getElementById('confirmSignOutBtn');
+            const cancelButton = document.getElementById('cancelSignOutBtn');
+
+            if (!confirmButton || !cancelButton) {
+                void logout();
+                return;
+            }
+
+            let isClosing = false;
+            const closeModal = () => {
+                if (isClosing) return;
+                isClosing = true;
+                modal.classList.remove('is-open');
+                modal.classList.add('is-closing');
+                document.removeEventListener('keydown', handleKeydown);
+                window.setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.setAttribute('aria-hidden', 'true');
+                    modal.classList.remove('is-closing');
+                    isClosing = false;
+                    logoutButton.focus();
+                }, 240);
+            };
+            const handleKeydown = (event) => {
+                if (event.key === 'Escape') closeModal();
+            };
+
+            confirmButton.onclick = () => {
+                closeModal();
+                void logout();
+            };
+            cancelButton.onclick = closeModal;
+            modal.onclick = (event) => {
+                if (event.target === modal) closeModal();
+            };
+            modal.classList.remove('is-closing');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            window.requestAnimationFrame(() => modal.classList.add('is-open'));
+            document.addEventListener('keydown', handleKeydown);
+            cancelButton.focus();
+        });
         // 0037: a secretary with more than one assigned doctor can re-open the
         // "working today at ..." picker here. Force a fresh list so a newly
         // added assignment shows up without a reload first. A secretary with a
@@ -1523,11 +1682,21 @@
             return;
         }
 
-        startHeartbeat();
-        renderChrome();
+        if (offlineSessionActive && OFFLINE_ALLOWED_PAGES.indexOf(page) === -1) {
+            window.location.replace(pageUrl('offlineWorkspace.html'));
+            return;
+        }
+
+        if (page !== 'offlineworkspace.html') {
+            startHeartbeat();
+            renderChrome();
+            if (offlineSessionActive) bindOfflineBackToMenu();
+        }
         // 0037: a secretary who may work under several doctors picks which
         // clinic she is at today. Fire-and-forget so it never delays the page.
-        try { ensureWorkingChoice(); } catch (e) { /* never block boot */ }
+        if (page !== 'offlineworkspace.html') {
+            try { ensureWorkingChoice(); } catch (e) { /* never block boot */ }
+        }
 
         // A revoked or deactivated session must land the user on the login
         // screen from wherever they are, not on a broken page.

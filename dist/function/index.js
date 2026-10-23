@@ -350,6 +350,59 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     // ===================================================================================
     const reportForm = document.getElementById("report-form");
 
+    const BUTTON_ICON_PATHS = {
+        saveDataBtn: ['M5 3h12l4 4v14H3V3h2zm2 0v6h10V3M7 21v-7h10v7'],
+        localDraftsBtn: ['M3 6h7l2 2h9v12H3z', 'M3 10h18'],
+        myDraftsBtn: ['M3 6h7l2 2h9v12H3z'],
+        saveToDbBtn: ['M4 5c0-1.1 3.6-2 8-2s8 .9 8 2-3.6 2-8 2-8-.9-8-2z', 'M4 5v6c0 1.1 3.6 2 8 2', 'M20 5v5', 'M4 11v6c0 1.1 3.6 2 8 2', 'M20 13v6', 'M15 16l2 2 4-5'],
+        dbRecordsBtn: ['M4 4h16v16H4z', 'M8 8h8', 'M8 12h8', 'M8 16h5'],
+        savePdfBtn: ['M6 2h9l5 5v15H6z', 'M14 2v6h6', 'M9 13h7', 'M9 16h7'],
+        printBtn: ['M6 9V3h12v6', 'M6 18H4V9h16v9h-2', 'M7 14h10v7H7z', 'M17 11h1'],
+        newFormBtn: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 8v8', 'M8 12h8'],
+        clearFormBtn: ['M4 7h16', 'M10 11v6', 'M14 11v6', 'M6 7l1 14h10l1-14', 'M9 7V4h6v3'],
+        helpBtn: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M9.5 9a2.6 2.6 0 1 1 4.2 2c-1.2.9-1.7 1.3-1.7 2.5', 'M12 17h.01'],
+        tutorialBtn: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M10 8l6 4-6 4z'],
+        clearImagesBtn: ['M4 7h16', 'M10 11v6', 'M14 11v6', 'M6 7l1 14h10l1-14', 'M9 7V4h6v3']
+    };
+
+    function initializeButtonIcons() {
+        Object.keys(BUTTON_ICON_PATHS).forEach(function (buttonId) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('fill', 'none');
+            svg.setAttribute('stroke', 'currentColor');
+            svg.setAttribute('stroke-width', '1.8');
+            svg.setAttribute('stroke-linecap', 'round');
+            svg.setAttribute('stroke-linejoin', 'round');
+            svg.setAttribute('aria-hidden', 'true');
+            svg.setAttribute('focusable', 'false');
+            BUTTON_ICON_PATHS[buttonId].forEach(function (pathData) {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                svg.appendChild(path);
+            });
+
+            const icon = button.querySelector('.btn-icon');
+            if (icon) {
+                icon.replaceChildren(svg);
+                return;
+            }
+
+            const label = buttonId === 'helpBtn' ? 'Help'
+                : buttonId === 'tutorialBtn' ? 'Tutorial'
+                    : 'Clear Images';
+            const iconWrapper = document.createElement('span');
+            iconWrapper.className = 'btn-icon';
+            iconWrapper.appendChild(svg);
+            button.replaceChildren(iconWrapper, document.createTextNode(label));
+        });
+    }
+
+    initializeButtonIcons();
+
     const imageInput = document.getElementById("imageInput");
     const previewDiv = document.getElementById("preview");
     const printDiv = document.getElementById("printDiv");
@@ -1253,45 +1306,6 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             });
         }
 
-        // Open saved data button - restore form data from a JSON file (for editing)
-        const openDataBtn = document.getElementById('openDataBtn');
-        if (openDataBtn) {
-            openDataBtn.addEventListener('click', () => {
-                showCustomConfirm('Opening a saved data file will replace the current form contents (including images). Continue?', (confirmed) => {
-                    if (!confirmed) return;
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.accept = '.txt,.json,text/plain,application/json,.pdf,application/pdf';
-                    input.addEventListener('change', async () => {
-                        if (!input.files || !input.files.length) return;
-                        const file = input.files[0];
-                        try {
-                            if (/\.(json|txt)$/i.test(file.name) || /json|text/.test(file.type || '')) {
-                                const text = await file.text();
-                                // "Save a copy" writes a readable header first, so the data
-                                // starts at the first brace - skip whatever comes before it.
-                                const start = text.indexOf('{');
-                                const formData = JSON.parse(start > 0 ? text.slice(start) : text);
-                                loadDataIntoForm(formData);
-                                saveToLocal();
-                                window.PatientRecords?.recordOpen(currentReportType, formData, { format: 'Draft', fileName: file.name });
-                                showCustomAlert('✅ SUCCESS! Form data loaded successfully!\n\nAll fields and images have been restored. You can now continue editing.', 'SUCCESS');
-                            } else {
-                                showCustomAlert('📄 PDF files are for printing / archiving.\n\nTo restore and EDIT a report, please use the copy file saved with "Save a copy" (💾).\n\nThe copy file works fully offline.', 'INFO');
-                            }
-                        } catch (err) {
-                            console.error('Error loading data:', err);
-                            showCustomAlert('❌ ERROR LOADING DATA\n\n' + err.message + '\n\nPlease select the correct saved copy file.', 'ERROR');
-                        } finally {
-                            document.body.removeChild(input);
-                        }
-                    });
-                    document.body.appendChild(input);
-                    input.click();
-                });
-            });
-        }
-        
         // REFACTORED: Clear Form & Undo Logic
         const clearFormBtn = document.getElementById('clearFormBtn');
         const undoClearBtn = document.createElement('button');
@@ -1351,7 +1365,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             const steps = [
                 { id: 'saveDataBtn', title: '💾 Save to Offline Mode', text: 'Saves your current work to this device\'s offline database (IndexedDB). Works with or without signal - the sync engine uploads it to the cloud automatically when you are back online.' },
                 { id: 'localDraftsBtn', title: '🗂️ Offline Records', text: 'Lists the records saved in offline mode on this device (IndexedDB). Open one to continue editing it. These sync to the cloud automatically when you are back online.' },
-                { id: 'openDataBtn', title: '📂 Open Draft File', text: 'Opens a saved draft file (.json) from this device so you can restore the report and keep editing it.' },
+                { id: 'myDraftsBtn', title: '📂 My Drafts', text: 'Browse saved drafts and open one to continue editing it.' },
                 { id: 'savePdfBtn', title: '📄 Save PDF', text: 'Creates the FINAL PDF copy of the completed report for printing, emailing, or archiving.' },
                 { id: 'printBtn', title: '🖨️ Print', text: 'Opens the print dialog immediately. Use this to print directly to a printer.' },
                 { id: 'newFormBtn', title: '🆕 New Form', text: 'Starts a fresh blank form of the same type for the next patient. You can undo this.' },
@@ -2062,7 +2076,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             restore: (data) => {
                 loadDataIntoForm(data);
                 saveToLocal();
+                document.dispatchEvent(new Event('formDataRestored'));
             },
+            startNew: () => clearFormWithoutConfirmation(true),
             alert: showCustomAlert
         };
 
@@ -5040,15 +5056,15 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         return `
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Nasal Findings</h3>
             <div style="font-size: 12px;">
-                <p style="margin: 0;"><strong>Septum:</strong> ${data.septum || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Discharge:</strong> ${data.discharge || 'None'}</p>
-                <p style="margin: 0;"><strong>Mucosa:</strong> ${data.mucosa || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Inferior Turbinate:</strong> ${data.it || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Middle Turbinate:</strong> ${data.mt || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Middle Meatus:</strong> ${data.mm || 'Clear'}</p>
-                <p style="margin: 0;"><strong>Inferior Meatus:</strong> ${data.im || 'Clear'}</p>
-                <p style="margin: 0;"><strong>Ostiomeatal Complex:</strong> ${data.omc || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Nasopharynx:</strong> ${data.nasopharynx || 'Normal'}</p>
+                <p style="margin: 0 0 3px;"><strong>Septum:</strong> ${escapeHtml(data.septum)}</p>
+                <p style="margin: 0 0 3px;"><strong>Discharge:</strong> ${escapeHtml(data.discharge)}</p>
+                <p style="margin: 0 0 3px;"><strong>Mucosa:</strong> ${escapeHtml(data.mucosa)}</p>
+                <p style="margin: 0 0 3px;"><strong>Inferior Turbinate:</strong> ${escapeHtml(data.it)}</p>
+                <p style="margin: 0 0 3px;"><strong>Middle Turbinate:</strong> ${escapeHtml(data.mt)}</p>
+                <p style="margin: 0 0 3px;"><strong>Middle Meatus:</strong> ${escapeHtml(data.mm)}</p>
+                <p style="margin: 0 0 3px;"><strong>Inferior Meatus:</strong> ${escapeHtml(data.im)}</p>
+                <p style="margin: 0 0 3px;"><strong>Ostiomeatal Complex:</strong> ${escapeHtml(data.omc)}</p>
+                <p style="margin: 0;"><strong>Nasopharynx:</strong> ${escapeHtml(data.nasopharynx)}</p>
             </div>
         `;
     }
@@ -5058,14 +5074,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         return `
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Laryngeal Findings</h3>
             <div style="font-size: 12px;">
-                <p style="margin: 0;"><strong>Epiglottis:</strong> ${data.epiglottis || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Vallecula:</strong> ${data.vallecula || 'Clear'}</p>
-                <p style="margin: 0;"><strong>Pyriform Sinuses:</strong> ${data.pyriformSinuses || 'Clear'}</p>
-                <p style="margin: 0;"><strong>Arytenoids:</strong> ${data.arytenoids || 'Mobile'}</p>
-                <p style="margin: 0;"><strong>False Vocal Cords:</strong> ${data.falseVocalCords || 'Normal'}</p>
-                <p style="margin: 0;"><strong>True Vocal Cords:</strong> ${data.trueVocalCords || 'Normal'}</p>
-                <p style="margin: 0;"><strong>Vocal Cord Mobility:</strong> ${data.vocalCordMobility || 'Symmetrical and mobile'}</p>
-                <p style="margin: 0;"><strong>Subglottis:</strong> ${data.subglottis || 'Normal'}</p>
+                <p style="margin: 0;"><strong>Epiglottis:</strong> ${escapeHtml(data.epiglottis)}</p>
+                <p style="margin: 0;"><strong>Vallecula:</strong> ${escapeHtml(data.vallecula)}</p>
+                <p style="margin: 0;"><strong>Pyriform Sinuses:</strong> ${escapeHtml(data.pyriformSinuses)}</p>
+                <p style="margin: 0;"><strong>Arytenoids:</strong> ${escapeHtml(data.arytenoids)}</p>
+                <p style="margin: 0;"><strong>False Vocal Cords:</strong> ${escapeHtml(data.falseVocalCords)}</p>
+                <p style="margin: 0;"><strong>True Vocal Cords:</strong> ${escapeHtml(data.trueVocalCords)}</p>
+                <p style="margin: 0;"><strong>Vocal Cord Mobility:</strong> ${escapeHtml(data.vocalCordMobility)}</p>
+                <p style="margin: 0;"><strong>Subglottis:</strong> ${escapeHtml(data.subglottis)}</p>
             </div>
         `;
     }
@@ -5194,7 +5210,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             return `${h}:${minutes} ${ampm}`;
         }
 
-        const dateStr = formatDateForDisplay(data.procedureDate) || formatDateForDisplay(getTodayDate());
+        const dateStr = formatDateForDisplay(data.procedureDate);
         
         // NEW: Extract only the surgeon's name, removing titles like MD, FPSO-HNS, etc.
         let rawName = (data.physician || '').split(',')[0].trim();
@@ -5209,20 +5225,20 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             <div class="patient-info-print-section" style="padding: 0 15px 10px 15px; margin-bottom: 10px; font-size: 13px; line-height: 1.5;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr 2fr; gap: 4px 15px; white-space: nowrap;">
                     <!-- Row 1 -->
-                    <div><strong>Case Number:</strong> ${escapeHtml(data.caseNumber) || 'N/A'}</div>
-                    <div><strong>Room No:</strong> ${escapeHtml(data.roomNumber) || 'N/A'}</div>
-                    <div><strong>MRN:</strong> ${escapeHtml(data.mrn) || 'N/A'}</div>
+                    <div><strong>Case Number:</strong> ${escapeHtml(data.caseNumber)}</div>
+                    <div><strong>Room No:</strong> ${escapeHtml(data.roomNumber)}</div>
+                    <div><strong>MRN:</strong> ${escapeHtml(data.mrn)}</div>
                     <div><strong>Date:</strong> ${dateStr}</div>
                     <!-- Row 2 -->
                     <div><strong>Last Name:</strong> ${escapeHtml(data.patientLastName) || ''}</div>
                     <div><strong>First Name:</strong> ${escapeHtml(data.patientFirstName) || ''}</div>
                     <div><strong>Middle Name:</strong> ${escapeHtml(data.patientMiddleName) || ''}</div>
-                    <div><strong>Surgeon:</strong> ${escapeHtml(surgeonNameOnly) || 'N/A'}</div>
+                    <div><strong>Surgeon:</strong> ${escapeHtml(surgeonNameOnly)}</div>
                     <!-- Row 3 -->
-                    <div><strong>Sex:</strong> ${escapeHtml(data.patientSex) || 'N/A'}</div>
-                    <div><strong>Age:</strong> ${escapeHtml(data.patientAge) || 'N/A'}</div>
-                    <div><strong>Suffix:</strong> ${escapeHtml(data.suffix) || 'N/A'}</div>
-                    <div><strong>Asst. Surgeon:</strong> ${escapeHtml(data.assistantSurgeon) || 'N/A'}</div>
+                    <div><strong>Sex:</strong> ${escapeHtml(data.patientSex)}</div>
+                    <div><strong>Age:</strong> ${escapeHtml(data.patientAge)}</div>
+                    <div><strong>Suffix:</strong> ${escapeHtml(data.suffix)}</div>
+                    <div><strong>Asst. Surgeon:</strong> ${escapeHtml(data.assistantSurgeon)}</div>
                 </div>
             </div>
         `;
@@ -5235,29 +5251,33 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         const mainContentHtml = `
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Procedure Details</h3>
-            
-            ${procedureDescHtml}
 
             <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
-                <div style="grid-column: 1 / -1;"><strong>Pre-Operative Diagnosis:</strong> ${escapeHtml(data.preOpDiagnosis) || 'N/A'}</div>
-                <div><strong>Classification:</strong> ${escapeHtml(data.classification) || 'N/A'}</div>
-                <div><strong>RVS Code:</strong> ${escapeHtml(data.rvsCode) || 'N/A'}</div>
-                <div><strong>Operation Started:</strong> ${escapeHtml(formatTime12Hour(data.operationStarted)) || 'N/A'}</div>
-                <div><strong>ICD 10 Code:</strong> ${escapeHtml(data.icd10Code) || 'N/A'}</div>
-                <div><strong>Operation Ended:</strong> ${escapeHtml(formatTime12Hour(data.operationEnded)) || 'N/A'}</div>
-                <div><strong>Type of Anesthesia:</strong> ${escapeHtml(data.anesthesiaUsed) || 'N/A'}</div>
-                <div><strong>Duration:</strong> ${escapeHtml(data.durationOfOperation) || 'N/A'}</div>
-                <div><strong>Scrub Nurse:</strong> ${escapeHtml(data.scrubNurse) || 'N/A'}</div>
-                <div style="grid-column: 1 / -1; margin-top: 2px;"><strong>Indication:</strong> ${escapeHtml(data.indication) || 'N/A'}</div>
+                <div style="grid-column: 1 / -1;"><strong>Pre-Operative Diagnosis:</strong> ${escapeHtml(data.preOpDiagnosis)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Type of Endoscopy / Operation Performed:</strong> ${escapeHtml(data.endoscopyType)}</div>
+            </div>
+
+            ${procedureDescHtml}
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
+                <div style="grid-column: 1 / -1;"><strong>Classification:</strong> ${escapeHtml(data.classification)}</div>
+                <div><strong>ICD 10 Code:</strong> ${escapeHtml(data.icd10Code)}</div>
+                <div><strong>RVS Code:</strong> ${escapeHtml(data.rvsCode)}</div>
+                <div><strong>Operation Started:</strong> ${escapeHtml(formatTime12Hour(data.operationStarted))}</div>
+                <div><strong>Operation Ended:</strong> ${escapeHtml(formatTime12Hour(data.operationEnded))}</div>
+                <div><strong>Scrub Nurse:</strong> ${escapeHtml(data.scrubNurse)}</div>
+                <div><strong>Duration:</strong> ${escapeHtml(data.durationOfOperation)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Type of Anesthesia:</strong> ${escapeHtml(data.anesthesiaUsed)}</div>
+                <div style="grid-column: 1 / -1; margin-top: 2px;"><strong>Indication:</strong> ${escapeHtml(data.indication)}</div>
             </div>
 
             ${findingsHtml}
             
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Impression / Post-Operative Diagnosis</h3>
-            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.impression) || 'N/A'}</p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.impression)}</p>
 
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Recommendation / Plan</h3>
-            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.recommendation) || 'N/A'}</p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.recommendation)}</p>
         `;
 
         const physicianFullName = data.physician || '';
@@ -6057,8 +6077,24 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         const siteChip = site
             ? `<span class="ent-drafts-site-badge is-${site.toLowerCase()}" title="This patient's visit belongs to ${escapeHtml(site)}.">${escapeHtml(site)}</span>`
             : '<span class="ent-drafts-site-badge is-untagged" title="No hospital recorded.">Untagged</span>';
-        const synced = record.synced ? '✅ Synced' : '⏳ Pending sync';
-        const syncedClass = record.synced ? 'is-shared' : '';
+        const syncLabel = record.syncStatus === 'failed'
+            ? 'Sync Failed'
+            : record.synced
+                ? 'Synced'
+                : record.syncStatus === 'pending'
+                    ? 'Pending Sync'
+                    : 'Local Draft';
+        const syncClass = record.syncStatus === 'failed'
+            ? 'is-error'
+            : record.synced ? 'is-shared' : '';
+        const statusTitle = [
+            record.lastSyncError || '',
+            record.photosLocalOnly ? 'Attached photos remain on this device and were not synced.' : ''
+        ].filter(Boolean).join(' ');
+        const syncError = statusTitle ? ` title="${escapeHtml(statusTitle)}"` : '';
+        const localPhotoNote = record.photosLocalOnly
+            ? '<span class="ent-drafts-local-photo-note">Photos remain on this device · not synced</span>'
+            : '';
         const identifier = record.patientId || record.caseNumber || '';
         card.innerHTML = `
             <div class="ent-drafts-main">
@@ -6066,13 +6102,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     <span class="ent-drafts-badge">${escapeHtml(reportLabel)}</span>
                     ${siteChip}
                     <span class="ent-drafts-date">📅 ${escapeHtml(formatDay(record.procedureDate))}</span>
-                    <span class="ent-drafts-state ${syncedClass}">${synced}</span>
+                    <span class="ent-drafts-state ${syncClass}"${syncError}>${escapeHtml(syncLabel)}</span>
                 </div>
                 <h3 class="ent-drafts-name">${escapeHtml(record.patientName || 'Unnamed patient')}</h3>
                 <div class="ent-drafts-meta">
                     ${identifier ? `<span class="ent-drafts-id">ID ${escapeHtml(identifier)}</span>` : ''}
                     <span>Saved ${escapeHtml(formatTimestamp(record.offlineSavedAt || record.savedAt || record.createdAt || ''))}</span>
                 </div>
+                ${localPhotoNote}
                 ${record.fileName ? `<div class="ent-drafts-file" title="${escapeHtml(record.fileName)}">📄 ${escapeHtml(record.fileName)}</div>` : ''}
             </div>
             <div class="ent-drafts-actions">

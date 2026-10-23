@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,10 +6,10 @@
     <title>Laryngeal Endoscopy Report</title>
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../style/index.css?v=v32d">
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
-    <link rel="stylesheet" href="../style/patient-records.css?v=v36c">
-    <link rel="stylesheet" href="../style/auth.css?v=v36e">
+    <link rel="stylesheet" href="../style/patient-records.css?v=v36d">
+    <link rel="stylesheet" href="../style/auth.css?v=v36f">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
 <body>
@@ -40,39 +40,42 @@
         <!-- ROW 2 - the action toolbar, grouped, wraps on its own lines -->
         <div class="header-actions">
             <!-- The "Records / saved patients" quick-view button was removed:
-                 the cloud Database ▸ DB Records panel already lists saved reports. -->
-            <!-- The old quiet "← Menu" chip used to live here, which meant two
+                 the cloud Database â–¸ DB Records panel already lists saved reports. -->
+            <!-- The old quiet "â† Menu" chip used to live here, which meant two
                  back links on one page: that one plus the one below in the
                  main area. Both went to the same place. The lower button was
                  kept - it is the slate-gray .back-button - and moved up here
                  into the header, so there is exactly one and it sits with the
                  rest of the page's actions. -->
-            <a href="../index.html" class="back-button back-button-solid no-print" title="Back to Menu">← Back to Menu</a>
+            <a href="../index.html" class="back-button back-button-solid no-print" title="Back to Menu">
+                <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg></span>
+                <span>Back to Menu</span>
+            </a>
 
             <!-- OFFLINE MODE: saves to the IndexedDB offline database first; the sync engine uploads it when there is signal -->
             <div class="header-btn-group group-work no-print" role="group" aria-label="Offline mode: save and open your work">
                 <span class="group-label">Offline Mode</span>
                 <button type="button" id="saveDataBtn" class="btn-save-draft" title="Save your work to this device's offline database. Works with or without signal - it syncs to the cloud automatically when you are back online.">
-                    <span class="btn-icon">💾</span>
+                    <span class="btn-icon">ðŸ’¾</span>
                     <span class="btn-label">
                         <span class="btn-main">Save to Offline Mode</span>
                         <span class="btn-sub">works without signal</span>
                     </span>
-                    <span class="btn-flash" aria-hidden="true">✓ Saved</span>
+                    <span class="btn-flash" aria-hidden="true">âœ“ Saved</span>
                 </button>
                 <button type="button" id="localDraftsBtn" class="btn-local-drafts" title="Browse records saved in offline mode on this device (IndexedDB). Open one to continue editing. These sync to the cloud automatically when online.">
-                    <span class="btn-icon">🗂️</span>
+                    <span class="btn-icon">ðŸ—‚ï¸</span>
                     <span class="btn-label">
                         <span class="btn-main">Offline Records</span>
                         <span class="btn-sub">saved on this device</span>
                     </span>
                 </button>
                 <span class="btn-group-divider" aria-hidden="true"></span>
-                <button type="button" id="openDataBtn" class="btn-open-file" title="Open a saved draft .json file from this device to continue editing it.">
-                    <span class="btn-icon">📂</span>
+                <button type="button" id="myDraftsBtn" class="btn-open-file" title="Browse saved drafts and open one to continue editing.">
+                    <span class="btn-icon">ðŸ“‚</span>
                     <span class="btn-label">
-                        <span class="btn-main">Open Draft File</span>
-                        <span class="btn-sub">from a file</span>
+                        <span class="btn-main">My Drafts</span>
+                        <span class="btn-sub">saved work</span>
                     </span>
                 </button>
             </div>
@@ -81,14 +84,14 @@
             <div class="header-btn-group group-database no-print" role="group" aria-label="Cloud database">
                 <span class="group-label">Database</span>
                 <button type="button" id="saveToDbBtn" class="btn-save-db" title="Save this report as a final record to the shared cloud database.">
-                    <span class="btn-icon">☁️</span>
+                    <span class="btn-icon">â˜ï¸</span>
                     <span class="btn-label">
                         <span class="btn-main">Save to Database</span>
                         <span class="btn-sub">final save</span>
                     </span>
                 </button>
                 <button type="button" id="dbRecordsBtn" class="btn-db-records" title="Browse records saved in the cloud database and open one for editing.">
-                    <span class="btn-icon">🗄️</span>
+                    <span class="btn-icon">ðŸ—„ï¸</span>
                     <span class="btn-label">
                         <span class="btn-main">DB Records</span>
                         <span class="btn-sub">browse &amp; edit</span>
@@ -100,14 +103,14 @@
             <div class="header-btn-group group-output no-print" role="group" aria-label="Create the final copy">
                 <span class="group-label">Final Copy</span>
                 <button type="button" id="savePdfBtn" title="Save the completed report as a PDF file.">
-                    <span class="btn-icon">📄</span>
+                    <span class="btn-icon">ðŸ“„</span>
                     <span class="btn-label">
                         <span class="btn-main">Save PDF</span>
                         <span class="btn-sub">final copy</span>
                     </span>
                 </button>
                 <button type="button" id="printBtn" title="Open the print dialog to print the report.">
-                    <span class="btn-icon">🖨️</span>
+                    <span class="btn-icon">ðŸ–¨ï¸</span>
                     <span class="btn-label">
                         <span class="btn-main">Print</span>
                         <span class="btn-sub">paper copy</span>
@@ -115,7 +118,7 @@
                 </button>
                 <!-- NEW FORM: starts a fresh blank form of the same type for the next patient -->
                 <button type="button" id="newFormBtn" title="Start a new blank form for the next patient.">
-                    <span class="btn-icon">🆕</span>
+                    <span class="btn-icon">ðŸ†•</span>
                     <span class="btn-label">
                         <span class="btn-main">New Form</span>
                         <span class="btn-sub">next patient</span>
@@ -126,19 +129,19 @@
             <!-- TOOLS -->
             <div class="header-btn-group group-tools no-print" role="group" aria-label="Tools" style="background: transparent; border: none; box-shadow: none;">
                 <button type="button" id="clearFormBtn" class="btn-danger-action" title="Clear all fields and images to start a new report.">
-                    <span class="btn-icon">🗑️</span>
+                    <span class="btn-icon">ðŸ—‘ï¸</span>
                     <span class="btn-label">
                         <span class="btn-main">Clear Form</span>
                     </span>
                 </button>
-                <button type="button" id="helpBtn" title="Show help for using this page.">❓ Help</button>
-                <button type="button" id="tutorialBtn" title="Take a quick tour of the buttons.">🎓 Tutorial</button>
+                <button type="button" id="helpBtn" title="Show help for using this page.">â“ Help</button>
+                <button type="button" id="tutorialBtn" title="Take a quick tour of the buttons.">ðŸŽ“ Tutorial</button>
             </div>
         </div>
     </header>
 
     <main class="main-content">
-        <!-- The "← Back to Menu" button that used to sit here was moved into the
+        <!-- The "â† Back to Menu" button that used to sit here was moved into the
              header above, so the page now has exactly one back link instead of
              two, and it is no longer floating in the middle of the form. -->
 
@@ -208,7 +211,6 @@
                         <fieldset class="procedure-details-fieldset">
                             <legend>Procedure Details</legend>
                             
-                            <!-- New Row: Operation Times, Duration, Scrub Nurse -->
                             <div class="form-row">
                                 <div class="form-col">
                                     <label for="operationStarted" class="form-label">Operation Started</label>
@@ -223,21 +225,12 @@
                                     <input type="text" id="durationOfOperation" name="durationOfOperation" placeholder="e.g., 30 mins">
                                 </div>
                                 <div class="form-col">
-                                    <!-- Typable, with the saved nurses offered as suggestions.
-                                         This was a <select>: a nurse who was not already in
-                                         Settings could not be recorded at all, and a value
-                                         restored from a draft silently became blank because
-                                         a <select> drops any value outside its own options.
-                                         An input + <datalist> keeps both halves - the list is
-                                         still one click, and anything else can be typed. -->
                                     <label for="scrubNurse" class="form-label">Scrub Nurse</label>
-                                    <input type="text" id="scrubNurse" name="scrubNurse"
-                                           list="scrubNurseList" placeholder="Select or type...">
+                                    <input type="text" id="scrubNurse" name="scrubNurse" list="scrubNurseList" placeholder="Select or type...">
                                     <datalist id="scrubNurseList"></datalist>
                                 </div>
                             </div>
 
-                            <!-- New Row: Classification, RVS Code, ICD 10 Code -->
                             <div class="form-row">
                                 <div class="form-col">
                                     <label for="classification" class="form-label">Classification</label>
@@ -253,52 +246,50 @@
                                 </div>
                             </div>
 
-                            <label for="preOpDiagnosis" class="form-label">PRE-OPERATIVE DIAGNOSIS</label>
-                            <!-- Textarea + custom suggest popup (a native <datalist> cannot attach to a
-                                 textarea). Same id/name so saving, drafts, the database and the
-                                 printed PDF (data.preOpDiagnosis) keep working unchanged. -->
-                            <textarea id="preOpDiagnosis" name="preOpDiagnosis" rows="3" placeholder="Select or Type..."></textarea>
-                            <datalist id="preOpDiagnosisOptions">
-                                <option value="HOARSENESS PROBABLY SECONDARY TO LARYNGEAL MASS"></option>
-                                <option value="Laryngopharyngeal Reflux"></option>
-                                <option value="Vocal Cord Nodule"></option>
-                                <option value="Vocal Cord Polyp"></option>
-                                <option value="Vocal Cord Cyst"></option>
-                                <option value="Vocal Cord Paralysis"></option>
-                                <option value="Vocal Cord Leukoplakia"></option>
-                                <option value="Vocal Cord Carcinoma"></option>
-                                <option value="Benign Laryngeal Lesion"></option>
-                                <option value="Laryngeal Mass"></option>
-                                <option value="Laryngeal Cancer"></option>
-                                <option value="Laryngitis"></option>
-                                <option value="Chronic Laryngitis"></option>
-                                <option value="Laryngeal Stenosis"></option>
-                                <option value="Stridor"></option>
-                                <option value="Dysphonia"></option>
-                                <option value="Hoarseness"></option>
-                                <option value="Laryngeal Trauma"></option>
-                                <option value="Vocal Cord Lesion"></option>
-                                <option value="Laryngoscopy"></option>
-                            </datalist>
+                            <!-- PRE-OPERATIVE DIAGNOSIS first -->
+<div class="form-row">
+    <div class="form-col">
+        <label for="preOpDiagnosis" class="form-label">PRE-OPERATIVE DIAGNOSIS</label>
+        <textarea id="preOpDiagnosis" name="preOpDiagnosis" rows="3" placeholder="Select or Type..."></textarea>
+        <datalist id="preOpDiagnosisOptions">
+            <option value="HOARSENESS PROBABLY SECONDARY TO LARYNGEAL MASS"></option>
+            <option value="Laryngopharyngeal Reflux"></option>
+            <option value="Vocal Cord Nodule"></option>
+            <option value="Vocal Cord Polyp"></option>
+            <option value="Vocal Cord Cyst"></option>
+            <option value="Vocal Cord Paralysis"></option>
+            <option value="Vocal Cord Leukoplakia"></option>
+            <option value="Vocal Cord Carcinoma"></option>
+            <option value="Benign Laryngeal Lesion"></option>
+        </datalist>
+    </div>
+</div>
 
-                            <label for="endoscopyType" class="form-label">TYPE OF ENDOSCOPY / OPERATION PERFORMED</label>
-                            <textarea id="endoscopyType" name="endoscopyType" rows="2"></textarea>
+<!-- TYPE OF ENDOSCOPY / OPERATION PERFORMED -->
+<div class="form-row">
+    <div class="form-col">
+        <label for="endoscopyType" class="form-label">TYPE OF ENDOSCOPY / OPERATION PERFORMED</label>
+        <textarea id="endoscopyType" name="endoscopyType" rows="2"></textarea>
+    </div>
+</div>
 
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                                <label for="procedureDescription" class="form-label" style="margin-bottom: 0;">Procedure Description</label>
-                                <button type="button" id="resetProcedureDescBtn" style="background: transparent; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; padding: 0; min-width: auto; box-shadow: none; height: auto; text-transform: none; letter-spacing: normal;">↺ Reset to Default</button>
-                            </div>
-                            <textarea id="procedureDescription" name="procedureDescription" rows="12"></textarea>
+<!-- Procedure Description -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+    <label for="procedureDescription" class="form-label" style="margin-bottom: 0;">Procedure Description</label>
+    <button type="button" id="resetProcedureDescBtn" style="background: transparent; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; padding: 0; min-width: auto; box-shadow: none; height: auto; text-transform: none; letter-spacing: normal;">â†º Reset to Default</button>
+</div>
+<textarea id="procedureDescription" name="procedureDescription" rows="12"></textarea>
 
-                            <label for="indication" class="form-label">Indication / Reason for Procedure</label>
-                            <input type="text" id="indication" name="indication" list="indication-list-laryngeal" placeholder="e.g., Hoarseness, Chronic cough, Dysphagia">
-                            <datalist id="indication-list-laryngeal">
-                                <!-- Options will be populated by JS -->
-                            </datalist>
-        
-                            <label for="anesthesiaUsed" class="form-label">Anesthesia Used</label>
-                            <input type="text" id="anesthesiaUsed" name="anesthesiaUsed">
-                        </fieldset>
+<label for="indication" class="form-label">Indication / Reason for Procedure</label>
+<input type="text" id="indication" name="indication" list="indication-list" placeholder="e.g., Hoarseness, Dysphagia">
+<datalist id="indication-list">
+    <!-- Options will be populated by JS -->
+</datalist>
+
+<label for="anesthesiaUsed" class="form-label">Anesthesia Used</label>
+<input type="text" id="anesthesiaUsed" name="anesthesiaUsed">
+
+</fieldset>
                     </div>
         
                     <div class="form-group">
@@ -367,7 +358,7 @@
                 <div class="form-group">
                     <label for="imageInput" class="form-label">Attach Endoscopy Images</label>
                     <input type="file" id="imageInput" multiple accept="image/*">
-                    <button type="button" id="clearImagesBtn" class="btn-clear-images">🗑️ Clear Images</button>
+                    <button type="button" id="clearImagesBtn" class="btn-clear-images">ðŸ—‘ï¸ Clear Images</button>
                     <div id="preview" class="image-preview"></div>
                 </div>
             </div>
@@ -404,18 +395,18 @@
         <div class="modal-content" style="max-width: 600px; text-align: left;">
             <h2 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0;">Button Guide</h2>
             <div style="margin-top: 15px; line-height: 1.6;">
-                <h3 style="font-size: 1em; color: var(--success-color); margin: 14px 0 6px;">💾 SAVE &amp; EDIT YOUR WORK (Draft Files)</h3>
-                <p style="margin: 4px 0;"><strong>💾 Save Draft:</strong> Saves your current work as a file on this computer/tablet. Open this file <em>later</em> to continue editing the report.</p>
-                <p style="margin: 4px 0;"><strong>📂 Open Draft:</strong> Restores a saved draft file so you can keep editing an existing report.</p>
-                <h3 style="font-size: 1em; color: var(--primary-color); margin: 14px 0 6px;">📄 FINAL COPY &amp; PRINTING</h3>
-                <p style="margin: 4px 0;"><strong>📄 Save PDF:</strong> Creates the <em>final</em> PDF copy of the completed report. Use this for printing, sending, or archiving.</p>
-                <p style="margin: 4px 0;"><strong>🖨️ Print:</strong> Opens the print dialog to print the report directly on paper.</p>
+                <h3 style="font-size: 1em; color: var(--success-color); margin: 14px 0 6px;">ðŸ’¾ SAVE &amp; EDIT YOUR WORK (Draft Files)</h3>
+                <p style="margin: 4px 0;"><strong>ðŸ’¾ Save Draft:</strong> Saves your current work as a file on this computer/tablet. Open this file <em>later</em> to continue editing the report.</p>
+                <p style="margin: 4px 0;"><strong>ðŸ“‚ My Drafts:</strong> Browse saved drafts and open one to keep editing an existing report.</p>
+                <h3 style="font-size: 1em; color: var(--primary-color); margin: 14px 0 6px;">ðŸ“„ FINAL COPY &amp; PRINTING</h3>
+                <p style="margin: 4px 0;"><strong>ðŸ“„ Save PDF:</strong> Creates the <em>final</em> PDF copy of the completed report. Use this for printing, sending, or archiving.</p>
+                <p style="margin: 4px 0;"><strong>ðŸ–¨ï¸ Print:</strong> Opens the print dialog to print the report directly on paper.</p>
                 <h3 style="font-size: 1em; color: var(--danger-color); margin: 14px 0 6px;">OTHER BUTTONS</h3>
-                <p style="margin: 4px 0;"><strong>🆕 New Form:</strong> Starts a blank form of the same type for the next patient. Your current entries are cleared but you can undo this.</p>
-                <p style="margin: 4px 0;"><strong>🗑️ Clear Form:</strong> Removes all fields and images to start fresh (you can undo this).</p>
-                <p style="margin: 4px 0;"><strong>❓ Help:</strong> Shows this button guide.</p>
-                <p style="margin: 4px 0;"><strong>🎓 Tutorial:</strong> Walks you through the main buttons one by one.</p>
-                <p style="margin-top: 10px; padding: 8px 10px; background: var(--primary-light, #e0f2fe); border-radius: 6px;"><strong>💡 Tip:</strong> Always use <strong>Save Draft</strong> while you are still working on a report. Use <strong>Save PDF</strong> only when the report is finished.</p>
+                <p style="margin: 4px 0;"><strong>ðŸ†• New Form:</strong> Starts a blank form of the same type for the next patient. Your current entries are cleared but you can undo this.</p>
+                <p style="margin: 4px 0;"><strong>ðŸ—‘ï¸ Clear Form:</strong> Removes all fields and images to start fresh (you can undo this).</p>
+                <p style="margin: 4px 0;"><strong>â“ Help:</strong> Shows this button guide.</p>
+                <p style="margin: 4px 0;"><strong>ðŸŽ“ Tutorial:</strong> Walks you through the main buttons one by one.</p>
+                <p style="margin-top: 10px; padding: 8px 10px; background: var(--primary-light, #e0f2fe); border-radius: 6px;"><strong>ðŸ’¡ Tip:</strong> Always use <strong>Save Draft</strong> while you are still working on a report. Use <strong>Save PDF</strong> only when the report is finished.</p>
             </div>
             <div style="text-align: right; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
                 <button id="closeHelpBtn" style="background-color: #7f8c8d;">Close</button>
@@ -461,14 +452,15 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/auth.js?v=v36g" defer></script>
     <script src="../function/syncEngine.js?v=v35c" defer></script>
     <script src="../function/offlineStore.js?v=v35b" defer></script>
     <script src="../function/patientRecords.js?v=v33ak" defer></script>
-    <script src="../function/dbRecords.js?v=v36c" defer></script>
-    <script src="../function/draftsBrowser.js?v=v35d" defer></script>
+    <script src="../function/dbRecords.js?v=v36d" defer></script>
+    <script src="../function/draftsBrowser.js?v=v35e" defer></script>
     <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
-    <script src="../function/index.js?v=v35d" defer></script>
+    <script src="../function/index.js?v=v36h" defer></script>
+    <script src="../function/formExitGuard.js?v=v2" defer></script>
     
 </body>
 </html>

@@ -3056,7 +3056,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // blanks from the active header so the institution identity is
             // never missing when a record is reopened.
             fillBlankHciFromHeader();
+            if (typeof document.dispatchEvent === 'function') {
+                document.dispatchEvent(new Event('formDataRestored'));
+            }
         },
+        startNew: resetCf4FormToBlank,
         alert: showCustomAlert
     };
 });

@@ -533,6 +533,13 @@ input:checked + .slider:before {
     line-height: 1;
 }
 
+.btn-icon svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    flex: 0 0 1em;
+}
+
 .header-btn-group .btn-label {
     display: inline-flex;
     flex-direction: column;

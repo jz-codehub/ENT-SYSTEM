@@ -77,6 +77,83 @@
         }
     }
 
+    let feedbackModal = null;
+    let feedbackResolver = null;
+
+    function closeFeedbackModal() {
+        if (!feedbackModal || feedbackModal.classList.contains('is-closing')) return;
+        feedbackModal.classList.remove('is-open');
+        feedbackModal.classList.add('is-closing');
+        window.setTimeout(function () {
+            feedbackModal.style.display = 'none';
+            feedbackModal.classList.remove('is-closing');
+            if (feedbackResolver) {
+                const resolve = feedbackResolver;
+                feedbackResolver = null;
+                resolve();
+            }
+        }, 190);
+    }
+
+    function showDatabaseFeedback(options) {
+        const settings = options || {};
+        if (!document.body || typeof document.createElement !== 'function') {
+            showAlert(settings.message || 'The record was updated.', settings.title || 'Success');
+            return Promise.resolve();
+        }
+        if (!feedbackModal) {
+            feedbackModal = document.createElement('div');
+            feedbackModal.className = 'modal-overlay db-feedback-overlay no-print';
+            feedbackModal.style.display = 'none';
+            feedbackModal.setAttribute('role', 'dialog');
+            feedbackModal.setAttribute('aria-modal', 'true');
+            feedbackModal.setAttribute('aria-labelledby', 'dbFeedbackTitle');
+            feedbackModal.setAttribute('aria-describedby', 'dbFeedbackMessage');
+            feedbackModal.innerHTML = `
+                <section class="db-feedback-dialog">
+                    <span class="db-feedback-icon" aria-hidden="true"></span>
+                    <p class="db-feedback-eyebrow"></p>
+                    <h2 id="dbFeedbackTitle"></h2>
+                    <p id="dbFeedbackMessage"></p>
+                    <div class="db-feedback-detail"></div>
+                    <button type="button" class="db-feedback-done">Done</button>
+                </section>
+            `;
+            document.body.appendChild(feedbackModal);
+            feedbackModal.querySelector('.db-feedback-done').addEventListener('click', closeFeedbackModal);
+            feedbackModal.addEventListener('click', function (event) {
+                if (event.target === feedbackModal) closeFeedbackModal();
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && feedbackModal.style.display !== 'none') closeFeedbackModal();
+            });
+        }
+
+        const isSaved = settings.kind === 'saved';
+        const icon = feedbackModal.querySelector('.db-feedback-icon');
+        icon.className = 'db-feedback-icon ' + (isSaved ? 'is-saved' : 'is-loaded');
+        icon.innerHTML = isSaved
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 5.5v16M8 7h8M8 11h7"/></svg>';
+        feedbackModal.querySelector('.db-feedback-eyebrow').textContent = isSaved
+            ? 'DATABASE SAVE COMPLETE'
+            : 'READY TO REVIEW';
+        feedbackModal.querySelector('#dbFeedbackTitle').textContent = settings.title || (isSaved ? 'Saved to Database' : 'Patient record loaded');
+        feedbackModal.querySelector('#dbFeedbackMessage').textContent = settings.message || '';
+        const detail = feedbackModal.querySelector('.db-feedback-detail');
+        detail.textContent = '';
+        if (isSaved) {
+            detail.innerHTML = '<span class="db-feedback-detail-check" aria-hidden="true">✓</span><span>You can reopen this patient anytime from <strong>DB Records</strong>.</span>';
+        } else {
+            detail.innerHTML = '<span class="db-feedback-detail-check is-blue" aria-hidden="true">i</span><span>Review the entries and photos. Save to Database again to send any changes to the cloud.</span>';
+        }
+        feedbackModal.style.display = 'flex';
+        feedbackModal.setAttribute('aria-hidden', 'false');
+        window.requestAnimationFrame(function () { feedbackModal.classList.add('is-open'); });
+        feedbackModal.querySelector('.db-feedback-done').focus();
+        return new Promise(function (resolve) { feedbackResolver = resolve; });
+    }
+
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>'"]/g, char => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -1074,6 +1151,7 @@ function doctorFilter() {
 
             markKeySaved(record.key);
             if (racedWinner && racedWinner !== record.key) markKeySaved(racedWinner);
+            document.dispatchEvent(new Event('databaseRecordSaved'));
             // Same condition as payload.site on the row: the tag exists
             // only for the flagged clinic and only when the prompt was
             // answered. Mirrors it into the local history (see
@@ -1095,27 +1173,25 @@ function doctorFilter() {
                 : (racedWinner && racedWinner !== record.key)
                     ? '\n\nAn identical save had just landed from another device; THIS save updated that record \u2014 no duplicate was created.'
                     : '';
+            let feedbackPromise = null;
             if (repeats.length) {
-                // Saved straight away (new date) - just point out the repeat.
                 const shown = repeats.slice(0, 4);
                 const total = repeats.length + 1;
-                showAlert(
-                    'SAVED TO DATABASE\n\n' +
-                    label + who + ' is now in the shared cloud database.\n\n' +
-                    '\u26A0\uFE0F HEADS UP - REPEAT ' + label.toUpperCase() + '\n\n' +
-                    'This patient now has ' + total + ' ' + label + ' record' + (total === 1 ? '' : 's') + ':\n' +
-                    shown.map(m => '  \u2022 ' + dupDateLabel(m.date) + (m.cloud ? '' : ' (only on this device)')).join('\n') +
-                    (repeats.length > shown.length ? '\n  \u2022 ...' : '') + '\n\n' +
-                    'Every visit is counted separately, so the patient counters stay right.' + mergeBit,
-                    'Repeat Report'
-                );
+                feedbackPromise = showDatabaseFeedback({
+                    kind: 'saved',
+                    title: 'Saved to Database',
+                    message: label + who + ' is now in the shared cloud database.\n\n' +
+                        'REPEAT REPORT: This patient now has ' + total + ' ' + label + ' record' + (total === 1 ? '' : 's') + ':\n' +
+                        shown.map(m => '• ' + dupDateLabel(m.date) + (m.cloud ? '' : ' (only on this device)')).join('\n') +
+                        (repeats.length > shown.length ? '\n• ...' : '') + '\n\n' +
+                        'Every visit is counted separately, so the patient counters stay right.' + mergeBit
+                });
             } else {
-                showAlert(
-                    'SAVED TO DATABASE!\n\n' +
-                    label + who + ' was saved to the shared cloud database.\n\n' +
-                    'You can reopen it anytime from the "DB Records" button in the header.' + mergeBit,
-                    'SUCCESS'
-                );
+                feedbackPromise = showDatabaseFeedback({
+                    kind: 'saved',
+                    title: 'Saved to Database',
+                    message: label + who + ' was saved to the shared cloud database.' + mergeBit
+                });
             }
 
             // The record is saved and the success message is up. Reset the
@@ -1125,6 +1201,7 @@ function doctorFilter() {
             saving = false;
             if (saveButton) saveButton.disabled = false;
             if (mainLabel) mainLabel.textContent = originalLabel;
+            if (feedbackPromise) await feedbackPromise;
 
             // Follow-up prompt after save intentionally removed on request:
             // the record now saves and shows the success alert with no
@@ -2444,18 +2521,25 @@ function doctorFilter() {
         }
     }
 
-    function showConfirm(message, title) {
+    function showConfirm(message, title, confirmLabel, cancelLabel) {
         if (!confirmBox) {
             confirmBox = document.createElement('div');
             confirmBox.className = 'modal-overlay ent-db-confirm no-print';
             confirmBox.style.display = 'none';
             confirmBox.innerHTML = `
                 <div class="ent-db-confirm-dialog" role="dialog" aria-modal="true">
+                    <span class="ent-db-confirm-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/>
+                            <path d="M16 3h5v5M21 3l-9 9"/>
+                            <path d="M7 16h5"/>
+                        </svg>
+                    </span>
                     <h3 class="ent-db-confirm-title"></h3>
                     <p class="ent-db-confirm-text"></p>
                     <div class="ent-db-confirm-actions">
                         <button type="button" class="ent-db-confirm-no">Cancel</button>
-                        <button type="button" class="ent-db-confirm-yes">Yes, open it</button>
+                        <button type="button" class="ent-db-confirm-yes">Continue</button>
                     </div>
                 </div>
             `;
@@ -2466,6 +2550,8 @@ function doctorFilter() {
         }
         confirmBox.querySelector('.ent-db-confirm-title').textContent = title || 'Confirm';
         confirmBox.querySelector('.ent-db-confirm-text').textContent = message;
+        confirmBox.querySelector('.ent-db-confirm-yes').textContent = confirmLabel || 'Continue';
+        confirmBox.querySelector('.ent-db-confirm-no').textContent = cancelLabel || 'Cancel';
         confirmBox.style.display = 'flex';
         confirmBox.querySelector('.ent-db-confirm-yes').focus();
         return new Promise(resolve => { confirmResolver = resolve; });
@@ -2554,7 +2640,9 @@ function doctorFilter() {
         const display = record.patient_name || record.record_key || 'this record';
         showConfirm(
             `Opening "${display}" will replace the current form contents (including images). Continue?`,
-            'Open Database Record'
+            'Open patient record?',
+            'Open record',
+            'Keep current form'
         ).then(confirmed => {
             if (!confirmed) return;
             openRecordFromCloud(record, bridge);
@@ -2655,15 +2743,11 @@ function doctorFilter() {
 
             closeModal();
             setStatus('', false, false);
-            showAlert(
-                '\u2601\uFE0F  RECORD LOADED!\n\n' +
-                (record.patient_name || 'The record') + ' is now open in the form.\n\n' +
-                'Next steps:\n' +
-                '  \u2713  Review the entries and photos\n' +
-                '  \u2601\uFE0F  Press "Save to Database" to\n' +
-                '     send your changes to the cloud',
-                'SUCCESS'
-            );
+            await showDatabaseFeedback({
+                kind: 'loaded',
+                title: 'Patient record loaded',
+                message: (record.patient_name || 'The patient record') + ' is now open in the form.'
+            });
         } catch (error) {
             console.error('Could not open database record:', error);
             setStatus(`Could not open record: ${error.message}`, false, true);

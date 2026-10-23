@@ -3,6 +3,134 @@
    Reuses the tokens declared in style/index.css (:root and body.dark-mode)
    ===================================================================== */
 
+/* ---------------------- Sign-out confirmation ----------------------- */
+.signout-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10006;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.signout-overlay.is-open { opacity: 1; }
+.signout-overlay.is-closing { opacity: 0; }
+.signout-dialog {
+    width: min(100%, 410px);
+    padding: 32px 30px 26px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -15%, rgba(14, 165, 233, 0.12), transparent 58%),
+        var(--panel-bg-color);
+    color: var(--text-color);
+    text-align: center;
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.3), 0 4px 14px rgba(2, 12, 27, 0.12);
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.signout-overlay.is-open .signout-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.signout-overlay.is-closing .signout-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.signout-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 15px;
+    border: 1px solid rgba(14, 165, 233, 0.17);
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.14), rgba(2, 132, 199, 0.07));
+    color: var(--primary-color);
+}
+.signout-icon svg { width: 30px; height: 30px; }
+.signout-eyebrow {
+    margin: 0 0 5px;
+    color: var(--primary-color);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+.signout-dialog h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.25;
+}
+.signout-dialog > p:last-of-type {
+    max-width: 310px;
+    margin: 10px auto 24px;
+    color: var(--secondary-text-color);
+    font-size: 0.93rem;
+    line-height: 1.6;
+}
+.signout-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
+}
+.signout-actions button {
+    min-width: 0;
+    min-height: 48px;
+    flex: 1 1 50%;
+    padding: 11px 15px;
+    border-radius: 13px;
+    font-size: 0.82rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-transform: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.signout-cancel {
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    box-shadow: none;
+}
+.signout-cancel:hover {
+    transform: translateY(-1px);
+    background: var(--panel-bg-color);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.08);
+}
+.signout-confirm {
+    background: linear-gradient(135deg, #ef6262, #dc3e4b);
+    box-shadow: 0 5px 14px rgba(220, 62, 75, 0.24);
+}
+.signout-confirm:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #e9545a, #c92f3f);
+    box-shadow: 0 8px 18px rgba(220, 62, 75, 0.3);
+}
+.signout-confirm svg { width: 17px; height: 17px; }
+.signout-actions button:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.45);
+    outline-offset: 3px;
+}
+@media (max-width: 420px) {
+    .signout-dialog { padding: 28px 20px 21px; border-radius: 21px; }
+    .signout-actions { flex-direction: column-reverse; }
+    .signout-actions button { flex: 0 0 auto; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .signout-overlay,
+    .signout-dialog,
+    .signout-actions button { transition-duration: 0.01ms; }
+}
+
 /* ---------------- Header user chip (injected by auth.js) ------------- */
 #entUserChip {
     display: flex;

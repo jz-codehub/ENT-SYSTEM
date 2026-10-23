@@ -5259,15 +5259,15 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
             ${procedureDescHtml}
 
-            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
-                <div><strong>Classification:</strong> ${escapeHtml(data.classification)}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
+                <div style="grid-column: 1 / -1;"><strong>Classification:</strong> ${escapeHtml(data.classification)}</div>
+                <div><strong>ICD 10 Code:</strong> ${escapeHtml(data.icd10Code)}</div>
                 <div><strong>RVS Code:</strong> ${escapeHtml(data.rvsCode)}</div>
                 <div><strong>Operation Started:</strong> ${escapeHtml(formatTime12Hour(data.operationStarted))}</div>
-                <div><strong>ICD 10 Code:</strong> ${escapeHtml(data.icd10Code)}</div>
                 <div><strong>Operation Ended:</strong> ${escapeHtml(formatTime12Hour(data.operationEnded))}</div>
-                <div><strong>Type of Anesthesia:</strong> ${escapeHtml(data.anesthesiaUsed)}</div>
-                <div><strong>Duration:</strong> ${escapeHtml(data.durationOfOperation)}</div>
                 <div><strong>Scrub Nurse:</strong> ${escapeHtml(data.scrubNurse)}</div>
+                <div><strong>Duration:</strong> ${escapeHtml(data.durationOfOperation)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Type of Anesthesia:</strong> ${escapeHtml(data.anesthesiaUsed)}</div>
                 <div style="grid-column: 1 / -1; margin-top: 2px;"><strong>Indication:</strong> ${escapeHtml(data.indication)}</div>
             </div>
 

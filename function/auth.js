@@ -1554,11 +1554,43 @@
         `;
         const logoutButton = chip.querySelector('.ent-user-logout');
         logoutButton.addEventListener('click', () => {
-            const modal = document.getElementById('signOutModal');
+            let modal = document.getElementById('signOutModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'signOutModal';
+                modal.className = 'modal-overlay signout-overlay';
+                modal.style.display = 'none';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-labelledby', 'signOutModalTitle');
+                modal.setAttribute('aria-describedby', 'signOutModalText');
+                modal.setAttribute('aria-hidden', 'true');
+                modal.innerHTML = `
+                    <div class="signout-dialog">
+                        <span class="signout-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10 17l5-5-5-5M15 12H3"/>
+                                <path d="M12 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/>
+                            </svg>
+                        </span>
+                        <p class="signout-eyebrow">SESSION</p>
+                        <h2 id="signOutModalTitle">Sign out?</h2>
+                        <p id="signOutModalText">You can sign back in anytime. Are you sure you want to sign out of this device?</p>
+                        <div class="signout-actions">
+                            <button id="cancelSignOutBtn" type="button" class="signout-cancel">Stay signed in</button>
+                            <button id="confirmSignOutBtn" type="button" class="signout-confirm">
+                                <span>Sign out</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
             const confirmButton = document.getElementById('confirmSignOutBtn');
             const cancelButton = document.getElementById('cancelSignOutBtn');
 
-            if (!modal || !confirmButton || !cancelButton) {
+            if (!confirmButton || !cancelButton) {
                 void logout();
                 return;
             }

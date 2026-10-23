@@ -20,6 +20,17 @@
         laryngeal: 'Laryngeal Endoscopy'
     };
 
+    function isOfflineWorkspacePage() {
+        const page = String((window.location && window.location.pathname) || '')
+            .split('/').pop().toLowerCase();
+        return page === 'offlineworkspace.html';
+    }
+
+    function hasOfflineSession() {
+        const auth = window.EntAuth;
+        return !!(auth && typeof auth.isOfflineSession === 'function' && auth.isOfflineSession());
+    }
+
     let isSyncing = false;
     const idleWaiters = [];
 
@@ -159,6 +170,8 @@ function toIsoDate(value) {
 
     // 1. Sync Patient Records with Supabase
     async function syncPatientRecords() {
+        if (navigator.onLine === false) return { success: false, reason: 'offline' };
+        if (hasOfflineSession()) return { success: false, reason: 'offline-session' };
         if (!window.EntSupabase || !window.EntSupabase.isConfigured()) return { success: false, reason: 'unconfigured' };
         if (isSyncing) return { success: false, reason: 'busy' };
 
@@ -525,7 +538,7 @@ function toIsoDate(value) {
                         { detail: { pushed: pushed } }));
                 } catch (error) { /* a page without CustomEvent loses the redraw, not the upload */ }
             }
-            showAllSyncedToast(pushed);
+            if (!isOfflineWorkspacePage()) showAllSyncedToast(pushed);
         } catch (error) {
             /* a toast must never fail a completed flush */
         }
@@ -597,7 +610,7 @@ function toIsoDate(value) {
     // ent_stamp_report_ownership stamps them server-side from the caller's
     // live staff_profiles row, so the browser cannot choose a clinic, a
     // doctor or an author.
-    function offlineRow(record) {
+    function offlineRow(record, syncId, remotePhotoCount) {
         const now = new Date().toISOString();
         return {
             record_key: record.key,
@@ -611,7 +624,7 @@ function toIsoDate(value) {
             // finalises it - the same is_draft TRUE autoShareDraft sends,
             // keeping it out of the finished-report list.
             is_draft: true,
-            photo_count: 0,
+            photo_count: Math.max(0, Number(remotePhotoCount) || 0),
             payload: {
                 key: record.key,
                 reportType: toReportType(record.reportType),
@@ -623,6 +636,7 @@ function toIsoDate(value) {
                 site: record.site || '',
                 draftShared: true,
                 sharedAt: now,
+                offlineSyncId: syncId,
                 // The queue belongs to the device, but the credit for the
                 // work goes to whoever actually saved the record.
                 sharedBy: record.ownerName || '',
@@ -642,6 +656,7 @@ function toIsoDate(value) {
             return { skipped: 'already-running' };
         }
         if (!navigator.onLine) return { skipped: 'offline' };
+        if (hasOfflineSession()) return { skipped: 'offline-session' };
         if (!window.EntSupabase || !window.EntSupabase.isConfigured()) {
             return { skipped: 'not-configured' };
         }
@@ -671,15 +686,59 @@ function toIsoDate(value) {
                 if (ownerId && me.userId && ownerId !== me.userId) {
                     continue;
                 }
+                if (record.waitForCloudPush) continue;
                 try {
-                    await window.EntSupabase.apiRequest(
-                        'reports?on_conflict=clinic_id,doctor_id,record_key', {
+                    const remoteRows = await window.EntSupabase.apiRequest(
+                        `reports?record_key=eq.${encodeURIComponent(record.key)}` +
+                        '&select=id,updated_at,is_draft,photo_count,payload&limit=1'
+                    );
+                    const remote = Array.isArray(remoteRows) ? remoteRows[0] : null;
+                    const priorSyncId = remote && remote.payload
+                        ? String(remote.payload.offlineSyncId || '')
+                        : '';
+                    if (remote && remote.is_draft !== true) {
+                        const conflict = new Error('This report was finalized in Supabase after the local copy. Review both versions before syncing.');
+                        conflict.code = 'SYNC_CONFLICT';
+                        conflict.status = 409;
+                        throw conflict;
+                    }
+                    if (remote && priorSyncId !== String(job.syncId || '')) {
+                        const localVersion = String(record.baseUpdatedAt || record.sharedAt || '');
+                        const remoteVersion = String(
+                            (remote.payload && remote.payload.sharedAt) || remote.updated_at || ''
+                        );
+                        if (!localVersion || localVersion !== remoteVersion) {
+                            const conflict = new Error('This report changed in Supabase after the local copy. Review both versions before syncing.');
+                            conflict.code = 'SYNC_CONFLICT';
+                            conflict.status = 409;
+                            throw conflict;
+                        }
+                    }
+
+                    const row = offlineRow(record, job.syncId, remote && remote.photo_count);
+                    const savedRows = await window.EntSupabase.apiRequest(
+                        'reports?on_conflict=clinic_id,doctor_id,record_key&select=id,updated_at,payload', {
                             method: 'POST',
-                            headers: { 'Prefer': 'resolution=merge-duplicates' },
-                            body: JSON.stringify([offlineRow(record)])
+                            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+                            body: JSON.stringify([row])
                         });
+                    const saved = Array.isArray(savedRows) ? savedRows[0] : null;
+                    if (!saved || !saved.id) {
+                        throw new Error('Supabase did not confirm the saved report; it remains queued for retry.');
+                    }
+                    const images = record.formData && Array.isArray(record.formData.images)
+                        ? record.formData.images.filter(function (image) {
+                            return typeof image === 'string' && image.indexOf('data:image') === 0;
+                        })
+                        : [];
+                    const savedVersion = saved.payload && saved.payload.sharedAt
+                        ? saved.payload.sharedAt
+                        : saved.updated_at || row.payload.sharedAt;
+                    const synced = await store.markSynced(record.key, savedVersion, images.length);
+                    if (!synced) {
+                        throw new Error('Supabase confirmed the report, but the local sync status could not be saved. The job remains queued for retry.');
+                    }
                     await store.markJobDone(job.id);
-                    await store.markSynced(record.key);
                     pushed++;
                 } catch (error) {
                     const message = (error && error.message) || String(error);
@@ -692,6 +751,11 @@ function toIsoDate(value) {
                         return { success: false, pushed, reason: 'auth', error: message };
                     }
                     const status = Number(error && error.status) || 0;
+                    if (error && (error.code === 'SYNC_CONFLICT' || error.code === 'PHOTO_CONFLICT')) {
+                        await store.markJobConflict(job.id, message);
+                        console.warn('[EntSync] offline sync conflict needs review:', message);
+                        continue;
+                    }
                     const looksLikeNetwork = !status || !navigator.onLine || status >= 500 || status === 429;
                     await store.markJobFailed(job.id, message,
                         offlineBackoffMs(job.attempts));
@@ -727,7 +791,7 @@ function toIsoDate(value) {
     // Auto-sync listener when browser reconnects to internet
     window.addEventListener('online', async () => {
         if (window.EntSupabase && window.EntSupabase.isConfigured()) {
-            syncPatientRecords();
+            if (!isOfflineWorkspacePage() && !hasOfflineSession()) syncPatientRecords();
             // OFFLINE MODE: everything the doctor saved while there was no
             // signal is pushed now. Awaited so a fast re-save doesn't race
             // with an in-flight flush and skip the confirmation.
@@ -776,13 +840,13 @@ function toIsoDate(value) {
     // Initial sync on app load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            if (window.EntSupabase && window.EntSupabase.isConfigured()) {
-                setTimeout(syncPatientRecords, 1000);
+            if (!isOfflineWorkspacePage() && window.EntSupabase && window.EntSupabase.isConfigured()) {
+                if (navigator.onLine && !hasOfflineSession()) setTimeout(syncPatientRecords, 1000);
             }
             flushPendingOnLoad();
         });
     } else {
-        if (window.EntSupabase && window.EntSupabase.isConfigured()) {
+        if (!isOfflineWorkspacePage() && window.EntSupabase && window.EntSupabase.isConfigured()) {
             setTimeout(syncPatientRecords, 1000);
         }
         flushPendingOnLoad();
