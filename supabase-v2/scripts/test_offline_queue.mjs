@@ -21,6 +21,7 @@ function makeWindow({ remoteRows = [], offlineSession = false } = {}) {
   const values = new Map()
   const posts = []
   const apiCalls = []
+  const notices = []
   const win = {
     localStorage: {
       getItem: key => values.get(key) ?? null,
@@ -30,7 +31,21 @@ function makeWindow({ remoteRows = [], offlineSession = false } = {}) {
       get length() { return values.size }
     },
     navigator: { onLine: true },
-    document: { readyState: 'complete', body: null },
+    location: { pathname: '/pages/index.html' },
+    document: {
+      readyState: 'complete',
+      body: {
+        contains: () => false,
+        appendChild: element => notices.push(element)
+      },
+      createElement: () => ({
+        style: {},
+        setAttribute() {},
+        addEventListener() {},
+        append() {},
+        remove() {}
+      })
+    },
     crypto: { getRandomValues(bytes) { bytes.forEach((_, index) => { bytes[index] = index + 1 }); return bytes } },
     addEventListener() {},
     dispatchEvent() {},
@@ -77,18 +92,18 @@ function makeWindow({ remoteRows = [], offlineSession = false } = {}) {
   for (const file of ['offlineStore.js', 'syncEngine.js']) {
     vm.runInContext(readFileSync(join(APP, 'function', file), 'utf8'), win, { filename: file })
   }
-  return { win, posts, apiCalls }
+  return { win, posts, apiCalls, notices }
 }
 
 const image = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBw'
 
 {
-  const { win, apiCalls } = makeWindow({ offlineSession: true })
+  const { win, apiCalls, notices } = makeWindow({ offlineSession: true })
   const reportSync = await win.EntSync.syncPatientRecords()
   const queueSync = await win.EntSync.flushOfflineQueue()
   assert('OQ-00', reportSync.reason === 'offline-session' &&
-    queueSync.skipped === 'offline-session' && apiCalls.length === 0,
-    'offline authentication never starts cloud history sync or queue uploads')
+    queueSync.skipped === 'offline-session' && apiCalls.length === 0 && notices.length === 1,
+    'offline authentication makes no cloud requests and prompts for online sign-in to sync queued reports')
 }
 
 {

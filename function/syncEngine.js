@@ -656,7 +656,13 @@ function toIsoDate(value) {
             return { skipped: 'already-running' };
         }
         if (!navigator.onLine) return { skipped: 'offline' };
-        if (hasOfflineSession()) return { skipped: 'offline-session' };
+        if (hasOfflineSession()) {
+            // An offline grant authorizes local work only. When connectivity
+            // returns, make the required live sign-in visible instead of
+            // leaving queued reports waiting with no explanation.
+            showSyncAuthNotice();
+            return { skipped: 'offline-session' };
+        }
         if (!window.EntSupabase || !window.EntSupabase.isConfigured()) {
             return { skipped: 'not-configured' };
         }
