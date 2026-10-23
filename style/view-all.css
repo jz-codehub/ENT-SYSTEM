@@ -1,0 +1,1536 @@
+/* =====================================================================
+   VIEW ALL PATIENTS  ·  view-all.css
+   ---------------------------------------------------------------------
+   WHY THIS FILE WAS REWRITTEN
+
+   The first version defined its own palette: --ent-bg #f5f6fa, --ent-fg
+   #1f2330, --ent-border #e2e5ee and a "Segoe UI" font stack. None of that
+   came from the app's design tokens, so the page rendered against a
+   slightly DIFFERENT blue-grey ramp than index.html and admin.html and
+   quietly looked like a different product. --ent-primary was referenced
+   throughout but never defined anywhere, so every accent fell back to a
+   hardcoded literal.
+
+   This version consumes the REAL tokens from index.css (:root):
+       --primary-color #0ea5e9   --bg-color  #f8fafc
+       --text-color    #1e293b   --panel-bg-color #ffffff
+       --border-color  #e2e8f0   --secondary-text-color #64748b
+
+   and honours body.dark-mode, so the page tracks the rest of the app in
+   both themes automatically. One palette, one font, one source of truth.
+
+   THE ONE VISUAL RULE WORTH DEFENDING
+
+   "No access" rows must not look tappable. A patient row from another
+   clinic is real information - it is why the feature exists - but it is
+   metadata only, and styling it like an enabled row would invite a click
+   the database is going to refuse.
+   ===================================================================== */
+
+.ent-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+body.ent-cca-page {
+    margin: 0;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+    text-align: left;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------- header ------------------------------ */
+/* The app's own .header is a sky-blue gradient (index.css), and
+   #entUserChip / .ent-conn are BUILT for it - white text on blue. An
+   earlier white card header here put that white text on a white
+   background and made "Tara Bautista / Secretary" vanish. Matching the
+   gradient is what makes those chips legible again, and it is also the
+   "same colour palette" every other page already uses. */
+.ent-cca-header {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+    color: var(--header-text-color);
+    border-bottom: none;
+    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0;
+}
+
+.ent-cca-header .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+.ent-cca-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.ent-cca-brand-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    font-size: 21px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.ent-cca-brand-text h1 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: #fff;
+}
+
+.ent-cca-brand-text small {
+    display: block;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.ent-cca-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+/* -------------------------------- main -------------------------------- */
+.ent-cca-main {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+}
+
+.ent-cca-notice {
+    margin: 0 0 14px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-left: 4px solid var(--primary-color);
+    background: var(--primary-light);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+.ent-cca-notice[hidden] { display: none; }
+
+/* ------------------------------ toolbar ------------------------------ */
+.ent-cca-toolbar {
+    margin-bottom: 16px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+}
+
+.ent-cca-search-label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+
+.ent-cca-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 14px;
+    font: inherit;
+    color: var(--text-color);
+    background: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: 10px;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-cca-search::placeholder { color: var(--secondary-text-color); opacity: 0.75; }
+.ent-cca-search:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+/* ------------------------------ layout ------------------------------- */
+.ent-cca-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+/* ------------------------------- card -------------------------------- */
+.ent-cca-card {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+    overflow: hidden;
+    min-width: 0;
+}
+
+.ent-cca-foot {
+    display: flex;
+    justify-content: center;
+    padding: 14px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+
+/* ------------------------------- table ------------------------------- */
+.ent-cca-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+/* ------------------------------- header ------------------------------- */
+/* NOT sticky, and that is the fix. It was pinned with position:sticky
+   inside a card that clips (overflow:hidden), so the browser could not
+   honour the offset: the headings drifted off the column edges, and rows
+   ran underneath a header that had lost its rule. A static header cannot
+   overlap anything, cannot drift, and cannot be covered - and on a list
+   this short the cost of losing the sticky behaviour is one scroll.
+   A heading that always sits at the top of its table is the arrangement
+   people expect; one that follows you down the page is not. */
+.ent-cca-table thead th {
+    position: static;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    /* The SAME padding as the cells below it. They differed by 2px, which
+       is enough to see: the headings sat a couple of pixels higher than
+       the row of text they label. */
+    padding: 13px 14px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    border-top: 0;
+    white-space: nowrap;
+}
+
+.ent-cca-table tbody td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    color: var(--text-color);
+}
+
+.ent-cca-table tbody tr:last-child td { border-bottom: 0; }
+.ent-cca-table tbody tr { transition: background 0.14s ease; }
+.ent-cca-table tbody tr:hover { background: var(--primary-light); }
+
+.ent-cca-table td.cca-pt {
+    font-weight: 650;
+    color: var(--text-color);
+}
+.ent-cca-table td.cca-act { text-align: right; white-space: nowrap; }
+/* ------------------------------- pills ------------------------------- */
+.cca-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.cca-pill-ok {
+    background: rgba(39, 174, 96, 0.12);
+    color: #1d7a43;
+    border: 1px solid rgba(39, 174, 96, 0.32);
+}
+.cca-pill-locked {
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--secondary-text-color);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
+/* Waiting for the owning clinic: amber, not grey and never red - a
+   pending letter must not LOOK refused (it once did, because the inbox
+   RPC returns no status column and undefined fell through to "Denied"). */
+.cca-pill-wait {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.cca-pill-bad {
+    background: rgba(220, 53, 69, 0.12);
+    color: var(--danger-color, #c0392b);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* ------------------------------ buttons ------------------------------ */
+.cca-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 15px;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.cca-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.cca-btn:active { transform: translateY(1px); }
+.cca-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25); }
+
+.cca-btn-open {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.cca-btn-open:hover {
+    background: var(--primary-hover-color);
+    border-color: var(--primary-hover-color);
+    color: #fff;
+}
+.cca-btn-ask {
+    background: transparent;
+    border-style: dashed;
+    border-color: rgba(100, 116, 139, 0.45);
+    color: var(--secondary-text-color);
+}
+.cca-btn-ask:hover {
+    border-style: solid;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
+.cca-btn-close { padding: 5px 12px; font-size: 0.8rem; }
+
+/* --------------------------- empty and hint -------------------------- */
+.cca-empty {
+    padding: 34px 16px;
+    text-align: center;
+    color: var(--secondary-text-color);
+    font-size: 0.9rem;
+}
+.cca-empty-err { color: var(--danger-color); }
+.cca-hint {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--secondary-text-color);
+    line-height: 1.5;
+}
+
+/* ------------------------------ detail ------------------------------- */
+.ent-cca-detail:empty { display: none; }
+.ent-cca-detail {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+    padding: 16px;
+    min-width: 0;
+}
+.cca-detail-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+.cca-detail-head h3 {
+    margin: 0 0 3px;
+    font-size: 1.02rem;
+    font-weight: 750;
+    color: var(--text-color);
+}
+.cca-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0 0 14px;
+}
+.cca-detail-grid dt {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    margin-bottom: 2px;
+}
+.cca-detail-grid dd {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.cca-refusal {
+    border-left: 4px solid var(--danger-color);
+    background: rgba(231, 76, 60, 0.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.cca-refusal h3 { margin: 0 0 8px; font-size: 1rem; color: var(--danger-color); }
+.cca-refusal p { margin: 0 0 10px; font-size: 0.9rem; }
+.cca-payload {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.cca-payload summary {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--bg-color);
+    user-select: none;
+}
+.cca-payload pre {
+    margin: 0;
+    padding: 14px;
+    max-height: 340px;
+    overflow: auto;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    background: var(--bg-color);
+    border-top: 1px solid var(--border-color);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* -------------------- record content, made to be read -----------------
+   Label ABOVE the value in auto-fit cells: the eye scans one column of
+   labels instead of hunting across ragged two-column rows. Groups are
+   separated by a coloured header rule, NOT nested boxes - boxing every
+   group was the clutter. Notes span full width as prose, photos become
+   thumbs, Yes/No carry colour, and the raw JSON stays one quiet
+   <details> at the bottom. */
+.cca-fields {
+    display: grid;
+    gap: 20px;
+    padding: 4px 14px 16px;
+}
+.cca-field-group h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding-bottom: 7px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.cca-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 14px 18px;
+}
+.cca-field { min-width: 0; }
+.cca-field.is-wide { grid-column: 1 / -1; }
+.cca-field-label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.cca-field-value {
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--text-color);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.cca-field-value.is-yes { color: var(--success-color); font-weight: 700; }
+.cca-field-value.is-no { color: var(--secondary-text-color); font-weight: 600; }
+.cca-muted { color: var(--secondary-text-color); opacity: 0.8; }
+/* Clinical prose: full grid width, quiet surface, line breaks intact. */
+.cca-longtext {
+    display: block;
+    margin-top: 2px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.87rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--bg-color);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow: auto;
+}
+.cca-thumb {
+    display: block;
+    width: 100%;
+    max-width: 170px;
+    height: 104px;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+}
+/* The outer title reads as a section divider, not another paragraph. */
+.cca-payload > summary {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+/* Raw JSON: reachable, deliberately quiet. */
+.cca-raw { border-top: 1px solid var(--border-color); }
+.cca-raw summary {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    background: var(--bg-color);
+    user-select: none;
+}
+.cca-raw summary:hover { color: var(--text-color); }
+@media (max-width: 640px) {
+    .cca-field-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+}
+/* ---------------------------- dark theme ----------------------------- */
+body.dark-mode .cca-pill-ok {
+    background: rgba(39, 174, 96, 0.18);
+    color: #6ee7a0;
+    border-color: rgba(39, 174, 96, 0.35);
+}
+body.dark-mode .cca-pill-locked {
+    background: rgba(148, 163, 184, 0.16);
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.3);
+}
+body.dark-mode .cca-pill-wait {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+body.dark-mode .cca-pill-bad {
+    background: rgba(220, 53, 69, 0.18);
+    color: #ff8a93;
+    border-color: rgba(220, 53, 69, 0.4);
+}
+body.dark-mode .cca-refusal { background: rgba(231, 76, 60, 0.12); }
+body.dark-mode .ent-cca-card,
+body.dark-mode .ent-cca-detail,
+body.dark-mode .ent-cca-toolbar {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+body.dark-mode .ent-cca-table tbody tr:hover { background: rgba(14, 165, 233, 0.12); }
+
+/* ---------------------------- responsive ----------------------------- */
+@media (min-width: 1100px) {
+    /* `auto`, NOT a fixed 400px. The detail pane is display:none until a
+       record is opened, and a fixed column would keep reserving that 400px
+       of dead space - the table rendered at ~70% width with an empty 30%
+       beside it. `auto` collapses to 0 while the pane is hidden and grows to
+       the pane's own width once it has content. */
+    .ent-cca-layout { grid-template-columns: minmax(0, 1fr) auto; }
+    .ent-cca-detail {
+        width: 400px;
+        position: sticky;
+        top: 88px;
+        max-height: calc(100vh - 108px);
+        overflow: auto;
+    }
+}
+
+@media (max-width: 820px) {
+    .ent-cca-header .header-content { padding: 10px 14px; }
+    .ent-cca-main { padding: 14px 14px 32px; }
+    .ent-cca-brand-text small { display: none; }
+
+    /* eight columns will not fit a phone, so each row becomes a card. The
+       labels come from data-label, which viewAllAccess.js writes on every
+       cell - keep the two in step when a column is added. */
+    .ent-cca-table thead { display: none; }
+    .ent-cca-table,
+    .ent-cca-table tbody,
+    .ent-cca-table tr,
+    .ent-cca-table td { display: block; width: 100%; }
+
+    .ent-cca-table tr {
+        border-bottom: 1px solid var(--border-color);
+        padding: 6px 0;
+    }
+    .ent-cca-table tbody td {
+        border: 0;
+        padding: 4px 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+    }
+    .ent-cca-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+        flex: 0 0 auto;
+    }
+    .ent-cca-table td.cca-act { justify-content: flex-end; padding-top: 10px; }
+}
+/* ------------------------------- modal -------------------------------
+   Replaces window.prompt / window.confirm. showModal() gives the focus
+   trap, Escape handling and ::backdrop, so those are not re-implemented.
+   The card keeps the app's 14px radius and token palette so it reads as
+   part of the product rather than as a browser dialog. */
+.cca-modal {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    max-width: min(520px, calc(100vw - 32px));
+    width: 100%;
+    max-height: calc(100vh - 48px);
+}
+.cca-modal::backdrop { background: rgba(15, 23, 42, 0.55); }
+
+.cca-modal-card {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.35);
+    padding: 20px;
+    margin: 0;
+    overflow: auto;
+    max-height: calc(100vh - 48px);
+}
+
+.cca-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.cca-modal-icon {
+    display: grid;
+    place-items: center;
+    width: 38px; height: 38px;
+    flex: 0 0 38px;
+    font-size: 19px;
+    border-radius: 11px;
+    background: var(--primary-light);
+    border: 1px solid rgba(14, 165, 233, 0.28);
+}
+.cca-modal-head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: var(--text-color);
+}
+
+.cca-modal-msg {
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-color);
+}
+
+.cca-modal-field { display: block; margin-bottom: 16px; }
+.cca-modal-field[hidden] { display: none; }
+.cca-modal-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.cca-modal-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    background: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: 10px;
+    resize: vertical;
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+.cca-modal-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+.cca-modal-field .cca-hint { display: block; margin-top: 6px; }
+
+.cca-modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 4px;
+}
+.cca-modal-foot .cca-btn { min-width: 104px; }
+.cca-btn.is-danger {
+    background: var(--danger-color);
+    border-color: var(--danger-color);
+    color: #fff;
+}
+.cca-btn.is-danger:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+    color: #fff;
+}
+
+@media (max-width: 520px) {
+    .cca-modal-foot { flex-direction: column-reverse; }
+    .cca-modal-foot .cca-btn { width: 100%; }
+}
+
+/* =====================================================================
+   v33n · THE LAYOUT PASS
+
+   Five changes, each one a thing that was hard to read on the page:
+
+   1. A second header row. The first row was carrying the brand, a
+      connection pill, the user chip and two buttons - a tall ragged block
+      on a phone, and the one fact that matters most on THIS page (what
+      this account may see) was buried inside the user chip.
+   2. The sticky offsets follow that header. Both the table head and the
+      detail pane were pinned to top:0 / 88px, i.e. under the page header.
+   3. Three counts. "Can I open anything here?" used to mean scanning the
+      Access column of every row.
+   4. Filters, over the loaded rows. No permission decision is made here -
+      can_view comes from the server and is only ever read.
+   5. Rows with a primary cell. Eight columns on a laptop made everything
+      cramped; four with a subline reads at a glance and still becomes a
+      labelled card on a phone.
+   ===================================================================== */
+body.ent-cca-page { --cca-head-h: 124px; }
+
+.ent-cca-scope {
+    background: rgba(2, 62, 105, 0.55);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.ent-cca-scope .header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 22px;
+    min-height: 42px;
+}
+.ent-cca-scope .header-user-slot { margin-left: auto; }
+
+/* What this account may see, in the open. On this page that sentence IS
+   the product, so it is not a tooltip and not a chip suffix. */
+.ent-cca-scope-line {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.94);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-cca-scope-line::before {
+    content: "Viewing ";
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+/* Back reads as a way out, in the same slate-gray as cf4Form's back button. */
+.ent-cca-iconbtn { display: inline-flex; align-items: center; gap: 7px; }
+.ent-cca-iconbtn span { font-size: 1.05em; line-height: 1; }
+.ent-cca-back {
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
+    border: 1px solid transparent;
+    color: #ffffff;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3);
+}
+.ent-cca-back:hover {
+    background: linear-gradient(135deg, var(--secondary-hover-color), #334155);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(100, 116, 139, 0.38);
+}
+
+/* ------------------------------ counts ------------------------------- */
+.ent-cca-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.ent-cca-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 13px 16px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--secondary-text-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+}
+.ent-cca-stat-n {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text-color);
+}
+.ent-cca-stat-l {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-cca-stat.is-ok { border-left-color: #16a34a; }
+.ent-cca-stat.is-ok .ent-cca-stat-n { color: #15803d; }
+.ent-cca-stat.is-locked { border-left-color: #94a3b8; }
+
+/* ------------------------------ filters ------------------------------ */
+.ent-cca-toolbar { padding: 13px 16px; }
+.ent-cca-searchrow { display: block; }
+.ent-cca-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-color);
+}
+.ent-cca-filter { display: inline-flex; align-items: center; gap: 7px; }
+.ent-cca-filter > label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-cca-select {
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    background: var(--input-bg-color);
+    border: 1px solid var(--input-border-color);
+    border-radius: 9px;
+    max-width: 210px;
+}
+.ent-cca-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+.ent-cca-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px 7px 10px;
+    border: 1px solid var(--input-border-color);
+    border-radius: 999px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: var(--text-color);
+    background: var(--input-bg-color);
+    cursor: pointer;
+    user-select: none;
+}
+.ent-cca-toggle input { accent-color: var(--primary-color); margin: 0; }
+.ent-cca-toggle:has(input:checked) {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+.ent-cca-count {
+    margin-left: auto;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+}
+
+/* -------------------------------- rows -------------------------------- */
+/* A fixed grid, on purpose. With `auto` the browser gave this table four
+   columns that did not line up with their headings: the header drifted
+   away from the cells as soon as a clinic name was long, and the last
+   column - the only one that carries a BUTTON - had no visible heading at
+   all because it was screen-reader text. Explicit widths make the header
+   and the body the same shape on every screen, and the fourth column now
+   says what it is. */
+.ent-cca-table {
+    table-layout: fixed;
+    width: 100%;
+    /* SEPARATE, not collapse. With border-collapse:collapse a sticky <th>
+       loses its own border and the browser paints it inconsistently - the
+       header drifts off the column edges and rows slide under a header with
+       no bottom rule. Separate + spacing 0 is the combination sticky headers
+       actually work in, and the rule is drawn on the th itself below. */
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.ent-cca-table .cca-th-pt { width: 34%; }
+.ent-cca-table .cca-th-clinic { width: 28%; }
+.ent-cca-table .cca-th-when { width: 14%; }
+.ent-cca-table .cca-th-access {
+    width: 24%;
+    text-align: right;
+}
+.ent-cca-table td.cca-pt,
+.ent-cca-table td.cca-clinic,
+.ent-cca-table td.cca-when { overflow-wrap: anywhere; }
+
+.ent-cca-table { font-size: 0.92rem; }
+.ent-cca-table thead th { top: var(--cca-head-h); }
+.ent-cca-table tbody td { padding: 13px 14px; }
+
+.cca-name {
+    display: block;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.3;
+}
+.cca-sub {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+}
+.cca-clinic-name { font-weight: 600; }
+.cca-when { color: var(--secondary-text-color); white-space: nowrap; }
+/* NOT display:flex. A <td> switched to flex stops taking part in the
+   table's column algorithm, and the header then drifts away from the
+   cells - which is exactly how this table used to look unarranged. The
+   pill and the button are inline-flex already, so a right-aligned cell
+   with a gap is both simpler and correct. Card mode (below 820px) turns
+   it into a flex row on purpose, where the table no longer exists. */
+.ent-cca-table td.cca-act {
+    text-align: right;
+    white-space: nowrap;
+}
+.ent-cca-table td.cca-act .cca-pill { margin-right: 10px; }
+
+/* A row nobody may open still LOOKS like information, but never like a
+   button: the name is greyed, the pill is quiet, the action is an outline. */
+.ent-cca-table tr.is-locked td.cca-pt .cca-name { color: var(--secondary-text-color); }
+.ent-cca-table tr.is-open td.cca-pt .cca-name { color: var(--text-color); }
+
+/* --------------------------- detail pane ----------------------------- */
+.ent-cca-detail { position: relative; }
+.cca-detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 30px 18px;
+    color: var(--secondary-text-color);
+}
+.cca-detail-empty .cca-detail-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 21px;
+    background: var(--primary-light);
+    border: 1px solid rgba(14, 165, 233, 0.28);
+}
+.cca-detail-empty strong {
+    font-size: 0.95rem;
+    color: var(--text-color);
+}
+
+/* --------------------------- the record pop-up ------------------------ */
+/* The list keeps the full page width now: a record opens over it rather
+   than beside it, so nothing has to shrink to make room. */
+.ent-cca-layout { grid-template-columns: minmax(0, 1fr); }
+.ent-cca-detail { display: none; }
+
+.cca-record {
+    width: 100%;
+    max-width: min(720px, calc(100vw - 24px));
+}
+.cca-record-card {
+    display: flex;
+    flex-direction: column;
+    max-height: min(86vh, 900px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.35);
+}
+.cca-record-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 18px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.cca-record-head h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 750;
+    color: var(--text-color);
+}
+/* Only the body scrolls, so the title and the close button stay put while a
+   long record content is read. */
+.cca-record-body {
+    padding: 18px;
+    overflow: auto;
+}
+.cca-record-body .cca-detail-head { padding-top: 0; }
+
+@media (max-width: 640px) {
+    /* A phone gets a sheet from the bottom: full width, rounded only at
+       the top, and the page behind it stays put. */
+    .cca-record { align-self: end; margin: auto 0 0; max-width: 100%; }
+    .cca-record-card { border-radius: 16px 16px 0 0; max-height: 92vh; }
+}
+body.dark-mode .cca-record-card { box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6); }
+
+/* --------------------------- responsive ------------------------------- */
+@media (min-width: 1100px) {
+    /* The detail pane sticks UNDER the two-row header, not under the top of
+       the viewport, or it slides beneath the header as you scroll. */
+    .ent-cca-detail { top: calc(var(--cca-head-h) + 16px); }
+}
+@media (max-width: 820px) {
+    body.ent-cca-page { --cca-head-h: 104px; }
+    .ent-cca-scope .header-content { padding: 8px 14px; flex-wrap: wrap; }
+    .ent-cca-scope-line { order: 3; width: 100%; white-space: normal; }
+    .ent-cca-scope .header-user-slot { margin-left: auto; }
+    .ent-cca-count { margin-left: 0; width: 100%; }
+    .ent-cca-stat { padding: 11px 13px; }
+    .ent-cca-stat-n { font-size: 1.3rem; }
+
+    /* The patient cell is the heading of the card, not a labelled field. */
+    .ent-cca-table td.cca-pt { display: block; }
+    .ent-cca-table td.cca-pt::before { content: none; }
+    .ent-cca-table td.cca-act {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .ent-cca-table td.cca-act .cca-pill { margin-right: 0; }
+}
+@media (max-width: 520px) {
+    .ent-cca-actions { width: 100%; justify-content: flex-start; }
+    .ent-cca-filters { gap: 10px; }
+    .ent-cca-select { max-width: 100%; flex: 1 1 140px; }
+}
+
+/* ----------------------------- dark mode ----------------------------- */
+body.dark-mode .ent-cca-stat { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+body.dark-mode .ent-cca-stat.is-ok .ent-cca-stat-n { color: #6ee7a0; }
+body.dark-mode .ent-cca-toggle:has(input:checked) { background: rgba(14, 165, 233, 0.16); }
+body.dark-mode .ent-cca-back { color: #ffffff; }
+
+/* ---------------------------------------------------------------------
+   REQUEST / INBOX STATE — two-way cross-clinic access flow
+   --------------------------------------------------------------------- */
+.ent-cca-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.ent-cca-tab {
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ent-cca-tab:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.ent-cca-tab.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.ent-cca-views {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+.ent-cca-view h2 {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+}
+.ent-cca-views .ent-cca-view[hidden] { display: none; }
+.cca-requests {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.cca-request-card {
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+}
+.cca-request-card.pending { border-left-color: var(--primary-color); }
+.cca-request-card.approved { border-left-color: var(--success-color); }
+.cca-request-card.denied { border-left-color: var(--danger-color); }
+.cca-request-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.cca-request-patient { font-weight: 700; }
+.cca-request-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+.cca-request-actions .cca-btn { flex: 1; min-width: 100px; }
+.cca-payload {
+    margin-top: 10px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+    font-size: 0.78rem;
+    color: var(--secondary-text-color);
+}
+
+/* ---------------------------------------------------------------------
+   ONE-ROW HEADER, BODY TITLE, POP-UP REQUEST BUTTONS.
+   The brand and the scope sentence left the blue bar for the body, and
+   the two request lists moved into a <dialog> opened from a button bar -
+   everything below is the context the old header position used to give
+   for free.
+   --------------------------------------------------------------------- */
+.ent-cca-hero { margin: 0 0 6px; }
+.ent-cca-hero .ent-cca-brand-text h1 { color: var(--text-color); font-size: 1.45rem; }
+.ent-cca-hero .ent-cca-brand-text small {
+    display: block;               /* beats the <=820px "hide the subtitle" rule */
+    color: var(--secondary-text-color);
+    font-size: 0.86rem;
+}
+.ent-cca-hero .ent-cca-brand-text small b { color: var(--primary-color); }
+
+/* The "Viewing ..." sentence loses the dark header strip: a plain
+   bordered line under the title, dark text, free to wrap on a phone. */
+.ent-cca-scope-line.ent-cca-scope-body {
+    display: block;
+    box-sizing: border-box;
+    margin: 0 0 16px;
+    padding: 9px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    font-weight: 600;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+.ent-cca-scope-body::before { color: inherit; opacity: 0.6; }
+
+/* The two lists are POP-UPS now: a two-button bar parks where the tabs
+   used to be - top of the body, impossible to miss - and each button
+   opens #ccaRequests on its own tab. */
+.ent-cca-reqbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 18px;
+}
+.cca-reqbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.cca-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--danger-color);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.cca-badge[hidden] { display: none; }
+
+/* The pop-up: the record dialog's geometry, a little wider so two
+   columns of cards can breathe on a laptop. */
+.cca-reqdlg { max-width: min(760px, calc(100vw - 24px)); }
+.cca-reqdlg-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px -12px rgba(2, 6, 23, 0.35);
+    overflow: hidden;
+    max-height: calc(100vh - 48px);
+}
+.cca-reqdlg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+}
+.cca-reqdlg-head h2 {
+    margin: 0;
+    font-size: 1.02rem;
+    font-weight: 750;
+    color: var(--text-color);
+}
+.cca-reqdlg-body { padding: 16px 18px 20px; overflow: auto; }
+
+/* Segmented tabs inside the pop-up - the same look the inline panel
+   had, now scoped to the dialog. */
+.cca-reqdlg .ent-cca-tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 14px;
+    padding: 5px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 13px;
+}
+.cca-reqdlg .ent-cca-tab {
+    padding: 9px 18px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--secondary-text-color);
+}
+.cca-reqdlg .ent-cca-tab:hover {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: transparent;
+    color: var(--primary-color);
+}
+.cca-reqdlg .ent-cca-tab.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(14, 165, 233, 0.32);
+}
+.cca-reqdlg .ent-cca-views { margin-top: 0; grid-template-columns: 1fr; }
+/* The dialog already carries the title and the tabs; the panel headings
+   inside would only say the same thing twice. The hint stays. */
+.cca-reqdlg .ent-cca-view h2 { display: none; }
+
+/* Phones get the same bottom sheet the record pop-up uses. */
+@media (max-width: 820px) {
+    .cca-reqdlg { align-self: end; margin: auto 0 0; max-width: 100%; }
+    .cca-reqdlg-card { border-radius: 16px 16px 0 0; max-height: 92vh; }
+}
+
+/* The requester's side of a pending letter: no buttons, so the state
+   line says why - only the owning clinic may answer it. */
+.cca-request-card .cca-waiting { font-style: italic; opacity: 0.85; }
+
+/* --------------------------- page polish ----------------------------- */
+.ent-cca-main {
+    max-width: 1200px;
+    padding-top: 24px;
+}
+
+.ent-cca-hero {
+    margin: 0 0 12px;
+    padding: 19px 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: linear-gradient(115deg, var(--panel-bg-color), var(--primary-light));
+    box-shadow: 0 5px 18px rgba(2, 6, 23, 0.045);
+}
+
+.ent-cca-hero .ent-cca-brand-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 14px;
+    color: var(--primary-color);
+    background: var(--panel-bg-color);
+    box-shadow: 0 3px 10px rgba(2, 6, 23, 0.08);
+}
+
+.ent-cca-hero .ent-cca-brand-text h1 {
+    font-size: clamp(1.35rem, 2.5vw, 1.7rem);
+    letter-spacing: -0.035em;
+}
+
+.ent-cca-header-brand .ent-cca-brand-icon {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+}
+.ent-cca-header-brand .ent-cca-brand-text h1 {
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+}
+.ent-cca-header-brand .ent-cca-brand-text small { display: block; }
+.ent-cca-header-brand .ent-cca-brand-text small b { color: #fff; }
+
+.ent-cca-page-nav {
+    display: flex;
+    align-items: center;
+    margin: 0 0 16px;
+}
+
+.ent-cca-scope-line.ent-cca-scope-body {
+    margin-bottom: 18px;
+    border-left: 4px solid var(--primary-color);
+    background: var(--panel-bg-color);
+    box-shadow: 0 2px 8px rgba(2, 6, 23, 0.035);
+}
+
+.ent-cca-reqbar { gap: 11px; }
+.cca-reqbtn {
+    min-height: 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 2px 7px rgba(2, 6, 23, 0.045);
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.cca-reqbtn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(14, 165, 233, 0.5);
+    box-shadow: 0 5px 13px rgba(2, 6, 23, 0.08);
+}
+
+.ent-cca-stats { gap: 14px; margin-bottom: 16px; }
+.ent-cca-stat {
+    min-height: 78px;
+    justify-content: center;
+    padding: 14px 18px;
+    border-left-width: 4px;
+    border-radius: 13px;
+    box-shadow: 0 3px 12px rgba(2, 6, 23, 0.045);
+}
+.ent-cca-stat-n { font-size: 1.65rem; }
+
+.ent-cca-toolbar {
+    padding: 17px 18px;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgba(2, 6, 23, 0.045);
+}
+.ent-cca-search-label {
+    margin-bottom: 8px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.85rem;
+    color: var(--text-color);
+}
+.ent-cca-search { min-height: 46px; }
+.ent-cca-filters {
+    border-top-style: solid;
+    margin-top: 14px;
+    padding-top: 14px;
+}
+.ent-cca-select { min-height: 38px; }
+
+.ent-cca-card {
+    border-radius: 15px;
+    box-shadow: 0 4px 16px rgba(2, 6, 23, 0.055);
+}
+.ent-cca-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 19px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+}
+.ent-cca-list-head h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+}
+.ent-cca-list-head p {
+    margin: 4px 0 0;
+    color: var(--secondary-text-color);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+.ent-cca-list-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    background: var(--bg-color);
+    font-size: 1.1rem;
+}
+.ent-cca-table thead th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: var(--bg-color);
+}
+.ent-cca-table tbody td { padding-top: 15px; padding-bottom: 15px; }
+.ent-cca-table tbody tr:hover { background: rgba(14, 165, 233, 0.055); }
+.ent-cca-foot { padding: 15px; }
+.ent-cca-foot .ent-btn { min-width: 145px; }
+
+body.dark-mode .ent-cca-hero {
+    background: linear-gradient(115deg, var(--panel-bg-color), rgba(14, 165, 233, 0.09));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+body.dark-mode .ent-cca-hero .ent-cca-brand-icon { background: var(--bg-color); }
+body.dark-mode .cca-reqbtn,
+body.dark-mode .ent-cca-stat,
+body.dark-mode .ent-cca-toolbar,
+body.dark-mode .ent-cca-card {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+body.dark-mode .ent-cca-table tbody tr:hover { background: rgba(14, 165, 233, 0.1); }
+
+@media (max-width: 820px) {
+    .ent-cca-main { padding: 18px 14px 32px; }
+    .ent-cca-hero { padding: 15px 16px; }
+    .ent-cca-stats { gap: 9px; }
+    .ent-cca-stat { min-height: 68px; padding: 11px 12px; }
+    .ent-cca-stat-l { font-size: 0.65rem; }
+    .ent-cca-list-head { padding: 13px 15px; }
+    .ent-cca-table tbody tr {
+        width: auto;
+        margin: 9px 10px;
+        padding: 8px 0;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--panel-bg-color);
+        box-shadow: 0 2px 7px rgba(2, 6, 23, 0.04);
+    }
+    .ent-cca-table tbody tr:last-child { margin-bottom: 10px; }
+}
+
+@media (max-width: 520px) {
+    .ent-cca-hero .ent-cca-brand-text small { display: block; font-size: 0.76rem; }
+    .ent-cca-hero .ent-cca-brand-icon { width: 42px; height: 42px; flex-basis: 42px; }
+    .ent-cca-reqbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .cca-reqbtn { justify-content: center; padding: 10px 8px; font-size: 0.8rem; }
+    .ent-cca-toolbar { padding: 13px; }
+    .ent-cca-filter { width: 100%; justify-content: space-between; }
+    .ent-cca-select { max-width: 68%; }
+    .ent-cca-toggle { width: 100%; justify-content: flex-start; }
+    .ent-cca-list-head p { max-width: 32ch; }
+}
+
+@media (max-width: 820px) {
+    .ent-cca-header-brand .ent-cca-brand-text small { display: block; }
+}
+
+@media (max-width: 520px) {
+    .ent-cca-header .header-content { align-items: flex-start; }
+    .ent-cca-header-brand { flex: 1 1 100%; }
+    .ent-cca-header-brand .ent-cca-brand-text h1 { font-size: 1.1rem; }
+    .ent-cca-header-brand .ent-cca-brand-text small { font-size: 0.72rem; }
+}
+
+/* Keep the title and account controls on one header row. */
+.ent-cca-header .header-content {
+    flex-wrap: nowrap;
+}
+.ent-cca-header-brand {
+    flex: 1 1 auto;
+}
+.ent-cca-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    margin-left: auto;
+}
+
+@media (max-width: 820px) {
+    .ent-cca-header .header-content { align-items: center; }
+    .ent-cca-header-brand { flex: 1 1 auto; }
+    .ent-cca-header-brand .ent-cca-brand-text small { display: none; }
+    .ent-cca-actions { width: auto; }
+}
+
+@media (max-width: 520px) {
+    .ent-cca-header .header-content {
+        gap: 8px;
+        padding: 8px 10px;
+    }
+    .ent-cca-header-brand { gap: 7px; }
+    .ent-cca-header-brand .ent-cca-brand-icon {
+        width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+        font-size: 16px;
+    }
+    .ent-cca-header-brand .ent-cca-brand-text h1 { font-size: 0.92rem; }
+    .ent-cca-actions { gap: 6px; }
+    .ent-cca-header .ent-conn { display: none; }
+    .ent-cca-header .ent-cca-iconbtn { padding: 7px 8px; font-size: 0; }
+    .ent-cca-header .ent-cca-iconbtn span { font-size: 1rem; }
+}

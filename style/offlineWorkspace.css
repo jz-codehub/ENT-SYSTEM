@@ -1,0 +1,209 @@
+:root {
+    color-scheme: light;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f7fa;
+    color: #183247;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+}
+
+.offline-workspace {
+    width: min(100% - 48px, 1040px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 40px 0 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.offline-logout {
+    align-self: flex-end;
+    margin-bottom: 48px;
+    padding: 12px 20px;
+    border: 1px solid #cbd8e2;
+    border-radius: 12px;
+    background: #fff;
+    color: #244c68;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(24, 50, 71, .08);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.offline-logout:hover,
+.offline-logout:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(24, 50, 71, .13);
+    outline: 3px solid #f0b429;
+    outline-offset: 3px;
+}
+
+.offline-workspace h1 {
+    margin: 0 0 40px;
+    text-align: center;
+    color: #123b5d;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.2;
+    letter-spacing: -.025em;
+}
+
+.offline-connection {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    max-width: 700px;
+    margin: -16px auto 30px;
+    padding: 16px 19px;
+    border: 1px solid #cde5d7;
+    border-radius: 15px;
+    background: #f0faf4;
+    color: #24563b;
+}
+
+.offline-connection-indicator {
+    flex: 0 0 11px;
+    width: 11px;
+    height: 11px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, .12);
+}
+
+.offline-connection.is-offline {
+    border-color: #f0d9a7;
+    background: #fff9eb;
+    color: #72510f;
+}
+
+.offline-connection.is-offline .offline-connection-indicator {
+    background: #d99013;
+    box-shadow: 0 0 0 4px rgba(217, 144, 19, .14);
+}
+
+.offline-connection strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: .94rem;
+}
+
+.offline-connection p {
+    margin: 0;
+    color: #587083;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+
+.offline-workspace-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.offline-workspace-actions button {
+    width: 100%;
+    min-height: 220px;
+    padding: 30px 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 28px;
+    border: 1px solid #d9e5ed;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #fff 0%, #f7fbfd 100%);
+    color: #173c56;
+    font: inherit;
+    font-size: 1.35rem;
+    font-weight: 750;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(24, 50, 71, .09);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.offline-workspace-actions button:hover,
+.offline-workspace-actions button:focus-visible {
+    transform: translateY(-4px);
+    border-color: #4d91b5;
+    box-shadow: 0 16px 34px rgba(24, 50, 71, .15);
+    outline: 3px solid #f0b429;
+    outline-offset: 3px;
+}
+
+.offline-workspace-actions button svg {
+    width: 64px;
+    height: 64px;
+    padding: 14px;
+    border-radius: 18px;
+    background: #e7f2f8;
+    color: #12618a;
+}
+
+.offline-workspace-actions button[data-page="laryngealEndoscopy.html"] svg {
+    background: #e9f2ed;
+    color: #31744d;
+}
+
+.offline-workspace-actions button[data-page="cf4Form.html"] svg {
+    background: #fff3dc;
+    color: #9a6410;
+}
+
+.offline-workspace-actions button span {
+    line-height: 1.3;
+}
+
+.ent-offline-workspace #entUserChip {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .offline-workspace-actions {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .offline-workspace-actions button {
+        min-height: 132px;
+        padding: 22px 24px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .offline-workspace {
+        width: min(100% - 28px, 680px);
+        padding: 24px 0 32px;
+    }
+
+    .offline-logout {
+        margin-bottom: 40px;
+    }
+
+    .offline-workspace h1 {
+        margin-bottom: 28px;
+    }
+
+    .offline-connection {
+        margin: -8px auto 22px;
+        padding: 14px;
+    }
+
+    .offline-workspace-actions button {
+        min-height: 112px;
+        font-size: 1.15rem;
+    }
+}

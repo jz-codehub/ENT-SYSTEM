@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ENT — why is the staff list empty?</title>
+<style>
+  body{font:15px/1.6 ui-sans-serif,system-ui,Segoe UI,sans-serif;margin:0;padding:24px;background:#0f1419;color:#e6edf3}
+  h1{font-size:20px;margin:0 0 4px}p.sub{color:#8b949e;margin:0 0 20px;font-size:14px}
+  .box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin-bottom:10px}
+  .pass{border-left:4px solid #3fb950}.fail{border-left:4px solid #f85149}.warn{border-left:4px solid #d29922}
+  .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8b949e;margin-bottom:3px}
+  .val{font-weight:600;font-size:15px}.mono{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .hint{color:#8b949e;font-size:13px;margin-top:6px}
+  code{background:#21262d;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .verdict{font-size:17px;font-weight:700;padding:14px 16px;border-radius:8px;margin-top:18px}
+  .v-ok{background:#1a3d24;border:1px solid #2ea043}.v-bad{background:#3d1a1d;border:1px solid #da3633}
+  pre{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:12px;overflow:auto;max-height:320px;font-size:12px;line-height:1.45}
+</style>
+</head>
+<body>
+<h1>Why is the staff list empty?</h1>
+<p class="sub">Open this page <b>from the same place you open the app</b> — same server, same port. It answers three questions the app cannot show you.</p>
+<div id="out">running…</div>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js"></script>
+<script>
+const out = document.getElementById('out');
+function box(kind, lbl, val, hint) {
+  const d = document.createElement('div');
+  d.className = 'box ' + kind;
+  d.innerHTML = '<div class="lbl">' + lbl + '</div><div class="val">' + val +
+    (hint ? '<div class="hint">' + hint + '</div>' : '') + '</div>';
+  out.appendChild(d);
+}
+(async function () {
+  out.innerHTML = '';
+  const origin = location.origin;
+  const openedAsFile = location.protocol === 'file:' || origin === 'null';
+  box('warn', 'you are viewing from', '<span class="mono">' + origin + '</span>',
+      openedAsFile
+        ? 'origin "null" = this page was opened as a FILE. Every step below will fail and no server-side change can fix it - run <code>node serve.mjs</code> and open <code>http://localhost:5500/pages/diagnose.html</code>.'
+        : 'This exact string is what the Edge Function must be allowed to answer.');
+
+  const cfg = (window.EntSupabase && EntSupabase.getConfig && EntSupabase.getConfig())
+    || { supabaseUrl: 'NOT-CONFIGURED', supabaseAnonKey: '' };
+  box('pass', 'talking to', '<span class="mono">' + cfg.supabaseUrl + '</span>', '');
+
+  const BASE = String(cfg.supabaseUrl).replace(/\/+$/, '');
+  const FN = BASE + '/functions/v1/auth-admin';
+  const notes = [];
+
+  let pre = null;
+  try {
+    pre = await fetch(FN, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: origin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'authorization,content-type,apikey'
+      }
+    });
+    const allow = pre.headers.get('access-control-allow-origin');
+    const good = pre.status === 204 && allow;
+    box(good ? 'pass' : 'fail', 'step 1 · preflight (OPTIONS)',
+      'HTTP ' + pre.status + ' · allow-origin: ' + (allow || 'NONE'),
+      good ? '' : 'The browser is being refused at the door. Nothing else can work.');
+    if (!allow) notes.push('ORIGIN_NOT_ALLOWED');
+    if (pre.status !== 204) notes.push('PREFLIGHT_' + pre.status);
+  } catch (e) {
+    box('fail', 'step 1 · preflight (OPTIONS)', 'threw: ' + e.message,
+      'The request never completed.');
+    notes.push('PREFLICT_THREW');
+  }
+
+  let token = '';
+  try {
+    const email = prompt('Admin email (the one you log in with):');
+    const pw = prompt('Password:');
+    const r = await fetch(BASE + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { apikey: cfg.supabaseAnonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pw })
+    });
+    const j = await r.json();
+    token = j.access_token || '';
+    box(token ? 'pass' : 'fail', 'step 2 · sign in',
+      token ? 'got a session token' : ('failed: ' + (j.error_description || j.msg || r.status)),
+      token ? '' : 'Check the email and password.');
+    if (!token) notes.push('SIGNIN_FAILED');
+  } catch (e) {
+    box('fail', 'step 2 · sign in', 'threw: ' + e.message, '');
+    notes.push('SIGNIN_THREW');
+  }
+if (token) {
+    try {
+      const r = await fetch(FN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: cfg.supabaseAnonKey,
+          Authorization: 'Bearer ' + token
+        },
+        body: JSON.stringify({ action: 'list' })
+      });
+      const allow = r.headers.get('access-control-allow-origin');
+      let j = null; try { j = await r.json(); } catch (e) {}
+      const n = j && Array.isArray(j.users) ? j.users.length : 0;
+      const good = r.status === 200 && n > 0;
+      box(good ? 'pass' : 'fail', 'step 3 · the real call (POST list)',
+        'HTTP ' + r.status + ' · allow-origin: ' + (allow || 'NONE') + ' · users: ' + n,
+        good ? 'The server is healthy and the browser can read it.' : 'See the raw response below.');
+      if (!good) notes.push('POST_' + r.status + '_USERS_' + n);
+      const p = document.createElement('pre');
+      p.textContent = JSON.stringify(j, null, 2).slice(0, 4000);
+      out.appendChild(p);
+    } catch (e) {
+      box('fail', 'step 3 · the real call (POST list)', 'threw: ' + e.message,
+        'This is the "Failed to fetch" the app swallows into "not answering".');
+      notes.push('POST_THREW');
+    }
+  }
+
+  const v = document.createElement('div');
+  if (!notes.length) {
+    v.className = 'verdict v-ok';
+    v.textContent = 'EVERYTHING PASSED — the server is fine and reachable from ' + origin +
+      '. If the app still shows no names, it is a stale cached file, not the network.';
+  } else if (openedAsFile) {
+    // "null" must NEVER go into ENT_ALLOWED_ORIGIN: every file:// page and
+    // every sandboxed iframe also sends Origin: null, so allowlisting it
+    // would hand the keys to all of them. admin.js unreachableError() says
+    // the same thing - this page used to advise the exact opposite.
+    v.className = 'verdict v-bad';
+    v.innerHTML = 'FAILED: ' + notes.join(', ') +
+      '<div class="hint" style="margin-top:10px">This page is open as a FILE (origin <code>null</code>), so the browser sends <code>Origin: null</code>. No allowlist can ever match it, and <code>ENT_ALLOWED_ORIGIN=null</code> would be actively dangerous - any file or sandboxed frame could then impersonate this app.<br><br>The only fix is to serve the folder:<br>' +
+      '<code>node serve.mjs</code> &nbsp;then open&nbsp; <code>http://localhost:5500/pages/diagnose.html</code></div>';
+  } else {
+    v.className = 'verdict v-bad';
+    v.innerHTML = 'FAILED: ' + notes.join(', ') +
+      '<div class="hint" style="margin-top:10px">Most likely fix:<br>' +
+      '<code>supabase secrets set ENT_ALLOWED_ORIGIN=' + origin + '</code><br>' +
+      'then run <code>node supabase-v2/scripts/verify_deploy.mjs ' + origin + '</code></div>';
+  }
+  out.appendChild(v);
+})();
+</script>
+</body>
+</html>

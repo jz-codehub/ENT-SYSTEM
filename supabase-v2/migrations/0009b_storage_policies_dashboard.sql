@@ -1,0 +1,53 @@
+-- =====================================================================
+--  0009b · storage.objects policies  (DASHBOARD STEP, not SQL Editor)
+--  @doc-only  — this file holds no executable statement. It is the
+--  runbook for the four policies, applied through Dashboard > Storage.
+-- ---------------------------------------------------------------------
+--  Run 0009_storage_policies.sql FIRST. This file cannot be pasted into
+--  the SQL Editor: it would fail with
+--
+--      ERROR: 42501: must be owner of table objects
+--
+--  because storage.objects is owned by supabase_storage_admin, while the
+--  Dashboard SQL editor runs as `postgres` — not the owner, and not a
+--  member of that role. Supabase's docs call the storage schema
+--  read-only; only the Dashboard's Storage surface can write it.
+--
+--  DO NOT SKIP THIS. It is defence-in-depth. Today the browser never
+--  calls Storage (patient-photos Edge Function holds the service_role key
+--  and has BYPASSRLS, so it ignores these policies). They exist for the
+--  day someone grants direct Storage access — which is precisely when an
+--  unguarded storage.objects would hand over every patient's photos.
+--
+--  HOW TO APPLY
+--    Dashboard > Storage > Policies > New policy, four times.
+--    The dialog takes a name, a role, a command and an expression.
+--
+--      1. ent_photos_select   SELECT   authenticated
+--         USING (bucket_id = 'patient-photos'
+--                 AND public.ent_may_access_photo('SELECT', name))
+--
+--      2. ent_photos_insert   INSERT   authenticated
+--         WITH CHECK (bucket_id = 'patient-photos'
+--                     AND public.ent_may_access_photo('INSERT', name))
+--
+--      3. ent_photos_update   UPDATE   authenticated
+--         USING     (bucket_id = 'patient-photos'
+--                     AND public.ent_may_access_photo('UPDATE', name))
+--         WITH CHECK (bucket_id = 'patient-photos'
+--                     AND public.ent_may_access_photo('UPDATE', name))
+--
+--      4. ent_buckets_select  SELECT   authenticated
+--         USING (FALSE)                      -- storage.buckets
+--
+--    There is deliberately NO anon policy and NO DELETE policy: objects
+--    are removed only by the Edge Function using service_role, after a
+--    soft-delete row and a PHOTO_DELETE audit row.
+--
+--  VERIFY AFTER APPLYING (run in the SQL Editor; read-only, so it works):
+--    SELECT policyname, cmd, roles FROM pg_policies
+--     WHERE schemaname = 'storage' AND tablename = 'objects'
+--     ORDER BY policyname;
+--    Expect ent_photos_insert / ent_photos_select / ent_photos_update,
+--    every one with roles = {authenticated}, and NO anon anywhere.
+-- =====================================================================

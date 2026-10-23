@@ -1,0 +1,54 @@
+﻿diff --git a/pages/laryngealEndoscopy.html b/pages/laryngealEndoscopy.html
+index 5cd1fcd..4f7e074 100644
+--- a/pages/laryngealEndoscopy.html
++++ b/pages/laryngealEndoscopy.html
+@@ -48,22 +48,22 @@
+                  rest of the page's actions. -->
+             <a href="../index.html" class="back-button back-button-solid no-print" title="Back to Menu">ΓåÉ Back to Menu</a>
+ 
+-            <!-- MY WORK: local drafts only ΓÇö Save Draft is the accent action -->
+-            <div class="header-btn-group group-work no-print" role="group" aria-label="Save and open your work">
+-                <span class="group-label">My Work</span>
+-                <button type="button" id="saveDataBtn" class="btn-save-draft" title="Save your work as a draft on this device so you can continue later.">
++            <!-- OFFLINE MODE: saves to the IndexedDB offline database first; the sync engine uploads it when there is signal -->
++            <div class="header-btn-group group-work no-print" role="group" aria-label="Offline mode: save and open your work">
++                <span class="group-label">Offline Mode</span>
++                <button type="button" id="saveDataBtn" class="btn-save-draft" title="Save your work to this device's offline database. Works with or without signal - it syncs to the cloud automatically when you are back online.">
+                     <span class="btn-icon">≡ƒÆ╛</span>
+                     <span class="btn-label">
+-                        <span class="btn-main">Save Draft</span>
+-                        <span class="btn-sub">continue later</span>
++                        <span class="btn-main">Save to Offline Mode</span>
++                        <span class="btn-sub">works without signal</span>
+                     </span>
+                     <span class="btn-flash" aria-hidden="true">Γ£ô Saved</span>
+                 </button>
+-                <button type="button" id="localDraftsBtn" class="btn-local-drafts" title="Browse drafts saved on this device ΓÇö open one to continue editing or download it as a .json file.">
++                <button type="button" id="localDraftsBtn" class="btn-local-drafts" title="Browse records saved in offline mode on this device (IndexedDB). Open one to continue editing. These sync to the cloud automatically when online.">
+                     <span class="btn-icon">≡ƒùé∩╕Å</span>
+                     <span class="btn-label">
+-                        <span class="btn-main">My Drafts</span>
+-                        <span class="btn-sub">on this device</span>
++                        <span class="btn-main">Offline Records</span>
++                        <span class="btn-sub">saved on this device</span>
+                     </span>
+                 </button>
+                 <span class="btn-group-divider" aria-hidden="true"></span>
+@@ -461,12 +461,13 @@
+     <script src="../function/supabaseClient.js" defer></script>
+     <script src="../function/photoStore.js?v=v31ai" defer></script>
+     <script src="../function/auth.js" defer></script>
+-    <script src="../function/syncEngine.js?v=v33o" defer></script>
++    <script src="../function/syncEngine.js?v=v35a" defer></script>
++    <script src="../function/offlineStore.js?v=v35a" defer></script>
+     <script src="../function/patientRecords.js?v=v33ak" defer></script>
+     <script src="../function/dbRecords.js?v=v34f" defer></script>
+-    <script src="../function/draftsBrowser.js?v=v33v" defer></script>
+-    <!-- index.js?v=v33f carries the typable Scrub Nurse input. -->
+-    <script src="../function/index.js?v=v34d" defer></script>
++    <script src="../function/draftsBrowser.js?v=v35a" defer></script>
++    <!-- index.js?v=v35a carries the typable Scrub Nurse input + OFFLINE MODE tutorial labels. -->
++    <script src="../function/index.js?v=v35a" defer></script>
+     
+ </body>
+ </html>

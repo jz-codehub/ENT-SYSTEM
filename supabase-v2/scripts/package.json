@@ -1,0 +1,28 @@
+{
+  "name": "ent-v2-tooling",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline verification for the ENT Records v2 Supabase schema and Edge Functions. No production code lives here; nothing in this folder is deployed.",
+  "type": "module",
+  "scripts": {
+    "check": "node check_migrations.mjs",
+    "parse": "node parse_check.mjs",
+    "bundle": "node bundle_for_dashboard.mjs",
+    "smoke": "node smoke_test.mjs",
+    "build": "node check_migrations.mjs && node bundle_for_dashboard.mjs",
+    "accounts": "node create_test_accounts.mjs",
+    "admin": "node test_admin_console.mjs",
+    "tickets": "node test_ticket_form.mjs",
+    "frontend": "node test_frontend_v2.mjs",
+    "rls": "node test_live_rls.mjs",
+    "photos": "node test_photo_validation.mjs",
+    "browser": "node simulate_browser.mjs",
+    "serve": "node ../../serve.mjs",
+    "serve-test": "node test_serve.mjs",
+    "preflight": "node probe_preflight.mjs",
+    "test": "node check_migrations.mjs && node test_frontend_v2.mjs && node test_admin_console.mjs && node test_photo_validation.mjs"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0"
+  }
+}

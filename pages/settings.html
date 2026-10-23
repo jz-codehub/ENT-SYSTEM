@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Settings</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../style/auth.css?v=v33al">
+    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+</head>
+<body class="settings-page">
+
+    <header class="header no-print">
+        <div class="header-content">
+            <div class="header-brand header-brand-center">
+                <h1>Clinic Settings</h1>
+                <small class="header-tagline">Letterhead, doctors &amp; cloud sync for every report</small>
+            </div>
+            <div class="header-meta">
+                <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
+                        <input type="checkbox" id="theme-toggle" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="header-user-slot" id="headerUserSlot"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="actions no-print back-link-container" style="text-align: left; margin-bottom: 20px; border-top: none;">
+            <a href="../index.html" class="back-button">← Back to Menu</a>
+        </div>
+
+        <!-- Simple settings tabs: only one report area is shown at a time. -->
+            <div class="settings-nav no-print" role="tablist" aria-label="Settings categories">
+                <button type="button" class="settings-nav-btn active" data-target="endoscopy-settings" role="tab" aria-controls="endoscopy-settings" aria-selected="true"><span aria-hidden="true">🔬</span> <span><strong>Endoscopy / Nasal</strong><small>Header, doctors &amp; templates</small></span></button>
+                <button type="button" class="settings-nav-btn" data-target="cf4-settings" role="tab" aria-controls="cf4-settings" aria-selected="false"><span aria-hidden="true">📋</span> <span><strong>CF4 Form</strong><small>PhilHealth form settings</small></span></button>
+                <button type="button" class="settings-nav-btn" data-target="diagnostics-settings" role="tab" aria-controls="diagnostics-settings" aria-selected="false"><span aria-hidden="true">🛠️</span> <span><strong>Diagnostics</strong><small>Check &amp; repair app</small></span></button>
+                <button type="button" class="settings-nav-btn" data-target="cloud-sync-settings" role="tab" aria-controls="cloud-sync-settings" aria-selected="false"><span aria-hidden="true">☁️</span> <span><strong>Cloud Sync</strong><small>Supabase status &amp; test</small></span></button>
+            </div>
+
+        <form id="settings-form">
+
+            <!-- ============================================================
+                 CARD 2: ENDOSCOPY SETTINGS  (Shown first for quick access)
+                 ============================================================ -->
+            <div id="endoscopy-settings" class="card-section settings-card settings-panel" role="tabpanel" aria-label="Endoscopy and Nasal settings" style="margin-bottom: 20px; border: 2px solid var(--border-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 2em;">🔬</span>
+                    <h2 style="margin: 0; font-size: 1.5em; color: var(--primary-color);">Endoscopy Settings</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 25px;">
+                    Configure the main clinic header, report templates, and physician lists used in the Nasal and Laryngeal Endoscopy reports.
+                </p>
+
+                <div class="sticky-header-preview">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <button type="button" id="previewHeaderBtn" style="width: 100%; background-color: var(--secondary-color); font-size: 14px; padding: 10px; margin-bottom: 0;">Show Header Preview</button>
+                        <div id="headerPreviewContainer" style="border: 2px dashed var(--border-color); padding: 15px; display: none; background: #fff; color: #000; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 794px; margin-left: auto; margin-right: auto; box-sizing: border-box; overflow-x: auto;"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicName" class="form-label">Clinic Name</label>
+                    <input type="text" id="clinicName" name="clinicName" placeholder="ENT-HNS ENDOSCOPY UNIT">
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicAddress" class="form-label">Clinic Address</label>
+                    <input type="text" id="clinicAddress" name="clinicAddress" placeholder="e.g., 123 Medical Plaza">
+                </div>
+
+                <div class="form-group">
+                    <label for="clinicPhoneNumber" class="form-label">Clinic Phone Number</label>
+                    <input type="text" id="clinicPhoneNumber" name="clinicPhoneNumber" placeholder="e.g., (088) 856-1234">
+                </div>
+
+                <div class="form-group">
+                    <label for="rehabCenterText" class="form-label">Center Name / Subtitle</label>
+                    <textarea id="rehabCenterText" name="rehabCenterText" rows="3" placeholder="MINDANAO EAR, NOSE, THROAT OUT-PATIENT REHABILITATION CENTER&#10;(MENTOR)"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <label for="hospitalHeaderSelect" class="form-label">Default Hospital Header</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="hospitalHeaderSelect" name="hospitalHeader" style="flex: 1;">
+                        </select>
+                        <button type="button" id="editHospitalBtn" style="background-color: var(--primary-color); width: auto; margin: 0; padding: 10px 15px; font-size: 12px; display: none;">Edit</button>
+                        <button type="button" id="removeHospitalBtn" style="background-color: #e74c3c; width: auto; margin: 0; padding: 10px 15px; font-size: 12px; display: none;">Remove</button>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="text" id="newHospitalInput" placeholder="Add new hospital name..." style="flex: 1; margin-bottom: 0;">
+                        <button type="button" id="addNewHospitalBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <label class="form-label">Header Logos (Optional)</label>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="leftLogoInput" style="font-size: 0.9em; display: block; margin-bottom: 5px;">Left Logo</label>
+                            <input type="file" id="leftLogoInput" accept="image/*" style="margin-bottom: 5px;">
+                            <button type="button" id="undoLeftLogoBtn" style="background-color: var(--secondary-color); font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer; display: none; margin-right: 5px;">Undo</button>
+                            <button type="button" id="resetLeftLogoBtn" style="background-color: #e74c3c; font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer;">Reset to Default</button>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="rightLogoInput" style="font-size: 0.9em; display: block; margin-bottom: 5px;">Right Logo</label>
+                            <input type="file" id="rightLogoInput" accept="image/*" style="margin-bottom: 5px;">
+                            <button type="button" id="undoRightLogoBtn" style="background-color: var(--secondary-color); font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer; display: none; margin-right: 5px;">Undo</button>
+                            <button type="button" id="resetRightLogoBtn" style="background-color: #e74c3c; font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer;">Reset to Default</button>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8em; color: var(--secondary-text-color); margin-top: 5px;">Leave empty to keep current logo. Click Reset to revert to original.</p>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="font-size: 1.1em; margin: 0; color: var(--main-content-header-color);">Header Styling</h3>
+                        <div>
+                            <button type="button" id="undoStylingBtn" style="background-color: var(--secondary-color); font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer; display: none; margin-right: 5px;">Undo</button>
+                            <button type="button" id="resetStylingBtn" style="background-color: #e74c3c; font-size: 12px; padding: 5px 10px; border: none; color: white; border-radius: 3px; cursor: pointer;">Reset to Default</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="headerFontFamily" class="form-label">Font Family</label>
+                            <select id="headerFontFamily" name="headerFontFamily">
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="'Times New Roman', serif">Times New Roman</option>
+                                <option value="'Cinzel', 'Trajan Pro', serif">Cinzel / Trajan Pro</option>
+                                <option value="'Courier New', monospace">Courier New</option>
+                                <option value="Verdana, sans-serif">Verdana</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="Tahoma, sans-serif">Tahoma</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="logoSize" class="form-label">Logo Size (px)</label>
+                            <input type="number" id="logoSize" name="logoSize" value="120" min="50" max="200">
+                        </div>
+                    </div>
+
+                    <label class="form-label" style="border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px;">Text Customization (Size & Bold)</label>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.85em; flex: 1;">Hospital Name:</span>
+                            <input type="number" id="hospitalNameFontSize" name="hospitalNameFontSize" value="26" style="width: 70px; margin-bottom: 0; padding: 5px 10px;" placeholder="px">
+                            <label for="hospitalNameBold" style="font-size: 0.85em; cursor: pointer; display: flex; align-items: center;" title="Toggle Bold">
+                                <input type="checkbox" id="hospitalNameBold" name="hospitalNameBold" checked style="width: auto;"> Bold
+                            </label>
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.85em; flex: 1;">Hospital Subtitle Name:</span>
+                            <input type="number" id="subtitleFontSize" name="subtitleFontSize" value="14" style="width: 70px; margin-bottom: 0; padding: 5px 10px;" placeholder="px">
+                            <label for="subtitleBold" style="font-size: 0.85em; cursor: pointer; display: flex; align-items: center;" title="Toggle Bold">
+                                <input type="checkbox" id="subtitleBold" name="subtitleBold" style="width: auto;"> Bold
+                            </label>
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.85em; flex: 1;">Clinic Name:</span>
+                            <input type="number" id="clinicNameFontSize" name="clinicNameFontSize" value="16" style="width: 70px; margin-bottom: 0; padding: 5px 10px;" placeholder="px">
+                            <label for="clinicNameBold" style="font-size: 0.85em; cursor: pointer; display: flex; align-items: center;" title="Toggle Bold">
+                                <input type="checkbox" id="clinicNameBold" name="clinicNameBold" checked style="width: auto;"> Bold
+                            </label>
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.85em; flex: 1;">Address:</span>
+                            <input type="number" id="addressFontSize" name="addressFontSize" value="12" style="width: 70px; margin-bottom: 0; padding: 5px 10px;" placeholder="px">
+                            <label for="addressBold" style="font-size: 0.85em; cursor: pointer; display: flex; align-items: center;" title="Toggle Bold">
+                                <input type="checkbox" id="addressBold" name="addressBold" style="width: auto;"> Bold
+                            </label>
+                        </div>
+
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <span style="font-size: 0.85em; flex: 1;">Contact No.:</span>
+                            <input type="number" id="contactNoFontSize" name="contactNoFontSize" value="12" style="width: 70px; margin-bottom: 0; padding: 5px 10px;" placeholder="px">
+                            <label for="contactNoBold" style="font-size: 0.85em; cursor: pointer; display: flex; align-items: center;" title="Toggle Bold">
+                                <input type="checkbox" id="contactNoBold" name="contactNoBold" style="width: auto;"> Bold
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <fieldset style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <legend>Data Entry Formatting</legend>
+                    <div class="form-group">
+                        <label class="form-label">Patient Name Capitalization</label>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                                <input type="radio" name="patientNameCase" value="title">
+                                <span>Title Case (e.g., Juan Dela Cruz)</span>
+                            </label>
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                                <input type="radio" name="patientNameCase" value="upper" checked>
+                                <span>UPPERCASE (e.g., JUAN DELA CRUZ)</span>
+                            </label>
+                        </div>
+                        <p style="font-size: 12px; color: var(--secondary-text-color); margin-top: 10px; margin-bottom: 0;">
+                            Choose how patient names are automatically formatted when you move out of the input field.
+                        </p>
+                    </div>
+                </fieldset>
+
+                <fieldset style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <legend>🔬 Procedure Description Templates</legend>
+                    <p style="font-size: 12px; color: var(--secondary-text-color); margin-top: 0; margin-bottom: 20px;">
+                        Customize the default text for the procedure description. You can use the placeholder <code>[scope]</code> which will be replaced automatically by the selected "Type of Endoscopy".
+                    </p>
+
+                    <div class="form-group">
+                        <label for="nasalProcedureTemplate" class="form-label">Nasal Endoscopy Template (Rigid)</label>
+                        <textarea id="nasalProcedureTemplate" name="nasalProcedureTemplate" rows="6" placeholder="Enter the default text for Rigid Nasal Endoscopy..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nasalFlexibleProcedureTemplate" class="form-label">Nasal Endoscopy Template (Flexible)</label>
+                        <textarea id="nasalFlexibleProcedureTemplate" name="nasalFlexibleProcedureTemplate" rows="6" placeholder="Enter the default text for Flexible Nasal Endoscopy..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="laryngealRigidTemplate" class="form-label">Laryngeal Endoscopy Template (Rigid / Trans-oral)</label>
+                        <textarea id="laryngealRigidTemplate" name="laryngealRigidTemplate" rows="6" placeholder="Enter the default text for Rigid Laryngeal Endoscopy..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="laryngealFlexibleTemplate" class="form-label">Laryngeal Endoscopy Template (Flexible / Trans-nasal)</label>
+                        <textarea id="laryngealFlexibleTemplate" name="laryngealFlexibleTemplate" rows="6" placeholder="Enter the default text for Flexible Laryngeal Endoscopy..."></textarea>
+                    </div>
+                </fieldset>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <h3 style="font-size: 1.1em; margin-bottom: 15px; color: var(--main-content-header-color);">Manage Physicians</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="newPhysicianName" placeholder="e.g., Dr. Juan Cruz, MD" style="flex: 1; margin-bottom: 0;">
+                        <button type="button" id="addPhysicianBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                    </div>
+                    <ul id="physicianList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; background: var(--input-bg-color);">
+                    </ul>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <h3 style="font-size: 1.1em; margin-bottom: 15px; color: var(--main-content-header-color);">Manage Referring Physicians</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="newRefPhysicianName" placeholder="e.g., Dr. Smith, MD" style="flex: 1; margin-bottom: 0;">
+                        <button type="button" id="addRefPhysicianBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                    </div>
+                    <ul id="refPhysicianList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; background: var(--input-bg-color);">
+                    </ul>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <h3 style="font-size: 1.1em; margin-bottom: 15px; color: var(--main-content-header-color);">Manage Assistant Surgeons</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="newAsstSurgeonName" placeholder="e.g., Dr. Jane Doe, MD" style="flex: 1; margin-bottom: 0;">
+                        <button type="button" id="addAsstSurgeonBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                    </div>
+                    <ul id="asstSurgeonList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; background: var(--input-bg-color);">
+                    </ul>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <h3 style="font-size: 1.1em; margin-bottom: 15px; color: var(--main-content-header-color);">Manage Scrub Nurses</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="newScrubNurseName" placeholder="e.g., John Smith, RN" style="flex: 1; margin-bottom: 0;">
+                        <button type="button" id="addScrubNurseBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                    </div>
+                    <ul id="scrubNurseList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; background: var(--input-bg-color);">
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 CARD 1: CF4 FORM SETTINGS
+                 ============================================================ -->
+            <div id="cf4-settings" class="card-section settings-card settings-panel" role="tabpanel" aria-label="CF4 Form settings" aria-hidden="true" hidden style="margin-bottom: 20px; border: 2px solid var(--border-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 2em;">📋</span>
+                    <h2 style="margin: 0; font-size: 1.5em; color: #27ae60;">CF4 Form Settings</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 25px;">
+                    Configure the HCI defaults for the PhilHealth CF4 Claim Form. These values will auto-fill the form so you don't have to re-type them each time.
+                </p>
+
+                <div class="form-group" style="background: rgba(39, 174, 96, 0.08); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <p style="margin: 0; font-size: 13px; color: #27ae60;">
+                        <strong>💡 Tip:</strong> Fill out the HCI details below once, and they will automatically populate every time you open the CF4 Form. No need to re-type!
+                    </p>
+                </div>
+                
+                <!-- Same choice as the endoscopy "Default Hospital Header"
+                     select above: REVER or CUMC. Picking one fills the HCI
+                     fields below with that hospital's details; Save keeps. -->
+                <div class="form-group">
+                    <label for="cf4Hospital" class="form-label">Default Hospital Header</label>
+                    <select id="cf4Hospital" name="cf4Hospital">
+                        <option value="capitol">CAPITOL UNIVERSITY MEDICAL CENTER (CUMC)</option>
+                        <option value="rever">REVER MEDICAL CENTER INC. (RMCI)</option>
+                    </select>
+                    <small style="display:block; margin-top:6px; font-size:12px; color:var(--secondary-text-color);">
+                        Selecting a hospital fills the HCI details below with its defaults &mdash; press Save to keep them.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4HciName" class="form-label">HCI Name</label>
+                    <input type="text" id="cf4HciName" name="cf4HciName" placeholder="Name of Health Care Institution">
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4AccreditationNo" class="form-label">Accreditation Number</label>
+                    <input type="text" id="cf4AccreditationNo" name="cf4AccreditationNo" placeholder="Accreditation Number">
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4HciBldgNo" class="form-label">Building No. and Name/Lot/Block</label>
+                    <input type="text" id="cf4HciBldgNo" name="cf4HciBldgNo" placeholder="Bldg No. and Name/Lot/Block">
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4HciStreet" class="form-label">Street/Subdivision/Village</label>
+                    <input type="text" id="cf4HciStreet" name="cf4HciStreet" placeholder="Street/Subdivision/Village">
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4HciBarangay" class="form-label">Barangay/City/Municipality</label>
+                    <input type="text" id="cf4HciBarangay" name="cf4HciBarangay" placeholder="Barangay/City/Municipality">
+                </div>
+
+                <div class="form-row" style="gap: 15px;">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="cf4HciProvince" class="form-label">Province</label>
+                            <input type="text" id="cf4HciProvince" name="cf4HciProvince" placeholder="Province">
+                        </div>
+                    </div>
+                    <div class="form-col-small">
+                        <div class="form-group">
+                            <label for="cf4HciZipCode" class="form-label">Zip Code</label>
+                            <input type="text" id="cf4HciZipCode" name="cf4HciZipCode" placeholder="Zip Code">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="cf4AttendingHcp" class="form-label">Default Attending HCP Name</label>
+                    <input type="text" id="cf4AttendingHcp" name="cf4AttendingHcp" placeholder="Signature over Printed Name of Attending HCP">
+                </div>
+
+                <div class="cf4-logo-settings">
+                    <div class="cf4-logo-settings__heading">
+                        <div>
+                            <h3>CF4 Header Logos</h3>
+                            <p>These two logos are used only in the CF4 header, Print, and Save PDF. They are separate from the Endoscopy / Nasal logos.</p>
+                        </div>
+                        <span class="cf4-logo-settings__badge">2 logos</span>
+                    </div>
+                    <div class="cf4-logo-grid">
+                        <div class="cf4-logo-card">
+                            <div class="cf4-logo-card__preview">
+                                <img id="cf4LeftLogoPreview" src="../image/cumc-logo.png" alt="CF4 left logo preview">
+                            </div>
+                            <div class="cf4-logo-card__content">
+                                <label for="cf4LeftLogoInput"><strong>Left Logo</strong></label>
+                                <input type="file" id="cf4LeftLogoInput" accept="image/*">
+                                <button type="button" id="resetCf4LeftLogoBtn" class="btn-secondary">Use Default</button>
+                            </div>
+                        </div>
+                        <div class="cf4-logo-card">
+                            <div class="cf4-logo-card__preview">
+                                <img id="cf4RightLogoPreview" src="../image/ent-logo.webp" alt="CF4 right logo preview">
+                            </div>
+                            <div class="cf4-logo-card__content">
+                                <label for="cf4RightLogoInput"><strong>Right Logo</strong></label>
+                                <input type="file" id="cf4RightLogoInput" accept="image/*">
+                                <button type="button" id="resetCf4RightLogoBtn" class="btn-secondary">Use Default</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="cf4-logo-settings__hint">💡 Click <strong>Save Settings</strong> below after choosing new logos. Both logos will always appear together in the CF4 print header.</p>
+                </div>
+
+                <div class="form-group">
+                    <div class="settings-info-box settings-info-box--cf4">
+                        <strong>✅ CF4 Print &amp; Save PDF</strong>
+                        <span>The Left Logo and Right Logo selected here will appear together in the on-screen CF4 header, printed form, and generated PDF.</span>
+                    </div>
+                </div>
+
+                <!-- ============================================================
+                     CF4 QUICK TEMPLATES (Common Queries/Diagnoses)
+                     ============================================================ -->
+                <div style="margin-top: 30px; border-top: 2px solid #27ae60; padding-top: 25px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                        <span style="font-size: 1.8em;">⚡</span>
+                        <h3 style="margin: 0; font-size: 1.2em; color: #27ae60;">Quick Templates (Select instead of Type)</h3>
+                    </div>
+                    <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 20px; text-align: left;">
+                        Add common entries for each field. When the doctor opens a CF4 form, they can simply select a template from a dropdown instead of typing. These are fully editable here.
+                    </p>
+
+                    <!-- Chief Complaint Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">1. Chief Complaint Templates</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4ChiefComplaintTemplate" placeholder="e.g., DIFFICULTY BREATHING" style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4ChiefComplaintTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4ChiefComplaintTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                    <!-- Admitting Diagnosis Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">2. Admitting Diagnosis Templates</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4AdmittingDiagnosisTemplate" placeholder="e.g., ACUTE TONSILLITIS" style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4AdmittingDiagnosisTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4AdmittingDiagnosisTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                    <!-- Discharge Diagnosis Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">3. Discharge Diagnosis Templates</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4DischargeDiagnosisTemplate" placeholder="e.g., ACUTE TONSILLITIS, IMPROVED" style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4DischargeDiagnosisTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4DischargeDiagnosisTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                    <!-- History of Present Illness Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">4. History of Present Illness Templates</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4HpiTemplate" placeholder="e.g., Patient was in their usual state of health until 3 days PTA..." style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4HpiTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4HpiTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                    <!-- Past Medical History Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">5. Pertinent Past Medical History Templates</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4PmhTemplate" placeholder="e.g., NO COMMOBIDITIES, NO PRIOR SURGERIES" style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4PmhTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4PmhTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                    <!-- Doctor's Notes Templates -->
+                    <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h4 style="font-size: 1em; margin: 0 0 10px 0; color: var(--main-content-header-color); text-align: left;">6. Doctor's Notes Templates</h4>
+                        <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 0; margin-bottom: 10px;">
+                            Add reusable doctor's note entries for the Course in the Ward section. These templates can be selected from the CF4 form course notes rows.
+                        </p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="newCf4DoctorsNoteTemplate" placeholder="e.g., Patient tolerated procedure well..." style="flex: 1; margin-bottom: 0;">
+                            <button type="button" id="addCf4DoctorsNoteTemplateBtn" style="background-color: var(--success-color); width: auto; margin: 0; padding: 10px 20px;">Add</button>
+                        </div>
+                        <ul id="cf4DoctorsNoteTemplateList" style="list-style: none; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; max-height: 150px; overflow-y: auto; background: var(--input-bg-color);"></ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 SYSTEM DIAGNOSTICS (Quick problem detector)
+                 ============================================================ -->
+            <div id="diagnostics-settings" class="card-section settings-card settings-panel" role="tabpanel" aria-label="Diagnostics settings" aria-hidden="true" hidden style="margin-bottom: 20px; border: 2px solid #8e44ad; border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 2em;">🛠️</span>
+                    <h2 style="margin: 0; font-size: 1.5em; color: #8e44ad;">System Diagnostics</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 25px;">
+                    Run a quick system check to detect missing files, offline problems, storage issues, and other common problems in the system.
+                </p>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button type="button" id="runDiagnosticsBtn" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #8e44ad, #6c3483); color: white;">🔍 Run Diagnostics</button>
+                    <button type="button" id="diagnosticsHelpBtn" class="btn-secondary" style="flex: 1; min-width: 200px;">❓ What does each check mean?</button>
+                </div>
+
+                <div id="diagnosticsSummary" class="diagnostics-summary" style="display: none; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-weight: bold; text-align: center; font-size: 15px;"></div>
+
+                <div id="diagnosticsResults" class="diagnostics-results" style="display: none;"></div>
+
+                <!-- DEVICE STORAGE: exactly what is using this device's 5 MB -->
+                <div id="storagePanel" style="margin-top: 20px; padding: 15px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-color);">
+                    <h3 style="margin: 0 0 4px; font-size: 1.05em;">💾 Device Storage</h3>
+                    <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--secondary-text-color);">
+                        This device can keep about 5 MB. Patient records live in the shared cloud database
+                        (Supabase) — only drafts, settings and your sign-in are stored here. Draft photos use
+                        most of the space.
+                    </p>
+                    <div style="height: 12px; border-radius: 999px; background: var(--border-color); overflow: hidden;">
+                        <div id="storageBar" style="height: 100%; width: 2%; background: linear-gradient(90deg,#2ecc71,#27ae60); transition: width .25s;"></div>
+                    </div>
+                    <div id="storageSummary" style="font-size: 13px; margin: 10px 0 12px;">Checking…</div>
+                    <div id="storageTable"></div>
+                    <div id="storageNote" style="font-size: 12.5px; margin-top: 10px;"></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;" class="no-print">
+                        <button type="button" id="storageRefreshBtn" class="btn-secondary" style="flex: 1; min-width: 180px;">🔄 Refresh</button>
+                        <button type="button" id="storageTrimBtn" style="flex: 1; min-width: 240px; background: linear-gradient(135deg, #f39c12, #e67e22); color: #fff;">🧹 Keep photos on the 3 newest drafts only</button>
+                        <button type="button" id="storageLogBtn" class="btn-secondary" style="flex: 1; min-width: 180px;">📋 Show in console</button>
+                    </div>
+                    <p style="margin: 10px 0 0; font-size: 12px; color: var(--secondary-text-color);">
+                        The clean-up button removes <strong>only old draft photos</strong>. No draft, no report and
+                        no saved patient record is deleted, and the shared database is not touched. To check the
+                        numbers yourself, open DevTools (F12) → Console and type <code>EntStorage.logToConsole()</code>.
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;" class="no-print">
+                    <button type="button" id="refreshOfflineCacheBtn" class="btn-secondary" style="flex: 1; min-width: 200px;">🔄 Reinstall Offline Cache</button>
+                    <button type="button" id="clearAllCachesBtn" class="btn-secondary" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #c0392b, #922b21); color: white;">🗑️ Clear Caches & Reload</button>
+                </div>
+            </div>
+
+            <!-- ============================================================
+                 RESET APPLICATION (Shared section)
+                 ============================================================ -->
+            <div class="card-section settings-card danger-zone" hidden style="margin-bottom: 20px; border: 2px solid #e74c3c; border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 2em;">⚠️</span>
+                    <h2 style="margin: 0; font-size: 1.5em; color: #e74c3c;">Danger Zone</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 20px;">
+                    Reset all clinic settings, physicians, and customizations to their original default values. This action cannot be undone.
+                </p>
+                <button type="button" id="resetAllSettingsBtn" style="background-color: #c0392b; width: 100%;">⚠️ Reset All Settings to Default</button>
+            </div>
+
+            <!-- ============================================================
+                 CARD 4: CLOUD SYNC & SUPABASE
+                 ============================================================ -->
+            <div id="cloud-sync-settings" class="card-section settings-card settings-panel" role="tabpanel" aria-label="Supabase Cloud Synchronization" style="display: none; margin-bottom: 20px; border: 2px solid var(--border-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 25px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                    <span style="font-size: 2em;">☁️</span>
+                    <h2 style="margin: 0; font-size: 1.5em; color: var(--primary-color);">Cloud Sync &amp; Shared Data</h2>
+                </div>
+                <p style="font-size: 13px; color: var(--secondary-text-color); margin-top: 5px; margin-bottom: 20px;">
+                    Shared patient records across multiple clinic computers and tablets via Supabase.
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: bold;">Connection Status</label>
+                    <div id="supabaseLiveStatus" style="padding: 12px 15px; border-radius: 8px; background: #e8f5e9; border: 1px solid #c8e6c9; color: #2e7d32; font-weight: bold; display: flex; align-items: center; gap: 10px;">
+                        <span>🟢</span> <span>Configured &amp; Active</span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="syncClinicId" class="form-label">Clinic Identifier / Room</label>
+                    <input type="text" id="syncClinicId" value="main_clinic" placeholder="main_clinic">
+                    <small style="color: var(--secondary-text-color);">Devices using the same clinic ID will automatically share records.</small>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" id="testSyncBtn" style="background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color)); width: auto; padding: 10px 20px;">🔄 Test Sync Now</button>
+                    <button type="button" id="saveSyncConfigBtn" style="background: var(--success-color); width: auto; padding: 10px 20px;">Save Sync Settings</button>
+                </div>
+                <div id="syncLogOutput" style="margin-top: 15px; font-family: monospace; font-size: 12px; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; display: none;"></div>
+            </div>
+
+            <div class="actions">
+                <button type="button" id="saveSettingsBtn">Save Settings</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="printHeaderTemplate" style="display:none;">
+        <div class="print-header-container" style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+            <img src="../image/cumc-logo.png" alt="Left Logo" class="print-logo-side" style="width: 120px; height: 120px; object-fit: cover; border-radius: 0;" onerror="this.style.display='none'; console.error('Left Logo failed to load:', this.src);">
+            <div class="header-text-block" style="text-align: center; flex-grow: 1;">
+            </div>
+            <img src="../image/ent-logo.webp" alt="Right Logo" class="print-logo-side" style="width: 120px; height: 120px; object-fit: cover; border-radius: 0;" onerror="this.style.display='none'; console.error('Right Logo failed to load:', this.src);">
+        </div>
+        <hr class="print-hr" style="border: 0; border-top: 1px solid #ccc; margin-top: 10px;">
+    </div>
+
+    <div id="messageModal" class="modal-overlay" style="display:none; z-index: 10001;">
+        <div class="modal-content" style="max-width: 400px; padding: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: var(--primary-color); color: white; padding: 15px; font-weight: bold; font-size: 1.1em; text-align: left;">
+                <span id="msgModalTitle">Notification</span>
+            </div>
+            <div class="modal-body" style="padding: 25px 20px; color: var(--text-color); font-size: 1.05em;">
+                <p id="msgModalText" style="margin: 0; line-height: 1.5; white-space: pre-line;"></p>
+            </div>
+            <div class="modal-footer" style="padding: 15px; background: var(--bg-color); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="msgModalCancelBtn" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d); display: none;">Cancel</button>
+                <button id="msgModalOkBtn" style="background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js" defer></script>
+    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/offlineStore.js"></script>
+    <script src="../function/storageStats.js" defer></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/syncEngine.js" defer></script>
+    <script src="../function/patientRecords.js" defer></script>
+    <script src="../function/index.js?v=v35d" defer></script>
+</body>
+</html>

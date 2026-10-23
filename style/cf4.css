@@ -1,0 +1,2351 @@
+/* =========================================
+   CF4 FORM SPECIFIC STYLES - REDESIGNED
+   ========================================= */
+
+/* CF4 Fieldset Styling - Modern Card Design */
+.cf4-fieldset {
+    margin-bottom: 25px;
+    padding: 25px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--panel-bg-color), #f8fafc);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    transition: box-shadow 0.3s ease;
+}
+
+body.dark-mode .cf4-fieldset {
+    background: linear-gradient(135deg, var(--panel-bg-color), #1a2332);
+}
+
+.cf4-fieldset:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.cf4-fieldset legend {
+    font-weight: 700;
+    color: var(--legend-color);
+    padding: 8px 20px;
+    font-size: 1.15em;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    border-radius: 25px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 10px rgba(14, 165, 233, 0.3);
+}
+
+/* Legend note (smaller text in legend) */
+.legend-note {
+    font-weight: normal;
+    font-size: 0.75em;
+    color: rgba(255,255,255,0.85);
+}
+
+/* Full width column */
+.form-col-full {
+    flex: 1 1 100%;
+    min-width: 100%;
+}
+
+/* Date/Time Group Layout */
+.date-time-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.date-time-group input[type="date"],
+.date-time-group input[type="time"] {
+    flex: 1;
+    min-width: 140px;
+    margin-bottom: 0;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    font-size: 0.95em;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.date-time-group input[type="date"]:hover,
+.date-time-group input[type="time"]:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+.date-time-group input[type="date"]:focus,
+.date-time-group input[type="time"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+    outline: none;
+}
+
+.date-time-group select {
+    width: auto;
+    min-width: 65px;
+    max-width: 75px;
+    margin-bottom: 0;
+    padding: 10px 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.date-time-group select:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+.date-time-group select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+    outline: none;
+}
+
+.date-sep {
+    font-weight: bold;
+    color: var(--secondary-text-color);
+    font-size: 1.2em;
+    flex-shrink: 0;
+}
+
+/* Checkbox Grid Layout - Improved */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px 15px;
+    padding: 15px;
+    background-color: var(--input-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-top: 10px;
+    transition: border-color 0.3s ease;
+}
+
+.checkbox-grid:hover {
+    border-color: var(--primary-color);
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.92em;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.checkbox-item:hover {
+    background-color: rgba(14, 165, 233, 0.08);
+    transform: translateX(3px);
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin: 0 10px 0 0;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Others item - spans full width with input */
+.others-item {
+    grid-column: 1 / -1;
+}
+
+.others-input {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-left: 0 !important;
+    margin-top: 2px;
+    margin-bottom: 8px !important;
+    min-height: 72px;
+    resize: vertical;
+    line-height: 1.5;
+    font-family: inherit;
+    font-size: 0.95em;
+}
+
+/* Horizontal Checkbox/Radio Group */
+.checkbox-group-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.checkbox-inline {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.92em;
+    color: var(--text-color);
+    cursor: pointer;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.checkbox-inline:hover {
+    background-color: rgba(14, 165, 233, 0.08);
+}
+
+.checkbox-inline input[type="checkbox"],
+.checkbox-inline input[type="radio"] {
+    margin: 0 6px 0 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Inline input within a label */
+.inline-input {
+    display: inline-block;
+    width: auto !important;
+    min-width: 100px;
+    margin: 0 5px !important;
+    padding: 4px 8px !important;
+    font-size: 0.9em !important;
+}
+
+/* Certification text */
+.certification-text {
+    font-style: italic;
+    margin: 0 0 15px 0;
+    color: var(--text-color);
+    line-height: 1.6;
+    font-size: 1.05em;
+    padding: 15px;
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #f39c12;
+    border-radius: 4px;
+}
+
+/* Course in the Ward - Dynamic Rows */
+#courseInWardContainer {
+    margin-top: 10px;
+}
+
+.course-in-ward-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 15px;
+    align-items: stretch;
+    padding: 0;
+    background: var(--input-bg-color);
+    border-radius: 12px;
+    border: 2px solid var(--primary-color);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.course-in-ward-row:hover {
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+
+/* The date/time badge is helpful on screen but should not appear in the printed report. */
+@media print {
+    .course-row-header .field-order-number {
+        display: none !important;
+    }
+}
+/* Date and time are the first two inputs in each doctor’s order/action row. */
+.course-row-header .date-input-section,
+.course-row-header .time-input-section {
+    flex: 0 1 235px;
+    min-width: 190px;
+    padding: 7px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.course-row-header .date-input-section input,
+.course-row-header .time-input-section input {
+    flex: 1 1 auto;
+    min-width: 135px;
+    width: 135px;
+}
+
+.course-row-header .field-order-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.24);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.course-row-header .date-input-section input:focus,
+.course-row-header .time-input-section input:focus {
+    border-color: #fff !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Header section with date/time and template controls */
+.course-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.course-row-header .date-time-inputs-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.course-row-header .date-input-section,
+.course-row-header .time-input-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.course-row-header .form-label {
+    color: white;
+    font-weight: 600;
+    margin: 0;
+    font-size: 13px;
+}
+
+.course-row-header input[type="date"],
+.course-row-header input[type="time"] {
+    padding: 6px 10px;
+    border: 2px solid white;
+    border-radius: 6px;
+    background-color: white;
+    color: #000;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.course-row-header .template-controls-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.course-row-header .header-template-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.course-row-header .template-select-btn,
+.course-row-header .add-template-btn {
+    padding: 6px 12px;
+    border: 2px solid white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.course-row-header .template-select-btn {
+    background: white;
+    color: var(--primary-color);
+}
+
+.course-row-header .template-select-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+.course-row-header .add-template-btn {
+    background: #28a745;
+    color: white;
+    border-color: #218838;
+}
+
+.course-row-header .add-template-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.course-row-header .btn-remove-course {
+    background-color: #e74c3c;
+    color: white;
+    border: 2px solid #c0392b;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.course-row-header .btn-remove-course:hover {
+    background-color: #c0392b;
+    transform: scale(1.05);
+}
+
+/* Template dropdown in header */
+.template-dropdown-inline {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: none;
+    min-width: 320px;
+    max-height: 450px;
+    overflow: hidden;
+}
+
+.template-options-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+.template-options-list button {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-color);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.template-options-list button:hover {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+/* Edit Template Button */
+.edit-template-btn {
+    background: #f39c12 !important;
+    color: white !important;
+    border: 2px solid #d68910 !important;
+}
+
+.edit-template-btn:hover {
+    background: #d68910 !important;
+    transform: translateY(-1px);
+}
+
+/* Fillable Template Styles */
+.fillable-template-container {
+    padding: 15px;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    font-size: 14px;
+    line-height: 1.8;
+    font-family: Arial, sans-serif;
+    min-height: 200px;
+}
+
+.fillable-blank {
+    border: none;
+    border-bottom: 2px solid #000;
+    background: transparent;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    padding: 2px 4px;
+    margin: 0 2px;
+    min-width: 120px;
+    outline: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.fillable-blank:focus {
+    border-bottom-color: var(--primary-color);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+/* Template dropdown toggle button */
+.course-row-header .template-select-btn {
+    background: white;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.course-row-header .template-select-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Add Template Button */
+.course-row-header .add-template-btn {
+    background: #28a745;
+    color: white;
+    border-color: #218838;
+}
+
+.course-row-header .add-template-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.template-options-list button:hover {
+    background: #f8f9fa;
+}
+
+/* Textarea container - larger text box */
+.course-textarea-container {
+    padding: 15px;
+    background-color: var(--input-bg-color);
+}
+
+.course-textarea-container textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    font-size: 1.35em;
+    line-height: 1.9;
+    resize: vertical;
+    background-color: white;
+    font-weight: 500;
+}
+
+.course-textarea-container textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+}
+
+/* Template controls styling - positioned above textarea */
+.course-textarea-container .cf4-template-wrapper {
+    margin-bottom: 15px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 8px;
+    border: 2px solid var(--primary-color);
+}
+
+.course-textarea-container .cf4-template-controls {
+    flex: 0 0 100%;
+    min-width: 100%;
+    margin-left: 0;
+    margin-top: 12px;
+}
+
+.course-textarea-container .cf4-template-dropdown-toggle {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));
+    color: white;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px;
+}
+
+.course-textarea-container .cf4-template-dropdown-toggle:hover {
+    background: linear-gradient(135deg, var(--primary-hover-color), #0d8bd9);
+    transform: translateY(-1px);
+}
+
+.course-textarea-container .cf4-template-save-btn {
+    background: linear-gradient(135deg, #28a745, #218838);
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px;
+}
+
+.course-textarea-container .cf4-template-save-btn:hover {
+    background: linear-gradient(135deg, #218838, #1e7e34);
+    transform: translateY(-1px);
+}
+
+/* =========================================
+   LARGER DOCTOR'S NOTE TEXTAREA
+   ========================================= */
+.course-in-ward-row textarea[name="courseOrder[]"] {
+    min-height: 260px;
+    font-size: 1.25em;
+    line-height: 1.85;
+}
+
+/* Bigger section for Doctor's Order/Action */
+#courseInWardContainer .course-in-ward-row textarea {
+    min-height: 260px;
+    font-size: 1.25em;
+    padding: 18px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
+}
+
+#courseInWardContainer .course-in-ward-row textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+}
+
+/* Drugs/Medicines - Dynamic Rows */
+#drugsContainer {
+    margin-top: 10px;
+}
+
+.drugs-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px;
+    background: var(--input-bg-color);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.3s ease;
+}
+
+.drugs-row:hover {
+    border-color: var(--primary-color);
+}
+
+.drugs-row input {
+    flex: 1;
+    min-width: 150px;
+    margin-bottom: 0;
+}
+
+/* Remove buttons for dynamic rows */
+.btn-remove-course,
+.btn-remove-drug {
+    flex: 0 0 40px;
+    min-width: 40px !important;
+    padding: 8px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    height: 40px;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Add Row Buttons */
+.btn-add-course,
+.btn-add-drug {
+    background: transparent !important;
+    border: 2px dashed var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    box-shadow: none !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    min-width: auto !important;
+    margin-top: 8px !important;
+    width: 100%;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-add-course:hover,
+.btn-add-drug:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color)) !important;
+    color: white !important;
+    border-style: solid !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
+}
+
+.header-template-controls {
+    position: relative;
+}
+
+.template-mode-btn,
+.template-select-btn,
+.add-template-btn,
+.edit-template-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.template-mode-btn {
+    background: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.template-mode-btn:hover,
+.template-select-btn:hover,
+.add-template-btn:hover,
+.edit-template-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.edit-template-btn {
+    background: #f39c12;
+    color: white;
+    border-color: #d68910;
+}
+
+.template-dropdown-inline {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1000;
+    width: min(360px, 100vw - 32px);
+    max-height: 420px;
+    background: white;
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    display: none;
+}
+
+.template-search-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.template-options-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.template-option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.template-option-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-color);
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+
+.template-option-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.template-option-button {
+    padding: 8px 10px;
+    min-width: 58px;
+    border: 1px solid #d1d5db;
+    background: #f8fafc;
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.15s ease;
+}
+
+.template-option-button:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.template-option-delete-btn {
+    background: #ffe7e5;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+.template-option-delete-btn:hover {
+    background: #fda4af;
+    color: white;
+}
+
+.template-option-fill-btn {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #bae6fd;
+}
+
+.template-option-fill-btn:hover {
+    background: #bae6fd;
+}
+
+.template-dropdown-save-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #16a34a, #0f766e);
+    color: white;
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.template-dropdown-save-btn:hover {
+    background: linear-gradient(135deg, #0f766e, #0b6467);
+}
+
+.template-empty-message {
+    padding: 18px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+/* Make header template controls align better on smaller screens */
+@media (max-width: 820px) {
+    .header-template-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .template-option-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .template-option-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+/* Adjust form-row inside CF4 to remove default input margin */
+.cf4-fieldset .form-row .form-col > input,
+.cf4-fieldset .form-row .form-col > select,
+.cf4-fieldset .form-row .form-col-small > input,
+.cf4-fieldset .form-row .form-col-small > select {
+    margin-bottom: 0;
+}
+
+/* CF4 form labels - slightly smaller */
+.cf4-fieldset .form-label {
+    font-size: 0.92em;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+}
+
+.quick-note-wrapper {
+    margin-bottom: 8px;
+}
+
+.quick-note-select {
+    width: 100%;
+    max-width: 480px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    font-size: 0.92em;
+    margin-bottom: 6px;
+}
+
+.quick-note-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+    outline: none;
+}
+
+/* =========================================
+   SECTION NAVIGATION SIDEBAR - RESPONSIVE
+   ========================================= */
+.section-nav {
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    width: 170px;
+    background: var(--panel-bg-color);
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-color);
+    z-index: 998;
+    max-height: 80vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    align-items: stretch;
+}
+
+
+
+.section-nav::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.section-nav-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: auto;
+    min-height: 44px;
+    border-radius: 10px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    white-space: nowrap;
+    text-align: left;
+}
+
+
+
+
+
+
+
+/* The section nav was a 210px fixed sidebar on the left, and this rule indented
+   the entire form to stay clear of it. With the nav removed, that indent is pure
+   dead space - the single biggest thing narrowing this form, since a CF4 is
+   mostly wide text areas and every field lost 210px to a jump bar.
+
+   Only a normal gutter is kept, matching the right-hand side, so the panel
+   does not touch the very edge of the window. */
+.main-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* =========================================
+   RESPONSIVE SIDEBAR - TABLET (768px - 1024px)
+   ========================================= */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-nav {
+        position: sticky;
+        top: 98px;
+        left: 0;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+        max-width: none;
+        padding: 10px;
+        gap: 8px;
+        max-height: none;
+        border-radius: 14px;
+        z-index: 997;
+    }
+
+    .section-nav-btn {
+        flex: 0 0 auto;
+        padding: 10px 12px;
+        font-size: 10px;
+        min-height: 42px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .main-content {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* =========================================
+   RESPONSIVE SIDEBAR - MOBILE (< 768px)
+   ========================================= */
+@media (max-width: 767px) {
+    .section-nav {
+        position: sticky;
+        top: 0;
+        left: 0;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-height: none;
+        padding: 8px;
+        gap: 6px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        z-index: 999;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        width: calc(100% + 30px);
+        margin: 0 -15px 12px;
+    }
+
+    
+
+    .section-nav-btn {
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        font-size: 10px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    
+
+    
+
+    .main-content {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+
+
+/* =========================================
+   FORM ROW IMPROVEMENTS
+   ========================================= */
+.form-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.form-col {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-col-small {
+    flex: 0 0 auto;
+    min-width: 120px;
+}
+
+/* =========================================
+   CF4 QUICK TEMPLATES - DROPDOWN STYLING
+   ========================================= */
+.cf4-template-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.cf4-template-wrapper textarea {
+    width: auto;
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 80px;
+}
+
+.cf4-template-controls {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-left: 8px;
+}
+
+.cf4-template-select {
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 280px;
+    margin-bottom: 0;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border: 2px solid #27ae60;
+    border-radius: 8px;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: auto;
+    -webkit-appearance: auto;
+}
+
+.cf4-template-select:hover {
+    border-color: #1e8449;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.2);
+}
+
+.cf4-template-select:focus {
+    outline: none;
+    border-color: #1e8449;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.15);
+}
+
+.cf4-template-dropdown {
+    position: relative;
+    width: auto;
+}
+
+.cf4-template-dropdown-toggle {
+    width: 100%;
+    padding: 11px 12px;
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
+    transition: all 0.2s ease;
+}
+
+.cf4-template-dropdown-toggle:hover {
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+    border-color: var(--primary-hover-color);
+}
+
+
+
+.cf4-template-panel-title {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--secondary-text-color);
+    padding: 4px 2px 8px;
+    border-bottom: 1px dashed var(--border-color);
+    margin-bottom: 6px;
+}
+
+
+
+.cf4-template-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 999;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    background-color: var(--panel-bg-color);
+    color: var(--text-color);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+    padding: 8px;
+    display: none;
+}
+
+.cf4-template-save-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #28a745, #1e8449);
+    color: #ffffff;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 3px 8px rgba(40, 167, 69, 0.35);
+    margin-top: 0;
+}
+.cf4-template-save-btn:hover {
+    background: linear-gradient(135deg, #218838, #18733a);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(40, 167, 69, 0.5);
+}
+
+.cf4-template-option {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 13px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cf4-template-option:hover {
+    background-color: rgba(14, 165, 233, 0.10);
+    color: var(--primary-hover-color);
+}
+
+/* =========================================
+   LARGER DOCTOR'S NOTE TEXTAREA
+   ========================================= */
+.course-in-ward-row textarea[name="courseOrder[]"] {
+    min-height: 260px;
+    font-size: 1.25em;
+    line-height: 1.85;
+}
+
+/* Bigger section for Doctor's Order/Action */
+#courseInWardContainer .course-in-ward-row textarea {
+    min-height: 260px;
+    font-size: 1.25em;
+    padding: 18px 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
+}
+
+#courseInWardContainer .course-in-ward-row textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+}
+
+/* Drugs/Medicines - Dynamic Rows */
+#drugsContainer {
+    margin-top: 10px;
+}
+
+.drugs-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px;
+    background: var(--input-bg-color);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.3s ease;
+}
+
+.drugs-row:hover {
+    border-color: var(--primary-color);
+}
+
+.drugs-row input {
+    flex: 1;
+    min-width: 150px;
+    margin-bottom: 0;
+}
+
+/* Remove buttons for dynamic rows */
+.btn-remove-course,
+.btn-remove-drug {
+    flex: 0 0 40px;
+    min-width: 40px !important;
+    padding: 8px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    height: 40px;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Add Row Buttons */
+.btn-add-course,
+.btn-add-drug {
+    background: transparent !important;
+    border: 2px dashed var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    box-shadow: none !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    min-width: auto !important;
+    margin-top: 8px !important;
+    width: 100%;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-add-course:hover,
+.btn-add-drug:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color)) !important;
+    color: white !important;
+    border-style: solid !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
+}
+
+.header-template-controls {
+    position: relative;
+}
+
+.template-mode-btn,
+.template-select-btn,
+.add-template-btn,
+.edit-template-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.template-mode-btn {
+    background: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.template-mode-btn:hover,
+.template-select-btn:hover,
+.add-template-btn:hover,
+.edit-template-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.edit-template-btn {
+    background: #f39c12;
+    color: white;
+    border-color: #d68910;
+}
+
+.template-dropdown-inline {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1000;
+    width: min(360px, 100vw - 32px);
+    max-height: 420px;
+    background: white;
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    display: none;
+}
+
+.template-search-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.template-options-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.template-option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.template-option-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-color);
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+
+.template-option-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.template-option-button {
+    padding: 8px 10px;
+    min-width: 58px;
+    border: 1px solid #d1d5db;
+    background: #f8fafc;
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.15s ease;
+}
+
+.template-option-button:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.template-option-delete-btn {
+    background: #ffe7e5;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+.template-option-delete-btn:hover {
+    background: #fda4af;
+    color: white;
+}
+
+.template-option-fill-btn {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #bae6fd;
+}
+
+.template-option-fill-btn:hover {
+    background: #bae6fd;
+}
+
+.template-dropdown-save-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #16a34a, #0f766e);
+    color: white;
+    border: none;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.template-dropdown-save-btn:hover {
+    background: linear-gradient(135deg, #0f766e, #0b6467);
+}
+
+.template-empty-message {
+    padding: 18px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+/* Make header template controls align better on smaller screens */
+@media (max-width: 820px) {
+    .header-template-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .template-option-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .template-option-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}
+
+/* Adjust form-row inside CF4 to remove default input margin */
+.cf4-fieldset .form-row .form-col > input,
+.cf4-fieldset .form-row .form-col > select,
+.cf4-fieldset .form-row .form-col-small > input,
+.cf4-fieldset .form-row .form-col-small > select {
+    margin-bottom: 0;
+}
+
+/* CF4 form labels - slightly smaller */
+.cf4-fieldset .form-label {
+    font-size: 0.92em;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+}
+
+.quick-note-wrapper {
+    margin-bottom: 8px;
+}
+
+.quick-note-select {
+    width: 100%;
+    max-width: 480px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    font-size: 0.92em;
+    margin-bottom: 6px;
+}
+
+.quick-note-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+    outline: none;
+}
+
+/* =========================================
+   SECTION NAVIGATION SIDEBAR - RESPONSIVE
+   ========================================= */
+.section-nav {
+    position: fixed;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    width: 170px;
+    background: var(--panel-bg-color);
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--border-color);
+    z-index: 998;
+    max-height: 80vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    align-items: stretch;
+}
+
+
+
+.section-nav::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.section-nav-btn {
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: auto;
+    min-height: 44px;
+    border-radius: 10px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    white-space: nowrap;
+    text-align: left;
+}
+
+
+
+
+
+
+
+/* The section nav was a 210px fixed sidebar on the left, and this rule indented
+   the entire form to stay clear of it. With the nav removed, that indent is pure
+   dead space - the single biggest thing narrowing this form, since a CF4 is
+   mostly wide text areas and every field lost 210px to a jump bar.
+
+   Only a normal gutter is kept, matching the right-hand side, so the panel
+   does not touch the very edge of the window. */
+.main-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* =========================================
+   RESPONSIVE SIDEBAR - TABLET (768px - 1024px)
+   ========================================= */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .section-nav {
+        position: sticky;
+        top: 98px;
+        left: 0;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+        max-width: none;
+        padding: 10px;
+        gap: 8px;
+        max-height: none;
+        border-radius: 14px;
+        z-index: 997;
+    }
+
+    .section-nav-btn {
+        flex: 0 0 auto;
+        padding: 10px 12px;
+        font-size: 10px;
+        min-height: 42px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .main-content {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+/* =========================================
+   RESPONSIVE SIDEBAR - MOBILE (< 768px)
+   ========================================= */
+@media (max-width: 767px) {
+    .section-nav {
+        position: sticky;
+        top: 0;
+        left: 0;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-height: none;
+        padding: 8px;
+        gap: 6px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        z-index: 999;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        width: calc(100% + 30px);
+        margin: 0 -15px 12px;
+    }
+
+    
+
+    .section-nav-btn {
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        font-size: 10px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    
+
+    
+
+    .main-content {
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+
+/* =========================================
+   FORM ROW IMPROVEMENTS
+   ========================================= */
+.form-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.form-col {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-col-small {
+    flex: 0 0 auto;
+    min-width: 120px;
+}
+
+/* =========================================
+   CF4 QUICK TEMPLATES - DROPDOWN STYLING
+   ========================================= */
+.cf4-template-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.cf4-template-wrapper textarea {
+    width: auto;
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 80px;
+}
+
+.cf4-template-controls {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-left: 8px;
+}
+
+.cf4-template-select {
+    flex: 0 0 auto;
+    min-width: 200px;
+    max-width: 280px;
+    margin-bottom: 0;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border: 2px solid #27ae60;
+    border-radius: 8px;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: auto;
+    -webkit-appearance: auto;
+}
+
+.cf4-template-select:hover {
+    border-color: #1e8449;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.2);
+}
+
+.cf4-template-select:focus {
+    outline: none;
+    border-color: #1e8449;
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.15);
+}
+
+.cf4-template-dropdown {
+    position: relative;
+    width: auto;
+}
+
+.cf4-template-dropdown-toggle {
+    width: 100%;
+    padding: 11px 12px;
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(14, 165, 233, 0.15);
+    transition: all 0.2s ease;
+}
+
+.cf4-template-dropdown-toggle:hover {
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+    border-color: var(--primary-hover-color);
+}
+
+.cf4-template-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 999;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 2px solid var(--primary-color);
+    border-radius: 12px;
+    background-color: var(--panel-bg-color);
+    color: var(--text-color);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+    padding: 8px;
+    display: none;
+}
+
+.cf4-template-save-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #28a745, #1e8449);
+    color: #ffffff;
+    text-align: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 3px 8px rgba(40, 167, 69, 0.35);
+    margin-top: 0;
+}
+
+.cf4-template-save-btn:hover {
+    background: linear-gradient(135deg, #218838, #18733a);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(40, 167, 69, 0.5);
+}
+
+.cf4-template-option {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 13px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cf4-template-option:hover {
+    background-color: rgba(14, 165, 233, 0.10);
+    color: var(--primary-hover-color);
+}
+
+.template-dropdown-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--secondary-text-color);
+    border-bottom: 1px solid #e5e7eb;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+/* Responsive: Stack select above input on smaller screens */
+@media (max-width: 1024px) {
+    .cf4-template-wrapper {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .cf4-template-select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+}
+
+/* =========================================
+   PRINT STYLES FOR CF4
+   ========================================= */
+@media print {
+    .cf4-fieldset {
+        box-shadow: none;
+        border: 1px solid #000;
+        page-break-inside: avoid;
+        background: #fff;
+    }
+
+    .cf4-fieldset legend {
+        background: #2c3e50;
+        color: white;
+        box-shadow: none;
+    }
+
+    .checkbox-grid {
+        background-color: #fff;
+        border: 1px solid #000;
+    }
+
+    .checkbox-item,
+    .checkbox-inline {
+        color: #000;
+    }
+
+    .btn-remove-course,
+    .btn-remove-drug,
+    .btn-add-course,
+    .btn-add-drug {
+        display: none !important;
+    }
+
+    .course-row-header .template-controls-header,
+    .header-template-controls,
+    .template-select-btn,
+    .template-mode-btn,
+    .add-template-btn,
+    .edit-template-btn,
+    .template-dropdown-inline,
+    .cf4-template-wrapper,
+    .cf4-template-controls {
+        display: none !important;
+    }
+
+    .course-in-ward-row,
+    .drugs-row {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+    }
+
+    .header-actions {
+        display: none !important;
+    }
+
+    .cf4-template-select {
+        display: none !important;
+    }
+}
+
+/* Tablet refinement for the header actions (sizing comes from the shared
+   button system in style/auth.css so every report page matches) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .header-actions {
+        gap: 8px;
+        justify-content: center;
+    }
+}
+
+/* Mobile Responsiveness for CF4 */
+@media (max-width: 768px) {
+    .cf4-fieldset {
+        padding: 15px;
+    }
+    
+    .cf4-fieldset legend {
+        font-size: 1em;
+        padding: 6px 14px;
+    }
+    
+    .checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .course-in-ward-row,
+    .drugs-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .course-in-ward-row input[type="date"],
+    .course-in-ward-row input[type="text"],
+    .drugs-row input {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    
+    .course-in-ward-row textarea {
+        min-height: 80px;
+    }
+    
+    .btn-remove-course,
+    .btn-remove-drug {
+        flex: 0 0 auto;
+        align-self: flex-end;
+    }
+    
+    .date-time-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-time-group input[type="date"],
+    .date-time-group input[type="time"],
+    .date-time-group select {
+        width: 100%;
+    }
+    
+    .date-sep {
+        display: none;
+    }
+    
+}
+
+/* =========================================
+   HEADER BUTTON GROUPS - mirror of style/index.css
+   (loaded last so these win on the CF4 page)
+   ========================================= */
+.header-btn-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+}
+
+.header-btn-group .group-label {
+    width: 100%;
+    margin: 0;
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    line-height: 1;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.header-btn-group button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 42px;
+    min-width: 0;
+    padding: 6px 13px;
+    border: none;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
+    box-shadow: 0 3px 8px rgba(100, 116, 139, 0.3);
+    transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s ease;
+}
+
+.header-btn-group button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+.header-btn-group button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.header-btn-group button:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.header-btn-group .btn-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.header-btn-group .btn-label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    line-height: 1.2;
+}
+
+.header-btn-group .btn-main {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.header-btn-group .btn-sub {
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.88;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+
+/* Collapsed header state - compact groups */
+.report-header.header-scrolled .header-btn-group {
+    padding: 4px 8px;
+    gap: 5px;
+    border-radius: 10px;
+}
+
+.report-header.header-scrolled .group-label,
+.report-header.header-scrolled .header-btn-group .btn-sub {
+    display: none;
+}
+
+.report-header.header-scrolled .header-btn-group button {
+    min-height: 34px;
+    padding: 4px 10px;
+}
+
+.report-header.header-scrolled .header-btn-group .btn-main {
+    font-size: 11px;
+}
+
+/* Mobile: groups full width, buttons share a row */
+@media (max-width: 768px) {
+    .header-btn-group {
+        width: 100%;
+    }
+
+    .header-btn-group button {
+        width: auto;
+        flex: 1 1 0;
+    }
+}
+
+/* =========================================
+   COURSE IN THE WARD - SECTION HEADING
+   ========================================= */
+.course-section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(39, 174, 96, 0.08));
+    border: 1.5px solid var(--primary-color);
+    border-left: 6px solid var(--primary-color);
+    border-radius: 12px;
+}
+
+.course-section-icon {
+    font-size: 26px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.course-section-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.course-section-title {
+    margin: 0 0 4px 0;
+    font-size: 1.1em;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: -0.01em;
+}
+
+.course-section-hint {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--secondary-text-color);
+}
+
+.course-section-hint strong {
+    color: var(--primary-hover-color);
+}
+
+/* =========================================
+   QUICK CLEAR BUTTON (course row header)
+   ========================================= */
+.course-row-header .clear-text-btn {
+    background: #fff5f5;
+    color: #c0392b;
+    border: 2px solid #f5c2c2;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.course-row-header .clear-text-btn:hover {
+    background: #e74c3c;
+    color: white;
+    border-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.35);
+}
+
+/* =========================================
+   FILLABLE TEMPLATE VIEW - nicer & bigger
+   ========================================= */
+.fillable-template-container {
+    padding: 18px 20px !important;
+    border: 2px solid var(--primary-color) !important;
+    border-radius: 10px !important;
+    background-color: var(--input-bg-color) !important;
+    font-size: 15px;
+    line-height: 2;
+    font-family: inherit;
+    min-height: 300px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.fillable-hint {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.fillable-blank {
+    border: none !important;
+    border-bottom: 2px solid var(--primary-color) !important;
+    background-color: rgba(14, 165, 233, 0.06) !important;
+    font-size: 15px !important;
+    font-family: inherit !important;
+    padding: 2px 6px !important;
+    margin: 0 2px !important;
+    min-width: 150px;
+    outline: none;
+    font-weight: 600;
+    border-radius: 3px 3px 0 0;
+}
+
+.fillable-blank:focus {
+    border-bottom-color: var(--primary-hover-color) !important;
+    background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+/* Print: hide section intros / template controls, print the real textarea */
+@media print {
+    .course-section-hint {
+        display: none !important;
+    }
+
+    .fillable-template-container,
+    .fillable-blank,
+    .fillable-hint {
+        display: none !important;
+    }
+
+    .course-textarea-container textarea {
+        display: block !important;
+        min-height: 120px;
+        border: none;
+        box-shadow: none;
+    }
+}
+body.cf4-page .course-textarea-container textarea[name="courseOrder[]"] {
+    min-height: 220px;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    padding: 16px 18px;
+    white-space: pre-wrap;
+}
+
+body.cf4-page .course-in-ward-row {
+    position: relative;
+}
+
+/* CF4 print/PDF is always built into #printDiv. Never let the live form,
+   on-screen logos, or other report content leak into the final output. */
+@media print {
+    body.cf4-page.print-document-mode > * {
+        display: none !important;
+    }
+
+    body.cf4-page.print-document-mode > main,
+    body.cf4-page.print-document-mode main > * {
+        display: block !important;
+    }
+
+    body.cf4-page.print-document-mode main > *:not(#printDiv) {
+        display: none !important;
+    }
+
+    body.cf4-page.print-document-mode #printDiv {
+        display: block !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        overflow: visible !important;
+    }
+
+    body.cf4-page.print-document-mode .cf4-print-logo-header {
+        width: 100% !important;
+        table-layout: fixed !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    body.cf4-page.print-document-mode .cf4-print-logo-header img {
+        display: block !important;
+        width: 60px !important;
+        height: 60px !important;
+        max-width: 60px !important;
+        max-height: 60px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+    }
+}
+
+
+body.cf4-page .quick-clear-confirmation {
+    position: absolute;
+    top: 48px;
+    right: 12px;
+    z-index: 4;
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: #15803d;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
+    pointer-events: none;
+}
+
+body.cf4-page .course-row-header .template-select-btn,
+body.cf4-page .course-row-header .clear-text-btn {
+    min-height: 34px;
+    padding: 5px 9px;
+    font-size: 11px;
+}
+
+body.cf4-page .course-row-header .btn-remove-course {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 16px;
+}
+
+
+@media (max-width: 600px) {
+    body.cf4-page .course-section-hint {
+        font-size: 12px;
+    }
+}

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Records Doctor &middot; CF4 Diagnostic</title>
+    <style>
+        :root { color-scheme: light dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 24px 16px 64px;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.5;
+            background: #0f172a; color: #e2e8f0;
+        }
+        .wrap { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 1.5rem; margin: 0 0 4px; }
+        h2 { font-size: 1.05rem; margin: 26px 0 8px; color: #93c5fd; }
+        .sub { color: #94a3b8; margin: 0 0 18px; font-size: .9rem; }
+        .card {
+            background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+            padding: 16px 18px; margin: 12px 0;
+        }
+        .kv { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+        .kv b { color: #cbd5e1; min-width: 130px; font-weight: 600; }
+        .kv span { color: #e2e8f0; }
+        .pill {
+            display: inline-block; padding: 2px 10px; border-radius: 999px;
+            font-size: .8rem; font-weight: 600; margin: 2px 4px 2px 0;
+        }
+        .ok { background: #064e3b; color: #6ee7b7; }
+        .warn { background: #78350f; color: #fcd34d; }
+        .bad { background: #7f1d1d; color: #fca5a5; }
+        .info { background: #1e3a8a; color: #bfdbfe; }
+        button {
+            font: inherit; cursor: pointer; border: 0; border-radius: 8px;
+            padding: 9px 16px; background: #2563eb; color: #fff; font-weight: 600;
+        }
+        button:hover { background: #1d4ed8; }
+        .muted { color: #94a3b8; font-size: .85rem; }
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 8px; }
+        th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #334155; }
+        th { color: #93c5fd; font-weight: 600; }
+        .verdict { border-left: 4px solid #475569; }
+        .verdict.good { border-left-color: #10b981; }
+        .verdict.caution { border-left-color: #f59e0b; }
+        .scroll { max-height: 320px; overflow: auto; }
+        code { background: #0b1220; padding: 1px 6px; border-radius: 5px; font-size: .82rem; }
+        .err { color: #fca5a5; white-space: pre-wrap; font-size: .82rem; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>&#129658; Records Doctor</h1>
+    <p class="sub">Sinasagot nito ang isang tanong lang: <b>nasa cloud database na ba talaga ang mga lumang CF4 ni Lilian, o nasa device pa lang?</b>
+    Gamitin ang <b>totoong session</b> — kaya kung naka-sign in ka (o si Lilian), awtomatikong authenticated ang query.</p>
+
+    <div class="card">
+        <div class="kv"><b>Status</b><span id="status">Naghahanda&hellip;</span></div>
+        <div class="kv"><b>Naka-sign in</b><span id="who">&hellip;</span></div>
+        <div class="kv"><b>Cloud URL</b><span id="url" class="muted">&hellip;</span></div>
+    </div>
+
+    <h2>&#9729;&#65039; Cloud database (Supabase)</h2>
+    <div class="card" id="cloudCard">Naghahanap&hellip;</div>
+
+    <h2>&#128190; Sa device na ito (localStorage)</h2>
+    <div class="card" id="localCard">Naghahanap&hellip;</div>
+
+    <h2>&#128161; Konklusyon</h2>
+    <div class="card verdict" id="verdict">Naghahapa&hellip;</div>
+
+    <div style="margin-top:18px">
+        <button id="rerun">&#8635; Ulitin ang pagsusuri</button>
+    </div>
+
+    <p class="muted" style="margin-top:22px">
+        Paano gamitin: i-deploy ang page na ito, buksan sa browser na <b>naka-sign in bilang si Lilian</b>
+        (o bilang admin ng clinic), tapos basahin ang <b>Konklusyon</b>. Hindi nagbabago o nagbubura ang
+        kahit anong record ang page na ito — pangangalap ng impormasyon lang ito (READ&#8209;ONLY).
+    </p>
+</div>
+
+<script src="../js/lib/supabase.min.js" defer></script>
+<script src="../function/paths.js"></script>
+<script src="../function/supabaseClient.js" defer></script>
+<script src="../function/auth.js?v=v36f" defer></script>
+<script>
+(function () {
+    'use strict';
+    var $ = function (id) { return document.getElementById(id); };
+    function esc(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function pill(text, kind) { return '<span class="pill ' + kind + '">' + esc(text) + '</span>'; }
+    function monthOf(d) { return d ? (String(d).slice(0, 7) || '(walang petsa)') : '(walang petsa)'; }
+    function setStatus(msg, kind) {
+        $('status').innerHTML = msg + (kind ? ' ' + pill(kind, kind === 'OK' ? 'ok' : kind === 'ERROR' ? 'bad' : 'info') : '');
+    }
+    function waitReady(cb, tries) {
+        tries = tries || 0;
+        if (window.EntSupabase && window.EntAuth) { cb(); return; }
+        if (tries > 60) { cb(new Error('Hindi na-load ang EntSupabase/EntAuth (tiyaing naka-online at tama ang deploy).')); return; }
+        setTimeout(function () { waitReady(cb, tries + 1); }, 250);
+    }
+    function localIsCf4(item) {
+        var t = String((item && (item.reportType || item.type)) || '').toLowerCase();
+        return t === 'cf4' || t.indexOf('cf4') !== -1;
+    }
+    function readLocal() {
+        var out = { history: [], drafts: [], savedKeys: [], cf4Hist: 0, cf4Drafts: 0 };
+        try { var h = JSON.parse(localStorage.getItem('entPatientRecordHistoryV1') || '[]'); out.history = Array.isArray(h) ? h : []; } catch (e) {}
+        try { var d = JSON.parse(localStorage.getItem('entSavedDraftsV1') || '[]'); out.drafts = Array.isArray(d) ? d : []; } catch (e) {}
+        try { var s = JSON.parse(localStorage.getItem('entDbSavedRecordKeysV1') || '[]'); out.savedKeys = Array.isArray(s) ? s : []; } catch (e) {}
+        out.cf4Hist = out.history.filter(localIsCf4).length;
+        out.cf4Drafts = out.drafts.filter(localIsCf4).length;
+        return out;
+    }
+    async function queryCloud() {
+        var SB = window.EntSupabase;
+        var tries = [
+            'reports?select=record_key,patient_name,patient_id,procedure_date,created_by,created_by_name,created_at,updated_at,is_draft&report_type=eq.cf4&order=created_at.asc',
+            'reports?select=record_key,patient_name,patient_id,procedure_date,created_by,created_at,updated_at&report_type=eq.cf4&order=created_at.asc'
+        ];
+        var lastErr = null;
+        for (var i = 0; i < tries.length; i++) {
+            try { var rows = await SB.apiRequest(tries[i]); return { rows: Array.isArray(rows) ? rows : [], tier: i + 1, error: null }; }
+            catch (e) { lastErr = e; }
+        }
+        return { rows: [], tier: 0, error: lastErr };
+    }
+    async function countByType() {
+        try {
+            var rows = await window.EntSupabase.apiRequest('reports?select=report_type&order=report_type.asc');
+            var counts = {};
+            (rows || []).forEach(function (r) { var t = r.report_type || '(none)'; counts[t] = (counts[t] || 0) + 1; });
+            return counts;
+        } catch (e) { return null; }
+    }
+    function cf4RowDate(r) {
+        return r && (r.procedure_date || (r.created_at ? String(r.created_at).slice(0, 10) : '')) || '';
+    }
+    function renderLocal(out) {
+        var c = $('localCard');
+        if (!out.history.length && !out.drafts.length) {
+            c.innerHTML = '<span class="muted">Walang localStorage data sa device/browser NA ITO.</span><br>'
+                + '<span class="muted">(Kung si Lilian ang nag-enter, kailangang buksan ang page NA ITO sa <b>device/browser niya</b> — doon lang naka-save ang local data.)</span>';
+            return;
+        }
+        var draftsWithForm = out.drafts.filter(function (d) { return d && (d.formData || d.data || d.record); });
+        var histByMonth = {};
+        out.history.filter(localIsCf4).forEach(function (r) {
+            var m = monthOf(r.date || (r.created_at ? String(r.created_at).slice(0, 10) : ''));
+            histByMonth[m] = (histByMonth[m] || 0) + 1;
+        });
+        var monthChips = Object.keys(histByMonth).sort().map(function (m) {
+            return pill(m + ': ' + histByMonth[m], 'info');
+        }).join('') || '<span class="muted">walang CF4 sa history</span>';
+        c.innerHTML =
+            '<div class="kv"><b>History rows</b><span>' + out.history.length + ' (CF4: ' + out.cf4Hist + ')</span></div>'
+            + '<div class="kv"><b>Saved drafts</b><span>' + out.drafts.length + ' (CF4: ' + out.cf4Drafts + ')</span></div>'
+            + '<div class="kv"><b>Buong form (draft)</b><span>' + draftsWithForm.length + ' draft(s) may buong form data</span></div>'
+            + '<div class="kv"><b>Marked saved</b><span>' + out.savedKeys.length + ' key(s) sa <code>entDbSavedRecordKeysV1</code></span></div>'
+            + '<div style="margin-top:8px"><b class="muted">CF4 history kada buwan:</b><br>' + monthChips + '</div>'
+            + '<p class="muted" style="margin-top:8px">Ang <b>History</b> = metadata (pangalan/petsa/uri). Ang <b>Drafts na may buong form</b> = buong laman + larawan na puwedeng ma-restore.</p>';
+    }
+    function renderCounts(counts) {
+        if (!counts) return;
+        var chips = Object.keys(counts).sort().map(function (t) { return pill(esc(t) + ': ' + counts[t], 'info'); }).join('');
+        $('cloudCard').innerHTML += '<div style="margin-top:8px"><b class="muted">Lahat ng uri na nakikita:</b><br>' + chips + '</div>';
+    }
+    function renderCloud(res, counts) {
+        var c = $('cloudCard');
+        if (res.error) {
+            c.innerHTML = '<span class="err">Hindi na-query ang cloud: ' + esc(res.error.message || res.error) + '</span>'
+                + '<br><span class="muted">Kung 401/403 — hindi naka-sign in ang page na ito. Kung ibang error — maaaring offline o RLS.</span>';
+            return;
+        }
+        var rows = res.rows || [];
+        if (!rows.length) {
+            c.innerHTML = '<span class="warn">' + pill('0 CF4 rows ang nakikita NG SESSION NA ITO', 'warn') + '</span>'
+                + '<br><span class="muted">Maaaring (a) wala pang CF4 sa cloud, o (b) may CF4 pero nakatago sa RLS para sa session na ito.</span>';
+            renderCounts(counts);
+            return;
+        }
+        var byMonth = {}, authors = {}, draftCount = 0;
+        rows.forEach(function (r) {
+            byMonth[monthOf(cf4RowDate(r))] = (byMonth[monthOf(cf4RowDate(r))] || 0) + 1;
+            var a = r.created_by_name || r.created_by || '(unknown)';
+            authors[a] = (authors[a] || 0) + 1;
+            if (r.is_draft === true || r.is_draft === 'true') draftCount++;
+        });
+        var monthChips = Object.keys(byMonth).sort().map(function (m) { return pill(m + ': ' + byMonth[m], 'info'); }).join('');
+        var authChips = Object.keys(authors).map(function (a) { return pill(esc(a) + ': ' + authors[a], 'info'); }).join('');
+        var rowsHtml = rows.slice(0, 40).map(function (r) {
+            return '<tr><td>' + esc(cf4RowDate(r)) + '</td><td>' + esc(r.patient_name || '')
+                + '</td><td>' + esc(r.patient_id || '') + '</td><td>'
+                + esc(r.created_by_name || r.created_by || '') + '</td><td>'
+                + (r.is_draft === true ? 'draft' : 'saved') + '</td></tr>';
+        }).join('');
+        c.innerHTML =
+            '<div class="kv"><b>Nakikitang CF4</b><span>' + rows.length + ' row(s) · ' + draftCount + ' draft</span></div>'
+            + '<div style="margin-top:6px"><b class="muted">Kada buwan:</b><br>' + monthChips + '</div>'
+            + '<div style="margin-top:6px"><b class="muted">Kada may-akda:</b><br>' + authChips + '</div>'
+            + '<div class="scroll" style="margin-top:8px"><table><thead><tr><th>Petsa</th><th>Pangalan</th><th>ID</th><th>Ginawa ni</th><th>Uri</th></tr></thead>'
+            + '<tbody>' + rowsHtml + (rows.length > 40 ? '<tr><td colspan="5" class="muted">…+' + (rows.length - 40) + ' pa</td></tr>' : '') + '</tbody></table></div>';
+        renderCounts(counts);
+    }
+    function renderVerdict(cloudRes, local, user) {
+        var v = $('verdict');
+        var cloudRows = (cloudRes && cloudRes.rows) ? cloudRes.rows.length : 0;
+        var localDraftsWithForm = local.drafts.filter(function (d) { return d && (d.formData || d.data || d.record); }).length;
+        var hasCloudSeptOct = false;
+        if (cloudRes && cloudRes.rows) {
+            hasCloudSeptOct = cloudRes.rows.some(function (r) {
+                var m = monthOf(cf4RowDate(r));
+                return m === '2026-09' || m === '2026-10';
+            });
+        }
+        var html = '';
+        if (cloudRows > 0 && hasCloudSeptOct) {
+            v.className = 'card verdict good';
+            html += '<b class="ok">' + pill('NASA CLOUD NA', 'ok') + '</b><br>'
+                + 'May <b>' + cloudRows + '</b> CF4 sa cloud database, kabilang ang Sept–Oct. '
+                + 'Ibig sabihin: <b>OO</b> — matapos mong i-deploy ang bagong code, lalabas na sila sa CF4 list '
+                + '(paging + tamang draft filter). Huwag lang mag-normal refresh — <code>Ctrl+Shift+R</code> o Incognito.';
+        } else if (cloudRows > 0 && !hasCloudSeptOct) {
+            v.className = 'card verdict caution';
+            html += '<b class="warn">' + pill('NASA CLOUD, PERO WALANG SEPT–OCT', 'warn') + '</b><br>'
+                + 'May CF4 sa cloud pero <b>walang Sept 28 / Oct 1–5</b> na nakikita ng session na ito. '
+                + 'Malamang nakatago sa RLS (maling <code>doctor_id</code>/assignment). Subukan ang page na ito <b>bilang admin</b>, '
+                + 'o kaya nasa device pa ni Lilian ang mga iyon (tingnan sa itaas).';
+        } else if (localDraftsWithForm > 0) {
+            v.className = 'card verdict caution';
+            html += '<b class="warn">' + pill('NASA DEVICE NI LILIAN PA', 'warn') + '</b><br>'
+                + 'Walang CF4 sa cloud (para sa session na ito), pero may <b>' + localDraftsWithForm
+                + '</b> draft na may <b>buong form</b> sa localStorage NG device na ito. '
+                + 'Kung ito ang device ni Lilian: puwede silang ma-restore papuntang cloud. '
+                + 'Kung hindi — kailangang buksan ang page na ito <b>sa device/browser ni Lilian</b> para maabot ang local data.';
+        } else if (local.cf4Hist > 0) {
+            v.className = 'card verdict caution';
+            html += '<b class="warn">' + pill('METADATA LANG SA DEVICE', 'warn') + '</b><br>'
+                + 'May <b>' + local.cf4Hist + '</b> CF4 metadata sa history NG device na ito, pero <b>metadata lang</b> '
+                + '(walang buong form/larawan) at walang CF4 sa cloud. Kung wala nang draft na may form at walang backup, '
+                + 'ang metadata lang ang kayang maipakitang muli.';
+        } else {
+            v.className = 'card verdict caution';
+            html += '<b class="warn">' + pill('WALANG NAKITANG RECORD', 'warn') + '</b><br>'
+                + 'Walang CF4 na nakita kahit sa cloud (sa session na ito) o sa device na ito. '
+                + 'Posibleng (1) hindi naka-sign in nang tama, (2) nasa ibang device/browser si Lilian, o '
+                + '(3) kailangang i-run ang page na ito <b>bilang admin</b> para maabot ang RLS-hidden rows.';
+        }
+        html += '<p class="muted" style="margin-top:10px">Session: <b>' + esc((user && (user.full_name || user.username)) || 'guest') + '</b>'
+            + (user ? ' · ' + esc(user.role || '') : '') + '. '
+            + 'Tandaan: ang <b>deploy ay code lang, hindi data</b>. Kung nasa device pa ang record, hindi ito lalabas '
+            + 'kahit ilang beses mong i-deploy — kailangang i-push mula sa device na iyon.</p>';
+        v.innerHTML = html;
+    }
+    async function run() {
+        setStatus('Sinusuri...', 'info');
+        $('cloudCard').innerHTML = 'Naghahanap...';
+        $('localCard').innerHTML = 'Naghahanap...';
+        $('verdict').innerHTML = 'Naghahapa...';
+        waitReady(async function (readyErr) {
+            try {
+                var SB = window.EntSupabase;
+                var user = window.EntAuth && window.EntAuth.currentUser ? window.EntAuth.currentUser() : null;
+                $('who').innerHTML = user
+                    ? esc(user.full_name || user.username) + ' <span class="muted">(' + esc(user.role || '') + ')</span>'
+                    : '<span class="warn">Hindi naka-sign in</span>';
+                if (SB && SB.isConfigured && SB.isConfigured()) {
+                    var cfg = SB.getConfig();
+                    $('url').textContent = cfg.supabaseUrl || '(naka-configure)';
+                } else {
+                    $('url').innerHTML = '<span class="warn">Hindi naka-configure ang cloud</span>';
+                }
+                if (readyErr) setStatus(readyErr.message, 'ERROR');
+                else if (SB && SB.isConfigured && SB.isConfigured()) setStatus('Cloud connected', 'OK');
+                else setStatus('Cloud not configured', 'ERROR');
+
+                var localData = readLocal();
+                renderLocal(localData);
+
+                var cloudRes = { rows: [], error: null };
+                var counts = null;
+                if (!readyErr && SB && SB.isConfigured && SB.isConfigured()) {
+                    cloudRes = await queryCloud();
+                    counts = await countByType();
+                }
+                renderCloud(cloudRes, counts);
+                renderVerdict(cloudRes, localData, user);
+            } catch (e) {
+                setStatus('Error: ' + (e && e.message ? e.message : e), 'ERROR');
+                $('verdict').innerHTML = '<span class="err">' + esc(e && e.message ? e.message : String(e)) + '</span>';
+            }
+        });
+    }
+    $('rerun').addEventListener('click', run);
+    run();
+})();
+</script>
+
+</body>
+</html>

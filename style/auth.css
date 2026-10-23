@@ -1,0 +1,1935 @@
+/* =====================================================================
+   AUTH UI - login screen, header user chip, admin console
+   Reuses the tokens declared in style/index.css (:root and body.dark-mode)
+   ===================================================================== */
+
+/* ---------------- Header user chip (injected by auth.js) ------------- */
+#entUserChip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #fff;
+    font-size: 0.82rem;
+    line-height: 1.2;
+}
+#entUserChip .ent-user-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex: 0 0 auto;
+}
+#entUserChip .ent-user-meta { display: flex; flex-direction: column; }
+#entUserChip .ent-user-meta strong { font-weight: 600; }
+#entUserChip .ent-user-meta small { opacity: 0.85; font-size: 0.68rem; }
+#entUserChip .ent-user-admin,
+#entUserChip .ent-user-logout {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+#entUserChip .ent-user-admin:hover,
+#entUserChip .ent-user-logout:hover { background: rgba(255, 255, 255, 0.3); }
+/* Settings gear - icon-only shortcut beside the Admin console link. Round
+   button rather than a pill so it reads as an icon action, not a label. */
+#entUserChip .ent-user-settings {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+#entUserChip .ent-user-settings:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(30deg); }
+#entUserChip.role-secretary .ent-user-avatar { color: var(--warning-color); }
+#entUserChip.role-admin .ent-user-avatar { color: var(--danger-color); }
+#entUserChip.is-offline { border-style: dashed; opacity: 0.85; }
+
+/* Chip lands on a light page when there is no coloured header */
+body:not(.has-colored-header) #entUserChip,
+.ent-chip-on-light #entUserChip {
+    background: var(--panel-bg-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+.ent-chip-on-light #entUserChip .ent-user-admin,
+.ent-chip-on-light #entUserChip .ent-user-logout {
+    color: var(--text-color);
+    border-color: var(--border-color);
+    background: var(--bg-color);
+}
+.ent-chip-on-light #entUserChip .ent-user-settings,
+body:not(.has-colored-header) #entUserChip .ent-user-settings {
+    color: var(--text-color);
+    border-color: var(--border-color);
+    background: var(--bg-color);
+}
+
+@media (max-width: 640px) {
+    #entUserChip { gap: 6px; padding: 4px 8px; }
+    #entUserChip .ent-user-meta small { display: none; }
+}
+
+/* ------------------------------- LOGIN ------------------------------ */
+body.ent-login-page {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-color), #0f172a);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-color);
+}
+.ent-login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--panel-bg-color);
+    border-radius: 16px;
+    padding: 28px 26px 22px;
+    box-shadow: 0 24px 50px -12px rgba(2, 6, 23, 0.45);
+}
+.ent-login-brand { text-align: center; margin-bottom: 18px; }
+.ent-login-brand img { width: 62px; height: 62px; border-radius: 14px; }
+.ent-login-brand h1 { font-size: 1.2rem; margin: 10px 0 2px; color: var(--primary-color); }
+.ent-login-brand p { margin: 0; font-size: 0.8rem; color: var(--secondary-text-color); }
+.ent-field { margin-bottom: 14px; }
+.ent-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.ent-field input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    font-size: 0.98rem;
+    border: 1px solid var(--input-border-color, #cbd5e1);
+    border-radius: 9px;
+    background: var(--input-bg-color, #f8fafc);
+    color: var(--text-color);
+}
+.ent-field input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light, #e0f2fe);
+}
+.ent-remember-login {
+    margin: -1px 0 15px;
+}
+.ent-remember-control {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 62px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 11px;
+    background: var(--input-bg-color, #f8fafc);
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-remember-control:hover {
+    border-color: rgba(14, 165, 233, 0.55);
+}
+.ent-remember-control.is-remembering {
+    border-color: rgba(14, 165, 233, 0.6);
+    background: rgba(14, 165, 233, 0.055);
+    box-shadow: inset 3px 0 0 var(--primary-color);
+}
+.ent-remember-control input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+.ent-remember-check {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1.5px solid #94a3b8;
+    border-radius: 5px;
+    background: var(--panel-bg-color, #fff);
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.ent-remember-check::after {
+    width: 8px;
+    height: 4px;
+    border-bottom: 2px solid #fff;
+    border-left: 2px solid #fff;
+    content: "";
+    opacity: 0;
+    transform: rotate(-45deg) translateY(-1px);
+}
+.ent-remember-control input:checked + .ent-remember-check {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+}
+.ent-remember-control input:checked + .ent-remember-check::after {
+    opacity: 1;
+}
+.ent-remember-control input:focus-visible + .ent-remember-check {
+    outline: 3px solid var(--primary-light, #e0f2fe);
+    outline-offset: 2px;
+}
+.ent-remember-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    color: var(--text-color);
+}
+.ent-remember-copy strong {
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+.ent-remember-copy small {
+    color: var(--secondary-text-color);
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+.ent-remember-device {
+    display: grid;
+    place-items: center;
+    margin-left: auto;
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+.ent-remember-device svg {
+    width: 19px;
+    height: 19px;
+}
+.ent-login-submit {
+    width: 100%;
+    padding: 12px;
+    margin-top: 4px;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.ent-login-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.ent-login-error {
+    display: none;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: rgba(231, 76, 60, 0.12);
+    border: 1px solid var(--danger-color);
+    color: var(--danger-color);
+}
+.ent-login-error.show { display: block; }
+.ent-login-note {
+    margin-top: 16px;
+    font-size: 0.72rem;
+    color: var(--secondary-text-color);
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* --------------------------- ADMIN CONSOLE -------------------------- */
+body.ent-admin-page {
+    margin: 0;
+    background: var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-color);
+}
+.ent-admin-main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
+.ent-admin-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+.ent-admin-tabs button {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+.ent-admin-tabs button.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+}
+.ent-admin-panel { display: none; }
+.ent-admin-panel.active { display: block; }
+
+.ent-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+}
+.ent-stat {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+}
+.ent-stat .ent-stat-value { font-size: 1.9rem; font-weight: 700; color: var(--primary-color); }
+.ent-stat .ent-stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+}
+.ent-stat.warn .ent-stat-value { color: var(--warning-color); }
+.ent-stat.ok .ent-stat-value { color: var(--success-color); }
+.ent-stat.danger .ent-stat-value { color: var(--danger-color); }
+
+.ent-admin-toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.ent-admin-toolbar input[type="search"],
+.ent-admin-toolbar select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--input-border-color, #cbd5e1);
+    background: var(--input-bg-color, #f8fafc);
+    color: var(--text-color);
+    font-size: 0.88rem;
+}
+.ent-admin-toolbar .spacer { margin-left: auto; }
+
+.ent-table-wrap {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: auto;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+}
+table.ent-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; min-width: 640px; }
+table.ent-table th {
+    text-align: left;
+    padding: 11px 12px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+    position: sticky;
+    top: 0;
+}
+table.ent-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+table.ent-table tr:last-child td { border-bottom: none; }
+table.ent-table tr.inactive td { opacity: 0.55; }
+
+.ent-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.ent-pill.role-admin { background: rgba(231, 76, 60, 0.14); color: var(--danger-color); }
+.ent-pill.role-doctor { background: var(--primary-light, #e0f2fe); color: var(--primary-hover-color, #0284c7); }
+.ent-pill.role-secretary { background: rgba(243, 156, 18, 0.16); color: #b9770e; }
+.ent-pill.live { background: rgba(39, 174, 96, 0.14); color: var(--success-color); }
+.ent-pill.idle { background: rgba(100, 116, 139, 0.16); color: var(--secondary-text-color); }
+.ent-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor;
+    animation: entPulse 1.6s ease-in-out infinite;
+}
+@keyframes entPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.ent-btn {
+    padding: 6px 11px;
+    border-radius: 7px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.ent-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+.ent-btn.primary { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+.ent-btn.primary:hover { color: #fff; filter: brightness(1.08); }
+.ent-btn.danger:hover { border-color: var(--danger-color); color: var(--danger-color); }
+.ent-empty { padding: 26px; text-align: center; color: var(--secondary-text-color); font-size: 0.9rem; }
+
+/* Admin modal (add / edit user, reset password) */
+.ent-modal {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    place-items: center;
+    padding: 18px;
+    z-index: 10010;
+}
+.ent-modal.open { display: grid; place-items: center; }
+.ent-modal-card {
+    width: 100%; max-width: 430px;
+    background: var(--panel-bg-color);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 24px 50px -12px rgba(2, 6, 23, 0.5);
+    max-height: 90vh;
+    overflow: auto;
+}
+.ent-modal-card h3 { margin: 0 0 16px; font-size: 1.08rem; color: var(--primary-color); }
+.ent-modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+.ent-modal-card select,
+.ent-modal-card input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--input-border-color, #cbd5e1);
+    background: var(--input-bg-color, #f8fafc);
+    color: var(--text-color);
+    font-size: 0.92rem;
+}
+.ent-hint { font-size: 0.72rem; color: var(--secondary-text-color); margin-top: 4px; }
+.ent-live-refresh { font-size: 0.74rem; color: var(--secondary-text-color); }
+
+
+/* =====================================================================
+   ADMIN CONSOLE v2 - header that never collides with the sign-out chip,
+   clinic growth dashboard + database usage meters.
+   ===================================================================== */
+
+.ent-admin-page { text-align: left; }
+
+/* ---------------- Header bar (overlap fix) --------------------- */
+.ent-admin-header { padding: 16px 20px 14px; }
+.ent-admin-page .header-content {
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    text-align: left;
+}
+.ent-admin-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ent-admin-brand-icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 1.2rem;
+    flex: 0 0 auto;
+}
+.ent-admin-brand-text { display: flex; flex-direction: column; min-width: 0; }
+.ent-admin-header .header-content h1 { font-size: 1.3rem; line-height: 1.15; }
+.ent-admin-brand-text small { font-size: 0.72rem; opacity: 0.88; font-weight: 500; }
+.ent-admin-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.ent-admin-page #entUserChip { margin-left: 0; flex: 0 0 auto; }
+.ent-admin-page .ent-admin-back {
+    padding: 8px 14px;
+    font-weight: 600;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+.ent-admin-page .ent-admin-back:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: #fff;
+    color: #fff;
+}
+.ent-conn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.ent-conn .dot { width: 7px; height: 7px; border-radius: 50%; background: #facc15; flex: 0 0 auto; }
+.ent-conn.online .dot { background: #4ade80; animation: entPulse 1.8s ease-in-out infinite; }
+.ent-conn.offline .dot { background: #f87171; }
+
+@media (max-width: 760px) {
+    .ent-admin-brand-text small { display: none; }
+    .ent-admin-header .header-content h1 { font-size: 1.1rem; }
+}
+
+/* ------------------------------ Cards -------------------------- */
+.ent-admin-main { text-align: left; }
+.ent-admin-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--bg-color);
+    padding-top: 4px;
+}
+.ent-card {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px 16px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+    text-align: left;
+    min-width: 0;
+}
+.ent-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ent-card-head h3 { margin: 0; font-size: 0.95rem; color: var(--primary-color); }
+.ent-card-head .ent-hint { margin-left: auto; }
+.ent-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.ent-card-grid .ent-card { margin-bottom: 0; }
+.ent-stat-grid-slim { grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); margin-bottom: 14px; }
+.ent-stat .ent-stat-sub { font-size: 0.66rem; color: var(--secondary-text-color); margin-top: 3px; }
+
+/* --------------------------- Bar charts ------------------------ */
+.ent-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 212px;
+    overflow-x: auto;
+    padding: 18px 4px 0;
+}
+.ent-chart-col {
+    flex: 1 1 0;
+    min-width: 26px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+}
+.ent-chart-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    width: 100%;
+    max-width: 46px;
+    border-radius: 7px 7px 3px 3px;
+    overflow: hidden;
+    background: rgba(100, 116, 139, 0.10);
+}
+.ent-chart-seg { width: 100%; display: block; }
+.ent-chart-val { font-size: 0.66rem; font-weight: 700; color: var(--secondary-text-color); }
+.ent-chart-x { font-size: 0.58rem; color: var(--secondary-text-color); white-space: nowrap; }
+.ent-chart-col:hover .ent-chart-stack { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+.ent-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; font-size: 0.72rem; color: var(--secondary-text-color); }
+.ent-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ent-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.ent-segmented { margin-left: auto; display: inline-flex; border: 1px solid var(--border-color); border-radius: 999px; overflow: hidden; }
+.ent-segmented button { border: none; background: var(--bg-color); color: var(--text-color); font-size: 0.74rem; padding: 6px 13px; cursor: pointer; }
+.ent-segmented button.active { background: var(--primary-color); color: #fff; font-weight: 600; }
+
+/* --------------------------- Trend pills ----------------------- */
+.ent-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.71rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.ent-trend.up { background: rgba(39, 174, 96, 0.15); color: var(--success-color); }
+.ent-trend.down { background: rgba(231, 76, 60, 0.14); color: var(--danger-color); }
+.ent-trend.flat { background: rgba(100, 116, 139, 0.15); color: var(--secondary-text-color); }
+.ent-trend.fresh { background: var(--primary-light, #e0f2fe); color: var(--primary-hover-color, #0284c7); }
+
+/* ------------------------- Clinic cards ------------------------ */
+.ent-clinic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.ent-clinic-card {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--accent, #0ea5e9);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+    text-align: left;
+    min-width: 0;
+}
+.ent-clinic-card h4 { margin: 0 0 2px; font-size: 0.98rem; }
+.ent-clinic-sub { font-size: 0.68rem; color: var(--secondary-text-color); word-break: break-all; }
+.ent-clinic-today { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 12px; flex-wrap: wrap; }
+.ent-clinic-today strong { font-size: 2rem; line-height: 1; color: var(--accent, #0ea5e9); }
+.ent-clinic-today span { font-size: 0.68rem; color: var(--secondary-text-color); }
+.ent-clinic-rows { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ent-clinic-rows > div {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.ent-clinic-rows b { font-size: 0.95rem; }
+.ent-clinic-rows span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--secondary-text-color); }
+.ent-clinic-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 11px; font-size: 0.68rem; color: var(--secondary-text-color); flex-wrap: wrap; }
+.ent-spark { display: flex; align-items: flex-end; gap: 2px; height: 32px; margin-top: 10px; }
+.ent-spark i { flex: 1; display: block; min-height: 2px; border-radius: 2px 2px 0 0; background: var(--accent, #0ea5e9); opacity: 0.45; }
+.ent-spark i.today { opacity: 1; }
+
+/* ----------------------- Snapshot strip ------------------------ */
+.ent-snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 10px; }
+.ent-snapshot {
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent, #0ea5e9);
+    border-radius: 11px;
+    padding: 9px 12px;
+    background: var(--bg-color);
+    text-align: left;
+    min-width: 0;
+}
+.ent-snapshot b { display: block; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ent-snapshot .ent-snapshot-n { font-size: 1.35rem; font-weight: 700; color: var(--accent, #0ea5e9); line-height: 1.2; }
+.ent-snapshot .ent-snapshot-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.66rem; color: var(--secondary-text-color); }
+
+/* --------------------- Top clinics by records -------------------
+   A three-row podium. Rank is a number first so the order is legible
+   without colour; the bar behind it is the visual comparison, and it is
+   scaled against the LEADER so the top clinic always fills the row.
+   ------------------------------------------------------------------ */
+.ent-topclinics { display: flex; flex-direction: column; gap: 10px; }
+.ent-topclinic {
+    display: flex; align-items: center; gap: 13px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent, #0ea5e9);
+    border-radius: 12px;
+    background: var(--bg-color);
+    min-width: 0;
+}
+.ent-topclinic-rank {
+    flex: 0 0 auto;
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    font-weight: 800; font-size: 0.86rem;
+    color: #fff;
+    background: var(--accent, #0ea5e9);
+}
+.ent-topclinic-body { flex: 1 1 auto; min-width: 0; }
+.ent-topclinic-head { display: flex; align-items: baseline; gap: 10px; }
+.ent-topclinic-head b {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 0.92rem; color: var(--text-color);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ent-topclinic-n { flex: 0 0 auto; font-size: 1.05rem; font-weight: 700; color: var(--accent, #0ea5e9); line-height: 1; }
+.ent-topclinic-bar {
+    height: 6px; margin: 7px 0 5px;
+    border-radius: 999px;
+    background: var(--border-color);
+    overflow: hidden;
+}
+.ent-topclinic-bar span { display: block; height: 100%; border-radius: 999px; background: var(--accent, #0ea5e9); }
+.ent-topclinic-meta { font-size: 0.68rem; color: var(--secondary-text-color); }
+
+
+/* ------------------------ Usage meters ------------------------- */
+.ent-quota-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.ent-quota {
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.06);
+    text-align: left;
+}
+.ent-quota-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ent-quota-top strong { font-size: 0.83rem; }
+.ent-quota-pct { font-size: 0.74rem; font-weight: 700; color: var(--secondary-text-color); }
+.ent-quota-nums { font-size: 1.22rem; font-weight: 700; margin: 6px 0 9px; color: var(--primary-color); }
+.ent-quota-nums small { font-size: 0.7rem; font-weight: 600; color: var(--secondary-text-color); }
+.ent-meter { height: 9px; border-radius: 999px; background: rgba(100, 116, 139, 0.18); overflow: hidden; }
+.ent-meter > span { display: block; height: 100%; border-radius: 999px; width: 0; background: linear-gradient(90deg, var(--primary-color), #22c55e); transition: width 0.45s ease; }
+.ent-meter.warn > span { background: linear-gradient(90deg, #fbbf24, #f97316); }
+.ent-meter.danger > span { background: linear-gradient(90deg, #f87171, #b91c1c); }
+.ent-quota small { display: block; margin-top: 8px; font-size: 0.67rem; line-height: 1.5; color: var(--secondary-text-color); }
+.ent-plan-note {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--bg-color);
+    border: 1px dashed var(--border-color);
+    font-size: 0.71rem;
+    line-height: 1.55;
+    color: var(--secondary-text-color);
+}
+.ent-plan-note code { font-size: 0.68rem; }
+
+/* -------------------- Share bars / report mix ------------------ */
+.ent-share { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.ent-share-bar { flex: 1; height: 8px; border-radius: 999px; background: rgba(100, 116, 139, 0.16); overflow: hidden; }
+.ent-share-bar span { display: block; height: 100%; background: var(--accent, #0ea5e9); }
+.ent-mix-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 0.78rem; }
+.ent-mix-row b { min-width: 88px; }
+.ent-mix-row em { font-style: normal; min-width: 58px; text-align: right; color: var(--secondary-text-color); }
+.ent-num { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+    .ent-clinic-grid { grid-template-columns: 1fr; }
+    .ent-chart { height: 180px; }
+    .ent-chart-x { display: none; }
+    .ent-card-grid { grid-template-columns: 1fr; }
+    .ent-admin-tabs button { padding: 7px 12px; font-size: 0.8rem; }
+}
+
+
+/* =====================================================================
+   UI REFRESH v28
+   1. Header layout: brand left, status + user chip right, toolbar on its
+      own row. The dark-mode switch is a normal flex child now, so it can
+      never sit on top of "Sign out" (it used to be absolutely positioned).
+   2. One clear button hierarchy in the report toolbar (no rainbow).
+   3. "Draft saved" popup + tidier Saved Drafts window.
+   4. Admin console look & feel.
+   ===================================================================== */
+
+/* --------------------------- 1. Header ---------------------------- */
+.header {
+    padding: 14px 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 6px 22px rgba(2, 132, 199, 0.22);
+}
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    width: 100%;
+    text-align: left;
+}
+.header-content h1 { font-size: 1.32rem; letter-spacing: -0.01em; }
+.header-brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.header-brand-center {
+    flex: 1 1 260px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-align: center;
+}
+/* The app logo tile: a small gradient square with a white endoscope glyph.
+   It is wrapped together with the h1 inside .header-titles, which the
+   rule below turns into ONE horizontal row - so the logo costs the header
+   no extra height at all (a stacked logo above the title added a whole
+   row and pushed the tagline and chips down with it). */
+.header-logo {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.header-logo svg { width: 21px; height: 21px; color: #fff; }
+
+.header-titles { display: flex; flex-direction: column; min-width: 0; line-height: 1.18; }
+/* The dashboard header only: its .header-titles holds [logo, h1] in ONE
+   row instead of the stacked column above (login / report pages keep the
+   column of hospital line + title they have always had). It must come
+   AFTER the base rule: same specificity, so source order decides. */
+.ent-dash-page .header-brand-center .header-titles {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+/* Hospital line above the form title (default: CAPITOL UNIVERSITY MEDICAL
+   CENTER). Uppercase + letter-spaced so it reads as the letterhead, not as
+   another form subtitle - the form name below it stays the loudest text. */
+.header-hospital {
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--primary-hover-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.header-tagline,
+.header-titles small { font-size: 0.74rem; font-weight: 500; opacity: 0.92; }
+.header-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+    min-width: 0;
+}
+
+/* The switch must never float over the header again. */
+.theme-switch-wrapper {
+    position: static;
+    top: auto;
+    right: auto;
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+}
+.header .theme-switch .slider { background-color: rgba(255, 255, 255, 0.35); }
+.header .theme-switch .slider:before { background-color: #fff; }
+
+.connection-status {
+    margin-left: 0;
+    width: 13px;
+    height: 13px;
+    flex: 0 0 auto;
+    border: 2px solid var(--panel-bg-color);
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.55);
+}
+.header .connection-status { border-color: rgba(255, 255, 255, 0.9); box-shadow: none; }
+
+/* ---- Report pages: two tidy rows ---- */
+.report-header {
+    display: block;
+    padding: 0;
+    gap: 0;
+    margin-bottom: 18px;
+    text-align: left;
+    background: linear-gradient(180deg, var(--panel-bg-color) 0%, var(--bg-color) 100%);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 3px 14px rgba(2, 6, 23, 0.07);
+}
+.report-header .header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    flex-wrap: wrap;
+    padding: 10px 18px;
+}
+.report-header .header-brand { gap: 12px; min-width: 0; }
+.report-header .logo { width: 52px; height: 52px; border-width: 2px; }
+.report-header h1 { font-size: 1.16rem; color: var(--main-content-header-color); }
+.report-header .header-tagline { color: var(--secondary-text-color); opacity: 1; }
+.report-header .header-meta { margin-left: auto; }
+.report-header .header-actions {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0;
+    padding: 9px 14px 11px;
+    border-top: 1px dashed var(--border-color);
+    background: rgba(148, 163, 184, 0.07);
+}
+.report-header.header-scrolled { padding: 0; margin-bottom: 10px; }
+.report-header.header-scrolled .header-brand { display: none; }
+.report-header.header-scrolled .header-bar { padding: 6px 14px; justify-content: flex-end; }
+.report-header.header-scrolled .header-actions {
+    padding: 2px 12px 8px;
+    background: transparent;
+    border-top: none;
+    gap: 6px;
+}
+
+@media (max-width: 760px) {
+    .header { padding: 12px; }
+    .header-content { justify-content: center; }
+    .header-bar,
+    .report-header .header-bar { padding: 8px 12px; }
+    .header-brand,
+    .header-brand-center { width: 100%; }
+    .header-meta { width: 100%; justify-content: center; margin-left: 0; }
+    .report-header .logo { width: 42px; height: 42px; }
+    .report-header h1 { font-size: 1.02rem; }
+    /* Toolbar on phones: groups go full width and their buttons share one row,
+       never one button per row (that made the header eat half the screen). */
+    .report-header .header-actions { padding: 7px 10px 9px; gap: 6px; }
+    .report-header .header-btn-group { width: 100%; padding: 5px 6px; }
+    .report-header .header-btn-group button {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 38px;
+        padding: 5px 8px;
+    }
+    .report-header .header-actions .back-button { width: 100%; }
+}
+
+/* --------------------- User chip (Sign out) ----------------------- */
+body #entUserChip {
+    margin-left: 0;
+    gap: 8px;
+    padding: 4px 5px 4px 4px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.08);
+    font-size: 0.8rem;
+}
+body #entUserChip .ent-user-avatar {
+    width: 29px;
+    height: 29px;
+    background: var(--primary-color);
+    color: #fff;
+}
+body #entUserChip .ent-user-meta { max-width: 168px; }
+body #entUserChip .ent-user-meta strong {
+    font-size: 0.78rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+body #entUserChip .ent-user-meta small { font-size: 0.63rem; opacity: 0.75; }
+body #entUserChip .ent-user-admin {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--primary-color);
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+body #entUserChip .ent-user-admin:hover { background: var(--primary-color); color: #fff; }
+body #entUserChip .ent-user-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--danger-color);
+    background: var(--danger-color);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 7px rgba(231, 76, 60, 0.3);
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+body #entUserChip .ent-user-logout:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+    color: #fff;
+    transform: translateY(-1px);
+}
+body #entUserChip .ent-user-logout-icon { font-size: 0.85rem; line-height: 1; }
+body #entUserChip.is-offline { border-style: dashed; }
+
+/* Gradient header (index, settings, admin): glass chip, white text. */
+body #entUserChip.is-on-dark {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.42);
+    color: #fff;
+    box-shadow: none;
+    backdrop-filter: blur(4px);
+}
+body #entUserChip.is-on-dark .ent-user-avatar { background: #fff; color: var(--primary-color); }
+body #entUserChip.is-on-dark.role-secretary .ent-user-avatar { color: #b45309; }
+body #entUserChip.is-on-dark.role-admin .ent-user-avatar { color: #b91c1c; }
+body #entUserChip.is-on-dark .ent-user-admin {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+}
+body #entUserChip.is-on-dark .ent-user-admin:hover { background: rgba(255, 255, 255, 0.32); }
+body #entUserChip.is-on-dark .ent-user-logout {
+    background: #fff;
+    border-color: #fff;
+    color: #b91c1c;
+    box-shadow: 0 2px 8px rgba(2, 6, 23, 0.22);
+}
+body #entUserChip.is-on-dark .ent-user-logout:hover {
+    background: #fee2e2;
+    border-color: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 640px) {
+    body #entUserChip { gap: 6px; padding: 3px 4px; }
+    body #entUserChip .ent-user-meta { max-width: 118px; }
+    body #entUserChip .ent-user-meta small { display: none; }
+}
+
+/* ---------------- 2. Report toolbar button system ------------------ */
+/* One accent (Save Draft), one primary (Save to Database), everything
+   else neutral with a small colour rail so the toolbar reads calmly. */
+.header-btn-group button,
+.header-actions > button {
+    position: relative;
+    overflow: hidden;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+}
+.header-btn-group { box-shadow: none; }
+.header-btn-group .group-label {
+    font-size: 8.5px;
+    letter-spacing: 1.6px;
+    opacity: 0.85;
+}
+.header-btn-group button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(2, 6, 23, 0.12);
+    border-color: var(--primary-color);
+}
+.header-btn-group button:active { transform: translateY(0); }
+
+/* Neutral pair inside the My Work group */
+.group-work .btn-open-file,
+.header-btn-group .btn-local-drafts,
+.group-database .btn-db-records {
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+}
+.group-work .btn-open-file:hover,
+.header-btn-group .btn-local-drafts:hover,
+.group-database .btn-db-records:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-color);
+}
+
+/* Accent: Save Draft */
+.group-work .btn-save-draft,
+.header-btn-group .btn-save-draft {
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(13, 148, 136, 0.36), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.group-work .btn-save-draft:hover { box-shadow: 0 7px 18px rgba(13, 148, 136, 0.45); border-color: transparent; }
+
+/* Primary: Save to Database (the only action that writes to the server) */
+.group-database .btn-save-db,
+.header-btn-group .btn-save-db {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(2, 132, 199, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.group-database .btn-save-db:hover { box-shadow: 0 7px 18px rgba(2, 132, 199, 0.42); border-color: transparent; }
+
+/* Final Copy group: calm neutral with a colour rail on the left edge */
+.group-output #savePdfBtn,
+.group-output #previewPdfBtn,
+.group-output #printBtn,
+.group-output #newFormBtn {
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+.group-output #savePdfBtn { box-shadow: inset 4px 0 0 #16a34a; }
+.group-output #previewPdfBtn { box-shadow: inset 4px 0 0 #0ea5e9; }
+.group-output #printBtn { box-shadow: inset 4px 0 0 #7c3aed; }
+.group-output #newFormBtn { box-shadow: inset 4px 0 0 #64748b; }
+.group-output #savePdfBtn:hover { background: #f0fdf4; border-color: #16a34a; }
+.group-output #previewPdfBtn:hover { background: var(--primary-light); border-color: #0ea5e9; }
+.group-output #printBtn:hover { background: #f5f3ff; border-color: #7c3aed; }
+.group-output #newFormBtn:hover { background: #f1f5f9; border-color: #64748b; }
+body.dark-mode .group-output #savePdfBtn:hover { background: #14321f; }
+body.dark-mode .group-output #printBtn:hover { background: #241b3a; }
+body.dark-mode .group-output #newFormBtn:hover { background: #1e293b; }
+
+/* Tools: destructive action is an outline, never a solid block */
+.group-tools .btn-danger-action {
+    background: transparent;
+    color: var(--danger-color);
+    border: 1px solid rgba(231, 76, 60, 0.55);
+    box-shadow: none;
+}
+.group-tools .btn-danger-action:hover {
+    background: var(--danger-color);
+    color: #fff;
+    border-color: var(--danger-color);
+}
+
+/* Standalone header buttons (Records / back to menu) */
+.header-actions .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    align-self: center;
+}
+.header-actions .back-button:hover { background: var(--primary-light); border-color: var(--primary-color); }
+/* The Menu link is a quiet chip, not the old uppercase banner button. */
+.header-actions .back-button {
+    text-transform: none;
+    letter-spacing: 0;
+    box-shadow: none;
+}
+
+/* .back-button-solid - the back button that moved INTO the header.
+ *
+ * There used to be two links back to the menu: a quiet outline chip in the
+ * header ("← Menu") and the slate-gray .back-button floating above the form
+ * ("← Back to Menu"). Only one survived, and it is this one - it was moved
+ * into the header to sit with the rest of the actions, so it is now a child
+ * of .header-actions.
+ *
+ * That matters because the two rules above style .header-actions
+ * .back-button as a quiet chip: transparent background, no shadow. Without
+ * this override the button would change appearance purely by being moved,
+ * and would go from the black/gray the doctor already knows to a plain
+ * outline. This restores the slate gradient from index.css.
+ *
+ * Kept at header-chip proportions (padding 8px 14px, 12px text) so it does
+ * not tower over the neighbouring buttons, but keeps the gray/white-on-gray
+ * look so it is still recognisably the back button. */
+.header-actions .back-button.back-button-solid {
+    padding: 8px 14px;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3);
+}
+.header-actions .back-button.back-button-solid:hover {
+    background: linear-gradient(135deg, var(--secondary-hover-color), #334155);
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(100, 116, 139, 0.38);
+}
+
+/* "✓ Saved" flash that slides over the Save Draft button */
+.btn-flash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #10b981, #047857);
+    color: #fff;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+    opacity: 0;
+    transform: translateY(105%);
+    transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    pointer-events: none;
+}
+.header-btn-group button.is-saved .btn-flash { opacity: 1; transform: translateY(0); }
+.header-btn-group button.is-saved {
+    animation: v28-saved-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes v28-saved-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .btn-flash { transition: opacity 0.15s ease; transform: none; }
+    .header-btn-group button.is-saved { animation: none; }
+}
+@media print {
+    .header-actions, .header-bar { display: none !important; }
+    .report-header { padding: 0 !important; box-shadow: none !important; }
+}
+
+/* ---------- 3. "Draft saved" popup + Saved Drafts window ------------ */
+.ent-saved-toast {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9990;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(560px, calc(100vw - 28px));
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #10b981;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.22);
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    text-align: left;
+}
+.ent-saved-toast.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.ent-saved-toast-mark {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #10b981, #047857);
+    color: #fff;
+    font-weight: 900;
+    font-size: 15px;
+}
+.ent-saved-toast-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.ent-saved-toast-title { font-size: 0.86rem; color: var(--main-content-header-color); }
+.ent-saved-toast-detail {
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-saved-toast-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ent-saved-toast-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease;
+}
+.ent-saved-toast-btn:hover { border-color: var(--primary-color); background: var(--primary-light); }
+.ent-saved-toast-btn.is-primary { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+.ent-saved-toast-btn.is-primary:hover { background: var(--primary-hover-color); }
+.ent-saved-toast-btn.is-quiet { border-color: transparent; background: transparent; font-size: 16px; line-height: 1; padding: 4px 8px; }
+@media (max-width: 640px) {
+    .ent-saved-toast { left: 10px; right: 10px; bottom: 10px; max-width: none; flex-wrap: wrap; }
+    .ent-saved-toast-actions { width: 100%; justify-content: flex-start; }
+    .ent-saved-toast-detail { white-space: normal; }
+}
+
+/* Offline save + "all caught up" confirmation (OFFLINE MODE UX) ----------
+   1. Saving with no signal wears the AMBER variant of the saved toast so
+      it can never be mistaken for an online save.
+   2. When the sync engine drains the pending queue, one card says so in
+      plain words: "All offline records already saved to database". The
+      doctor should never have to open Offline Records to find out
+      whether the work actually reached the cloud.
+   ------------------------------------------------------------------------ */
+.ent-saved-toast.is-offline { border-left-color: #f59e0b; }
+.ent-saved-toast.is-offline .ent-saved-toast-mark { background: linear-gradient(135deg, #f59e0b, #b45309); }
+
+.ent-sync-done-toast {
+    position: fixed;
+    inset: 0;
+    z-index: 9991;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    max-width: min(560px, calc(100vw - 28px));
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #10b981;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.22);
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    text-align: left;
+}
+.ent-sync-done-toast.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.ent-sync-done-mark {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #10b981, #047857);
+    color: #fff;
+    font-weight: 900;
+    font-size: 15px;
+}
+.ent-sync-done-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.ent-sync-done-title { font-size: 0.86rem; color: var(--main-content-header-color); }
+.ent-sync-done-detail { font-size: 0.74rem; font-weight: 500; color: var(--secondary-text-color); }
+.ent-sync-done-close {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+.ent-sync-done-close:hover { border-color: var(--border-color); background: var(--bg-color); }
+@media (max-width: 640px) {
+    .ent-sync-done-toast { left: 10px; right: 10px; bottom: 10px; max-width: none; }
+}
+
+/* Saved Drafts window: cleaner header, calmer buttons (sky palette - see §5) */
+.ent-drafts-dialog { border-radius: 18px; }
+.ent-drafts-header {
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-drafts-heading h2 { font-size: 1rem; letter-spacing: -0.01em; }
+.ent-drafts-search:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+.ent-drafts-list { padding: 4px 18px; }
+.ent-drafts-card { border-radius: 13px; }
+.ent-drafts-actions button { transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease; }
+.ent-drafts-download {
+    background: var(--panel-bg-color);
+    color: var(--success-color);
+    border: 1px solid rgba(39, 174, 96, 0.45);
+    box-shadow: none;
+}
+.ent-drafts-download:hover:not(:disabled) { background: rgba(39, 174, 96, 0.1); border-color: var(--success-color); }
+.ent-drafts-badge { letter-spacing: 0.5px; }
+.ent-drafts-footer { background: rgba(148, 163, 184, 0.08); }
+.ent-drafts-empty { padding: 34px 14px; line-height: 1.55; }
+
+/* ----------------------- 4. Admin console -------------------------- */
+.ent-admin-header { position: relative; overflow: hidden; }
+.ent-admin-header::after {
+    content: "";
+    position: absolute;
+    right: -70px;
+    top: -110px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    pointer-events: none;
+}
+.ent-admin-brand-icon { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18); }
+.ent-admin-page .header-content h1 { font-weight: 700; }
+
+/* Sticky tab bar so section switching is always reachable */
+.ent-admin-page .ent-admin-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    gap: 7px;
+    margin: 0 -16px 18px;
+    padding: 10px 16px;
+    background: rgba(248, 250, 252, 0.94);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 14px rgba(2, 6, 23, 0.05);
+    backdrop-filter: blur(8px);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.ent-admin-page .ent-admin-tabs::-webkit-scrollbar { display: none; }
+.ent-admin-page .ent-admin-tabs button {
+    flex: 0 0 auto;
+    padding: 8px 15px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ent-admin-page .ent-admin-tabs button:hover { transform: translateY(-1px); border-color: var(--primary-color); color: var(--primary-hover-color, #0284c7); }
+.ent-admin-page .ent-admin-tabs button.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.34);
+}
+body.dark-mode .ent-admin-page .ent-admin-tabs {
+    background: rgba(15, 23, 42, 0.94);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Stat cards with an accent rail */
+.ent-stat {
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid var(--primary-color);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ent-stat:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(2, 6, 23, 0.1); }
+.ent-stat .ent-stat-value { font-variant-numeric: tabular-nums; }
+.ent-stat.warn { border-left-color: var(--warning-color); }
+.ent-stat.ok { border-left-color: var(--success-color); }
+.ent-stat.danger { border-left-color: var(--danger-color); }
+
+/* Panels / cards */
+.ent-card { border-radius: 15px; }
+.ent-card-head { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+.ent-card-head h3 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.92rem;
+    text-transform: none;
+}
+.ent-card-head h3::before {
+    content: "";
+    width: 4px;
+    height: 16px;
+    border-radius: 3px;
+    background: var(--primary-color);
+}
+
+/* Tables: zebra rows, row hover, cleaner sticky header */
+.ent-table-wrap { border-radius: 14px; }
+table.ent-table th {
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font-weight: 700;
+    z-index: 2;
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+table.ent-table tbody tr:nth-child(even) td { background: rgba(148, 163, 184, 0.07); }
+table.ent-table tbody tr:hover td { background: var(--primary-light); }
+table.ent-table td:first-child { font-weight: 600; }
+table.ent-table td { font-variant-numeric: tabular-nums; }
+
+/* Buttons, toolbar controls, modal, empty state */
+.ent-btn { transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, transform 0.16s ease; }
+.ent-btn:active { transform: translateY(1px); }
+.ent-btn.danger { color: var(--danger-color); border-color: rgba(231, 76, 60, 0.45); }
+.ent-btn.danger:hover { background: var(--danger-color); color: #fff; }
+.ent-admin-toolbar input[type="search"],
+.ent-admin-toolbar select { transition: border-color 0.16s ease, box-shadow 0.16s ease; }
+.ent-admin-toolbar input[type="search"]:focus,
+.ent-admin-toolbar select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.16);
+}
+.ent-modal-card { border-radius: 17px; animation: v28-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes v28-modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+}
+.ent-empty {
+    margin: 6px;
+    padding: 30px 20px;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    line-height: 1.6;
+}
+.ent-conn { border: 1px solid rgba(255, 255, 255, 0.35); }
+
+/* The slot that auth.js fills with the user chip / Sign out button. */
+.header-user-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.header-user-slot:empty { display: none; }
+
+@media (max-width: 640px) {
+    .ent-admin-page .ent-admin-tabs { margin: 0 -10px 14px; padding: 8px 10px; }
+    .ent-admin-main { padding: 14px 10px 50px; }
+    table.ent-table { font-size: 0.8rem; }
+}
+/* --------- 5. Brand palette pass (no yellow / no indigo) ------------ */
+/* Everything inside Saved Drafts now uses our sky-blue brand ramp:
+   #0ea5e9 -> #0284c7 -> #0369a1, with green/red kept only for
+   success (download) and destructive (delete) actions. */
+
+/* ---- Saved Drafts popup ---- */
+.ent-drafts-header {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(2, 132, 199, 0.05));
+}
+body.dark-mode .ent-drafts-header {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(2, 132, 199, 0.07));
+}
+.ent-drafts-heading h2 { color: #0369a1; }
+body.dark-mode .ent-drafts-heading h2 { color: #7dd3fc; }
+.ent-drafts-subtitle { color: var(--secondary-text-color); }
+.ent-drafts-close:hover { background: rgba(14, 165, 233, 0.18); color: #0369a1; }
+.ent-drafts-badge {
+    background: rgba(14, 165, 233, 0.14);
+    color: #0369a1;
+    border: 1px solid rgba(2, 132, 199, 0.28);
+    box-shadow: none;
+}
+body.dark-mode .ent-drafts-badge { color: #7dd3fc; background: rgba(14, 165, 233, 0.22); }
+body.dark-mode .ent-drafts-author { color: #c4b5fd; background: rgba(124, 58, 237, 0.24); }
+body.dark-mode .ent-drafts-edited { color: #fcd34d; background: rgba(217, 119, 6, 0.24); }
+body.dark-mode .ent-drafts-tabcount { color: var(--secondary-text-color, #9ca3af); background: rgba(255, 255, 255, 0.08); }
+
+/* =====================================================================
+   HOSPITAL CHIPS + BADGE  (RMCI / CUMC)
+   ---------------------------------------------------------------------
+   A doctor who works at two hospitals reads the drafts list to answer
+   "who is working on what", and with two secretaries the answer has to
+   include WHERE. So the hospital is a chip row above the list and a badge
+   on every card.
+
+   Two deliberate choices:
+
+     · The badge is a SHORT CODE. A card already carries the report type,
+       the date, the size and the saved time; the full legal hospital name
+       would wrap the card onto three lines on a phone. "RMCI" says it in
+       four characters, and the full name is on the printed letterhead where
+       it actually matters.
+
+     · Untagged is grey and says so. A draft saved before this existed has
+       no hospital, and guessing one would be a confident wrong answer on a
+       patient record. Grey "Untagged" plus the move button next to it is an
+       honest state with a one-click way out.
+   ===================================================================== */
+
+/* The chip row. Hidden by default (see the `hidden` attribute in the
+   markup) and revealed by render() only when more than one hospital is
+   actually in play, so a single-hospital clinic never sees a filter with
+   one setting. */
+.ent-drafts-sites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 18px 12px;
+}
+.ent-drafts-site {
+    padding: 7px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.ent-drafts-site:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-hover-color);
+}
+.ent-drafts-site.is-active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.ent-drafts-site:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* The badge on each card. Sits beside the report-type badge, so it
+   inherits that shape rather than inventing a second one. */
+.ent-drafts-site-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+/* Two different hues, not two shades of one, so RMCI and CUMC are
+   distinguishable at a glance and not only by reading the letters -
+   which matters for anyone who is colour-blind or on a washed-out phone
+   screen in daylight. */
+.ent-drafts-site-badge.is-rmci {
+    background: rgba(14, 165, 233, 0.16);
+    color: #0369a1;
+    border-color: rgba(2, 132, 199, 0.30);
+}
+.ent-drafts-site-badge.is-cumc {
+    background: rgba(124, 58, 237, 0.16);
+    color: #6d28d9;
+    border-color: rgba(109, 40, 217, 0.30);
+}
+/* No hospital known - deliberately muted, and never a third colour that
+   could be mistaken for a real one. */
+.ent-drafts-site-badge.is-untagged {
+    background: rgba(120, 113, 108, 0.14);
+    color: var(--secondary-text-color);
+    border-color: rgba(120, 113, 108, 0.30);
+}
+
+/* "CUMC -> move" under the card. Low emphasis on purpose: it is a
+   correction, not a primary action, and it must not compete with Open. */
+.ent-drafts-site-move {
+    margin-top: 6px;
+    padding: 3px 9px;
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--secondary-text-color);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+.ent-drafts-site-move:hover {
+    border-color: var(--primary-color);
+    border-style: solid;
+    color: var(--primary-hover-color);
+}
+
+body.dark-mode .ent-drafts-site-badge.is-rmci { color: #7dd3fc; background: rgba(14, 165, 233, 0.26); border-color: rgba(125, 211, 252, 0.34); }
+body.dark-mode .ent-drafts-site-badge.is-cumc { color: #c4b5fd; background: rgba(124, 58, 237, 0.26); border-color: rgba(196, 181, 253, 0.34); }
+body.dark-mode .ent-drafts-site-badge.is-untagged { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); }
+body.dark-mode .ent-drafts-site { background: rgba(255, 255, 255, 0.06); }
+.ent-drafts-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.20);
+}
+.ent-drafts-open {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    box-shadow: 0 3px 9px rgba(2, 132, 199, 0.34);
+}
+.ent-drafts-open:hover:not(:disabled) { filter: brightness(1.07); }
+.ent-drafts-confirm-yes { background: linear-gradient(135deg, var(--primary-color), #0369a1); }
+.ent-drafts-confirm-yes:hover { filter: brightness(1.07); }
+.ent-drafts-empty { border-color: rgba(14, 165, 233, 0.45); }
+.ent-drafts-status { background: rgba(39, 174, 96, 0.14); color: #15803d; }
+
+/* My Drafts header button: neutral with a sky rail (matches the toolbar) */
+.header-btn-group .btn-local-drafts {
+    box-shadow: inset 4px 0 0 var(--primary-color);
+}
+
+/* ---- Patient Records popover ----
+   The "Records / saved patients" button was removed from every report header,
+   so its old indigo styling is gone. Its sky-blue look now lives on
+   Database ▸ DB Records (see above). The popover CSS in
+   style/patient-records.css is untouched in case RECORDS_UI_ENABLED is
+   flipped back on in function/patientRecords.js. */
+.patient-record-card { border-left-color: var(--primary-color); }
+.group-database #dbRecordsBtn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+/* ---- DB Records popup (was indigo) ---- */
+.group-database #saveToDbBtn {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    box-shadow: 0 3px 10px rgba(2, 132, 199, 0.36), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+/* Database ▸ DB Records wears the old "Records" chip: soft sky tint that
+   fills to solid brand sky blue on hover (the Records button is gone). */
+.group-database #dbRecordsBtn {
+    background: linear-gradient(135deg, var(--primary-light), rgba(14, 165, 233, 0.22));
+    color: #0369a1;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.55);
+}
+.group-database #dbRecordsBtn:hover {
+    background: linear-gradient(135deg, var(--primary-color), #0369a1);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 14px rgba(2, 132, 199, 0.45);
+}
+.ent-db-header { background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(2, 132, 199, 0.05)); }
+.ent-db-heading h2 { color: #0369a1; }
+.ent-db-close:hover { background: rgba(14, 165, 233, 0.18); color: #0369a1; }
+.ent-db-refresh:hover { border-color: var(--primary-color); color: #0369a1; }
+.ent-db-card:hover { border-color: var(--primary-color); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.18); }
+.ent-db-badge { color: #0369a1; background: rgba(14, 165, 233, 0.14); }
+body.dark-mode .ent-db-badge { color: #7dd3fc; background: rgba(14, 165, 233, 0.20); }
+.ent-db-open { background: linear-gradient(135deg, var(--primary-color), #0369a1); }
+.ent-db-open:hover { filter: brightness(1.07); }
+.ent-db-confirm-yes { background: linear-gradient(135deg, var(--primary-color), #0369a1); }
+
+/* ---- Toast & drafts modal share the same sky accent ---- */
+.ent-saved-toast-btn.is-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    border-color: transparent;
+}
+
+/* ---- Dark mode: --primary-light is #0c4a6e there, so brighten the text ---- */
+body.dark-mode .group-database #dbRecordsBtn,
+body.dark-mode .ent-drafts-close:hover,
+body.dark-mode .ent-db-close:hover,
+body.dark-mode .ent-db-refresh:hover,
+body.dark-mode .ent-db-heading h2 { color: #7dd3fc; }
+body.dark-mode .group-database #dbRecordsBtn:hover { color: #fff; }
+/* =================== end UI REFRESH v28 =================== */
+
+
+/* ====================================================================
+   HEADER USER CHIP - redesigned.
+
+   It used to render one cramped line of text:
+
+       [T] Tara Flores
+           SECRETARY · Dr. assigned only     [Admin] [⎋ Sign out]
+
+   The role was shouted in caps, the part a user actually cares about
+   (what can I see?) was squeezed after it in 0.68rem, and "Dr. assigned
+   only" was a literal placeholder string, not a fact.
+
+   Now the role is a badge, the scope is its own readable line, and each
+   role gets its own colour so the three are distinguishable at a glance
+   without reading anything.
+   ==================================================================== */
+
+#entUserChip {
+    gap: 11px;
+    padding: 6px 8px 6px 7px;
+    border-radius: 14px;
+}
+
+#entUserChip .ent-user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    /* Each role gets its own hue, so "who is signed in" is answered by
+       shape and colour before any text is read. */
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.18);
+}
+#entUserChip.role-doctor    .ent-user-avatar { color: #0f6f5c; }
+#entUserChip.role-secretary .ent-user-avatar { color: #8a5a00; }
+#entUserChip.role-admin     .ent-user-avatar { color: #b3261e; }
+
+#entUserChip .ent-user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    /* The whole point of the chip is the name + scope, so let the text
+       breathe instead of being clipped to the icon's width. */
+    max-width: 260px;
+}
+#entUserChip .ent-user-meta strong {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-weight: 600;
+    line-height: 1.2;
+}
+#entUserChip .ent-user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Role badge - deliberately quieter than the name it sits beside. */
+#entUserChip .ent-user-role {
+    flex: 0 0 auto;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    line-height: 1.5;
+}
+#entUserChip .ent-user-role.role-admin     { background: rgba(255, 214, 210, 0.9); border-color: rgba(255, 255, 255, 0.5); color: #7f1d1a; }
+#entUserChip .ent-user-role.role-secretary { background: rgba(255, 233, 183, 0.9); border-color: rgba(255, 255, 255, 0.5); color: #6b4300; }
+#entUserChip .ent-user-role.role-doctor    { background: rgba(196, 240, 224, 0.9); border-color: rgba(255, 255, 255, 0.5); color: #0b4d3e; }
+
+/* The scope line. This is the useful half, so it is the readable one. */
+#entUserChip .ent-user-scope {
+    font-size: 0.73rem;
+    line-height: 1.25;
+    opacity: 0.92;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#entUserChip .ent-user-admin,
+#entUserChip .ent-user-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 11px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+#entUserChip .ent-user-admin:hover,
+#entUserChip .ent-user-logout:hover { background: rgba(255, 255, 255, 0.3); }
+#entUserChip .ent-user-logout:active { transform: scale(0.97); }
+
+@media (max-width: 640px) {
+    #entUserChip { gap: 8px; padding: 4px 6px; }
+    #entUserChip .ent-user-meta { max-width: 130px; }
+    #entUserChip .ent-user-scope { display: none; }
+    #entUserChip .ent-user-logout-text,
+    #entUserChip .ent-user-admin { font-size: 0; gap: 0; padding: 6px 9px; }
+    #entUserChip .ent-user-logout-text { display: none; }
+    #entUserChip .ent-user-admin::after { content: '\2699'; font-size: 0.95rem; }
+}
+@'
+
+/* ====================================================================
+   LOGIN FAILURE - a wrong password must be loud.
+
+   The complaint: type a wrong username or password, press Sign in, and
+   nothing happens. The button sat on "Signing in..." and the only reason
+   was an infinite loop between logActivity() and logout() in auth.js -
+   fixed there. This is the other half: when the answer IS a refusal, it
+   has to land.
+
+   The error box was already red, but it was a thin 0.85rem strip that
+   appeared silently. It now has a warning glyph, a red left rule, a
+   shake, and it clears the moment the visitor starts typing again -
+   because a stale "wrong password" sitting under a field they are
+   actively correcting is worse than no message at all.
+   ==================================================================== */
+
+.ent-login-error {
+    display: none;
+    margin-bottom: 14px;
+    padding: 11px 13px 11px 12px;
+    border-radius: 9px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    font-weight: 500;
+    background: #fdecea;
+    border: 1px solid #f5c6c2;
+    border-left: 4px solid var(--danger-color);
+    color: #a3160f;
+}
+.ent-login-error.show { display: block; }
+
+/* The informational notes share the box, so they must not look like a
+   failure. Used for "Signed in from this device's saved credentials",
+   "Password updated", and so on. */
+.ent-login-error.is-ok {
+    background: #e7f6f0;
+    border-color: #bfe5d5;
+    border-left-color: #0f7a5a;
+    color: #0b5c45;
+}
+
+@keyframes entLoginShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+.ent-login-error.shake { animation: entLoginShake 0.32s ease-in-out 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ent-login-error.shake { animation: none; }
+}
+
+/* =====================================================================
+   0037 - CROSS-CLINIC SECRETARY: the "Switch clinic" pill + the
+   "working today at ..." picker's option list. Injected by auth.js.
+   ===================================================================== */
+#entUserChip .ent-user-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    font: inherit;
+    font-size: 0.68rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+#entUserChip .ent-user-switch:hover { background: rgba(255, 255, 255, 0.3); }
+#entUserChip:not(.is-on-dark) .ent-user-switch {
+    border-color: rgba(15, 23, 42, 0.25);
+    background: rgba(15, 23, 42, 0.06);
+}
+#entUserChip:not(.is-on-dark) .ent-user-switch:hover { background: rgba(15, 23, 42, 0.12); }
+@media (max-width: 640px) {
+    #entUserChip .ent-user-switch .ent-user-switch-text { display: none; }
+    #entUserChip .ent-user-switch { padding: 6px 9px; }
+}
+
+/* The picker's option list. Each option is a full-width button naming the
+   doctor and her clinic, so two doctors in different clinics are obvious at
+   a glance. The current shelf is ringed; the primary carries a small badge. */
+.ent-clinic-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.ent-clinic-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    text-align: left;
+    padding: 11px 13px;
+    border: 1px solid rgba(15, 23, 42, 0.15);
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+.ent-clinic-opt:hover { border-color: var(--primary-color, #0ea5e9); background: rgba(14, 165, 233, 0.06); }
+.ent-clinic-opt.is-current { border-color: var(--primary-color, #0ea5e9); box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.18); }
+.ent-clinic-opt-name { font-weight: 600; }
+.ent-clinic-opt-primary {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.15);
+    color: var(--primary-color, #0ea5e9);
+    vertical-align: middle;
+}
+.ent-clinic-opt-clinic { font-size: 0.78rem; opacity: 0.75; }

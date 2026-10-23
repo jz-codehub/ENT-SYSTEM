@@ -1,0 +1,805 @@
+/* ==========================================================================
+   style/tickets.css — pages/tickets.html ONLY ("Your tickets")
+   --------------------------------------------------------------------------
+   This page does NOT load dashboard.css, so every style it needs lives here:
+   the page layout (.ent-tk-*) plus the ticket components the JS renders
+   (.ent-tf-* form parts, .ent-ticket rows, .ent-badge, .ent-tfv-* detail
+   head, the thread). Kept as its own sheet on purpose: the old pop-up
+   shared these rules with the dashboard, and that coupling is what made
+   the pop-up impossible to reason about.
+
+   THE PANE CONTRACT (do not break it - it shipped broken once):
+   .ent-tk-pane is a BOUNDED flex column (max-height in dvh), and each pane
+   has exactly ONE scrolling region inside it - .ent-tk-list on the left,
+   .ent-tk-detail-body on the right. Both are flex children with
+   `min-height: 0`, because a flex item's default min-height is `auto`,
+   which lets it grow past the container instead of scrolling. Remove
+   either half and buttons fall below the fold with nothing that looks
+   scrollable.
+   ========================================================================== */
+
+/* ------------------------------ the page ----------------------------- */
+body.ent-tk-page {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    text-align: left;   /* index.css centres the body; this page is prose */
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* ------------------------------ header ------------------------------- */
+/* .header / .header-content come from index.css (sky gradient, shared by
+   every page). Here the header carries only a Back link and the user
+   slot, so it stays one slim row. */
+.ent-tk-header { margin-bottom: 14px; }
+.ent-tk-header .header-content { display: flex; align-items: center; gap: 12px; }
+/* Back to Menu wears the SAME solid slate button the cf4 form wears
+   (.back-button.back-button-solid in auth.css) - what the clinic calls
+   "the black one" - instead of the plain light .ent-btn chip. Written as
+   .ent-tk-back:hover too so it also outranks auth.css's .ent-btn:hover
+   (equal specificity; this file loads later anyway). */
+.ent-tk-back {
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(100, 116, 139, 0.3);
+}
+.ent-tk-back:hover {
+    background: linear-gradient(135deg, var(--secondary-hover-color), #334155);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(100, 116, 139, 0.38);
+}
+.ent-tk-headtools {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ------------------------------- main -------------------------------- */
+.ent-tk-main {
+    width: 100%;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+}
+
+/* ------------------------------- hero -------------------------------- */
+.ent-tk-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+}
+.ent-tk-hero-text { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 320px; }
+.ent-tk-hero-ic {
+    flex: 0 0 auto;
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    background: rgba(52, 152, 219, 0.14);
+    color: var(--primary-color);
+}
+.ent-tk-hero-ic svg { width: 22px; height: 22px; }
+.ent-tk-hero-body { min-width: 0; }
+.ent-tk-hero-body h1 { margin: 0 0 3px; font-size: 1.22rem; line-height: 1.2; }
+.ent-tk-hero-sub {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    vertical-align: middle;
+}
+.ent-tk-hero-body p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--secondary-text-color);
+}
+.ent-tk-newbtn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
+.ent-tk-newbtn svg { width: 15px; height: 15px; }
+
+/* ------------------------------- stats ------------------------------- */
+/* Counted off the SAME rows the list shows, so the figures can never
+   disagree with the list underneath. */
+.ent-tk-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 9px;
+    margin-bottom: 14px;
+}
+.ent-tk-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    min-width: 0;
+}
+.ent-tk-stat-ic {
+    flex: 0 0 auto;
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    border-radius: 9px;
+    background: rgba(127, 140, 160, 0.14);
+    color: var(--secondary-text-color);
+}
+.ent-tk-stat-ic svg { width: 16px; height: 16px; }
+.ent-tk-stat.is-active .ent-tk-stat-ic { background: rgba(52, 152, 219, 0.15); color: var(--primary-color); }
+.ent-tk-stat.is-new .ent-tk-stat-ic    { background: rgba(192, 57, 43, 0.13);  color: #a93226; }
+.ent-tk-stat.is-done .ent-tk-stat-ic   { background: rgba(30, 132, 73, 0.13);  color: #1a6b3d; }
+.ent-tk-stat.is-all .ent-tk-stat-ic    { background: rgba(127, 140, 160, 0.14); color: var(--secondary-text-color); }
+.ent-tk-stat-body { min-width: 0; }
+.ent-tk-stat-n {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.ent-tk-stat-l {
+    display: block;
+    font-size: 0.66rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ------------------------------ notice ------------------------------- */
+.ent-tk-notice {
+    display: none;
+    margin: 0 0 12px;
+    padding: 10px 13px;
+    border-radius: 10px;
+    border-left: 4px solid var(--border-color);
+    background: var(--bg-color);
+    font-size: 0.84rem;
+}
+.ent-tk-notice.show { display: block; }
+.ent-tk-notice.is-bad { border-left-color: var(--danger-color); color: var(--danger-color); }
+.ent-tk-notice.is-ok  { border-left-color: #1e8449; color: #1e8449; }
+
+/* ------------------------------ the panes ---------------------------- */
+.ent-tk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 14px;
+    align-items: start;
+}
+/* BOUNDED by the viewport, not by its content - see the contract at the
+   top of this file. dvh so a shrinking phone toolbar shrinks the pane. */
+.ent-tk-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: calc(100vh - 220px);
+    max-height: calc(100dvh - 220px);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    overflow: hidden;   /* safe ONLY because .ent-tk-list and
+                           .ent-tk-detail-body below are the scrollers */
+}
+.ent-tk-listpane { min-width: 0; }
+
+/* ---------------------------- tools row ------------------------------ */
+.ent-tk-tools {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tk-searchwrap { position: relative; display: block; }
+.ent-tk-searchic {
+    position: absolute;
+    left: 11px; top: 50%;
+    transform: translateY(-50%);
+    width: 15px; height: 15px;
+    color: var(--secondary-text-color);
+    pointer-events: none;
+}
+.ent-tk-searchwrap input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px 9px 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.86rem;
+}
+.ent-tk-searchwrap input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+}
+.ent-tk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ent-tk-chip {
+    appearance: none;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 5px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.ent-tk-chip:hover { color: var(--text-color); border-color: var(--primary-color); }
+.ent-tk-chip.is-on {
+    background: rgba(52, 152, 219, 0.12);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* ------------------------- the list (scroller) ----------------------- */
+/* THE scrolling region of the left pane. min-height:0 is what lets the
+   flex child shrink; overflow-y is what makes the remainder scroll. */
+.ent-tk-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 12px;
+}
+.ent-tk-empty {
+    margin: 0;
+    padding: 30px 18px;
+    text-align: center;
+    font-size: 0.84rem;
+    color: var(--secondary-text-color);
+}
+/* The message glyph is an ICON, not a banner: these SVGs carry no
+   width/height attributes, so unsized they paint pane-wide and the
+   picture lands before the words do. Cap it - the text is the message. */
+.ent-tk-empty svg {
+    display: block;
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 10px;
+    opacity: 0.9;
+}
+.ent-tk-empty.is-welcome h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--text-color); }
+.ent-tk-empty.is-welcome p { margin: 0 0 14px; font-size: 0.8rem; line-height: 1.5; }
+.ent-tk-empty.is-welcome .ent-btn { display: inline-flex; }
+
+/* ------------------------------ the detail --------------------------- */
+.ent-tk-detail { min-width: 0; }
+/* THE missing link in the pane contract (see top of file): every view
+   state is a flex column INSIDE the bounded pane, so .ent-tk-detail-body
+   gets a definite height and becomes the ONE scroller. Without this rule
+   .ent-tk-viewbody was a plain div: detail-body's flex/overflow sat inert
+   on a block child and the pane's overflow:hidden simply CLIPPED long
+   tickets - nothing below the fold was reachable. */
+.ent-tk-viewbody {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+/* [hidden] is only a UA-style display:none - an author display on the
+   same element outranks it, so without this guard all three states
+   (welcome / opened / report) would render at once. */
+.ent-tk-viewbody[hidden] { display: none; }
+/* Pinned so the Back control stays reachable no matter how long the
+   conversation gets. */
+.ent-tk-viewhead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--panel-bg-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tk-backtxt { display: inline-flex; align-items: center; gap: 6px; }
+.ent-tk-viewno {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+/* The right pane's one scrolling region - same contract as .ent-tk-list. */
+.ent-tk-detail-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 14px;
+}
+.ent-tk-viewcard {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 13px;
+    padding: 15px 16px;
+    /* Same contract relayed one level down: the card is a flex column, so
+       the .ent-tk-detail-body inside it still resolves to a real height
+       and scrolls while the card frame (and Back header) stay put. */
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================ ticket form ============================= */
+/* Fieldsets (.ent-tf-block) carry the form; .ent-field and
+   .ent-field input come from auth.css. select and textarea are NOT
+   covered there, so they are styled here. */
+.ent-tf-block {
+    border: 0;
+    padding: 4px 0 4px;
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tf-block:last-of-type { border-bottom: 0; }
+.ent-tf-block > legend {
+    padding: 0;
+    margin: 0 0 11px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-tf-block .ent-field { margin-bottom: 12px; }
+.ent-tf-block .ent-field > label {
+    display: block;
+    margin: 0 0 5px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-tf-block input[type="text"],
+.ent-tf-block select,
+.ent-tf-block textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+.ent-tf-block textarea { resize: vertical; min-height: 78px; }
+.ent-tf-block input[type="text"]:focus,
+.ent-tf-block select:focus,
+.ent-tf-block textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+}
+.ent-tf-optional {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: var(--secondary-text-color);
+    opacity: 0.85;
+}
+.ent-tf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+
+/* --------------------------- scope tiles ----------------------------- */
+.ent-tf-scopes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+.ent-tf-scope {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 12px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.ent-tf-scope:hover { border-color: var(--danger-color); }
+/* The chosen tile has to be obvious from across the room, so it gets a
+   border, a tint AND an inset ring - never the tick alone. .is-on is what
+   the JS toggles; :has() backs it up for the statically-checked first
+   tile. T33 in test_ticket_form.mjs reads this block. */
+.ent-tf-scope.is-on,
+.ent-tf-scope:has(input:checked) {
+    border-color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.08);
+    box-shadow: inset 0 0 0 1px var(--danger-color);
+}
+.ent-tf-scope input { position: absolute; opacity: 0; pointer-events: none; }
+.ent-tf-scope-icon {
+    width: 32px; height: 32px;
+    border-radius: 9px;
+    display: grid; place-items: center;
+    background: rgba(127, 140, 160, 0.14);
+    color: var(--secondary-text-color);
+    font-size: 1rem;
+    line-height: 1;
+}
+.ent-tf-scope-icon svg { width: 17px; height: 17px; }
+/* One hue per scope, the same three the header chips use, so "CF4" means
+   the same colour everywhere in the app. */
+.ent-tf-scope:nth-child(1) .ent-tf-scope-icon { color: #0284c7; }
+.ent-tf-scope:nth-child(2) .ent-tf-scope-icon { color: #7c3aed; }
+.ent-tf-scope:nth-child(3) .ent-tf-scope-icon { color: var(--success-color); }
+.ent-tf-scope:nth-child(4) .ent-tf-scope-icon { color: var(--secondary-text-color); }
+.ent-tf-scope-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ent-tf-scope-text b { font-size: 0.87rem; line-height: 1.25; }
+.ent-tf-scope-text small { font-size: 0.71rem; line-height: 1.3; color: var(--secondary-text-color); }
+/* Focus must still be visible now that the radio is invisible. */
+.ent-tf-scope:has(input:focus-visible) {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* ------------------------------ notice/send -------------------------- */
+.ent-tf-notice {
+    display: none;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border-left: 4px solid var(--border-color);
+    background: var(--bg-color);
+    font-size: 0.84rem;
+}
+.ent-tf-notice.show { display: block; }
+.ent-tf-notice.is-bad { border-left-color: var(--danger-color); color: var(--danger-color); }
+.ent-tf-notice.is-ok  { border-left-color: #1e8449; color: #1e8449; }
+.ent-tf-send { margin-top: 4px; }
+.ent-tf-send .ent-btn {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 0.94rem;
+    font-weight: 650;
+    border-radius: 11px;
+    justify-content: center;
+}
+
+/* ============================= ticket rows ============================ */
+/* The whole card is the button. A 4px status rail down the left edge is
+   scannable without reading a word; the subject gets TWO lines, because
+   a title like "CF4 will not save with no PhilHealth number" is two
+   lines of real information. */
+.ent-ticket {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 13px 46px 13px 18px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--secondary-text-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    min-height: 44px;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+.ent-ticket:hover { transform: translateY(-1px); background: var(--bg-color); }
+.ent-ticket:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+.ent-ticket.is-open     { border-left-color: #c0392b; }
+.ent-ticket.is-progress { border-left-color: #b9770e; }
+.ent-ticket.is-resolved { border-left-color: #1e8449; }
+.ent-ticket.is-closed   { border-left-color: var(--secondary-text-color); }
+.ent-ticket.is-unread {
+    border-color: var(--primary-color);
+    border-left-color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.07);
+}
+.ent-ticket-top { display: flex; align-items: flex-start; gap: 10px; text-align: left; }
+.ent-ticket-subject {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 0.94rem;
+    font-weight: 650;
+    line-height: 1.36;
+    letter-spacing: -0.005em;
+}
+.ent-ticket.is-unread .ent-ticket-subject { color: var(--primary-color); }
+.ent-ticket-top .ent-badge { margin-top: 1px; text-align: left; }
+.ent-ticket-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px;
+    text-align: left;
+    font-size: 0.74rem;
+    color: var(--secondary-text-color);
+    min-width: 0;
+}
+.ent-ticket-scope {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* A drawn dot, not a typed middle-dot character: decoration should not be
+   something a screen reader reads aloud. */
+.ent-ticket-sep {
+    flex: 0 0 auto;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.55;
+}
+.ent-ticket-when { flex: 0 0 auto; white-space: nowrap; }
+
+/* Line 3: the new-reply banner. */
+.ent-ticket-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    align-self: flex-start;
+    margin-top: 9px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    background: rgba(192, 57, 43, 0.1);
+    border: 1px solid rgba(192, 57, 43, 0.26);
+    color: #a93226;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.ent-ticket-pip {
+    flex: 0 0 auto;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.16);
+}
+
+/* The chevron: drawn with two borders, no font dependency, so it
+   survives a print or a PDF where a dingbat may not. */
+.ent-ticket-go {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    width: 9px; height: 9px;
+    margin-top: -5px;
+    border-right: 2px solid var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    transform: rotate(-45deg);
+    opacity: 0.55;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.ent-ticket:hover .ent-ticket-go,
+.ent-ticket:focus-visible .ent-ticket-go {
+    opacity: 1;
+    transform: rotate(-45deg) translateX(2px);
+}
+
+/* ------------------------------ badges ------------------------------- */
+/* Status is a WORD first, colour second, so it survives a colour-blind
+   reader and a printed page. */
+.ent-badge {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+.ent-badge.is-open     { color: #a93226; background: rgba(192, 57, 43, 0.14);  border-color: rgba(192, 57, 43, 0.32); }
+.ent-badge.is-progress { color: #9c640c; background: rgba(185, 119, 14, 0.16); border-color: rgba(185, 119, 14, 0.34); }
+.ent-badge.is-resolved { color: #1a6b3d; background: rgba(30, 132, 73, 0.14);  border-color: rgba(30, 132, 73, 0.32); }
+.ent-badge.is-closed   { color: var(--secondary-text-color); background: rgba(100, 116, 139, 0.13); border-color: rgba(100, 116, 139, 0.28); }
+
+/* ====================== detail head (one ticket) ====================== */
+.ent-tfv-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 13px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tfv-headmain { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1 1 260px; }
+.ent-tfv-headmain .ent-badge { align-self: flex-start; }
+.ent-tfv-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+.ent-tfv-meta { margin: 0; font-size: 0.72rem; color: var(--secondary-text-color); }
+.ent-tfv-body { min-width: 0; }
+
+/* ---------------------- what you actually reported -------------------- */
+/* The scope, the kind of problem and the urgency were chosen on three
+   other controls and then disappeared; this puts all four back, read off
+   the ticket row itself so they cannot drift from the database. */
+.ent-tf-report {
+    margin: 0 0 14px;
+    padding: 13px 15px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-color);
+    border-radius: 10px;
+    background: var(--panel-bg-color);
+}
+.ent-tf-report h5 {
+    margin: 0 0 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-tf-report dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+    gap: 10px 18px;
+}
+.ent-tf-report dt { font-size: 0.68rem; color: var(--secondary-text-color); margin-bottom: 2px; }
+.ent-tf-report dd { margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--text-color); }
+
+/* ------------------------------ the thread --------------------------- */
+.ent-tf-msgs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 13px;
+}
+.ent-tf-msg {
+    padding: 10px 12px;
+    border-radius: 11px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+}
+.ent-tf-msg.is-mine {
+    border-color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.07);
+}
+/* The opening message is the report, not a reply - label it so the thread
+   does not read as a conversation that started with a stray bubble. */
+.ent-tf-msg.is-report {
+    border-style: solid;
+    border-color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.07);
+}
+.ent-tf-msg.is-report header b { color: var(--primary-color); }
+.ent-tf-msg header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+}
+.ent-tf-msg header time { margin-left: auto; color: var(--secondary-text-color); }
+.ent-tf-msg p { margin: 0; font-size: 0.87rem; line-height: 1.5; word-break: break-word; }
+.ent-tf-empty {
+    margin: 0;
+    padding: 18px 12px;
+    text-align: center;
+    font-size: 0.83rem;
+    color: var(--secondary-text-color);
+}
+
+/* ------------------------------ the reply ---------------------------- */
+.ent-tf-reply { display: flex; flex-direction: column; gap: 8px; }
+.ent-tf-reply textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.88rem;
+    resize: vertical;
+    min-height: 64px;
+}
+.ent-tf-reply textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+}
+.ent-tf-reply .ent-hint { font-size: 0.72rem; color: var(--secondary-text-color); }
+
+/* ============================== responsive ============================ */
+@media (max-width: 900px) {
+    /* One column: the list sits above the detail, and the JS scrolls the
+       open pane into view, so both stay reachable at this width. */
+    .ent-tk-layout { grid-template-columns: 1fr; }
+    .ent-tk-pane { max-height: none; }
+    .ent-tk-listpane { max-height: calc(100dvh - 240px); }
+    .ent-tk-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+    .ent-tk-main { padding: 0 10px 32px; }
+    .ent-tk-hero { padding: 14px; gap: 12px; }
+    .ent-tk-hero-ic { display: none; }
+    .ent-tk-newbtn { width: 100%; justify-content: center; }
+    .ent-tf-scopes { grid-template-columns: 1fr; }
+    .ent-tf-row { grid-template-columns: 1fr; gap: 0; }
+    .ent-tk-stat-l { white-space: normal; }
+}
+
+/* ================================ print =============================== */
+@media print {
+    body.ent-tk-page { background: #fff !important; }
+    .ent-tk-header,
+    .ent-tk-tools,
+    .ent-tk-newbtn,
+    .ent-tf-send,
+    .ent-tf-reply,
+    .no-print { display: none !important; }
+    .ent-tk-pane { max-height: none; overflow: visible; border: none; }
+    .ent-tk-list,
+    .ent-tk-detail-body { overflow: visible; }
+    .ent-ticket { break-inside: avoid; }
+}
+
+
+
+
+
+

@@ -1,0 +1,3379 @@
+/* =====================================================================
+   DOCTOR / SECRETARY DASHBOARD  (index.html)
+   Reuses the tokens from index.css and the .ent-card / .ent-chart
+   components of auth.css, so it follows light + dark mode for free.
+   ===================================================================== */
+
+.ent-dash-page { text-align: left; }
+
+.ent-dash-main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px 16px 60px;
+    text-align: left;
+}
+
+/* --------------------------- Greeting bar -------------------------- */
+/* The hero is now a soft "aurora" card: a rounded panel whose two blurred
+   colour blobs drift gently behind the content. It follows light/dark via the
+   tokens, and the motion is disabled under prefers-reduced-motion. Everything
+   here is decoration - the content layout is unchanged, so nothing can break. */
+.ent-dash-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 248px;
+    gap: 18px;
+    align-items: start;
+    margin: 4px 0 18px;
+    padding: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--panel-bg-color);
+    box-shadow: var(--input-shadow);
+    overflow: hidden;
+}
+.ent-dash-hero-aurora {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(420px 220px at 12% -30%, color-mix(in srgb, var(--primary-color) 26%, transparent), transparent 70%),
+        radial-gradient(380px 220px at 92% 120%, color-mix(in srgb, #8b5cf6 22%, transparent), transparent 70%);
+    animation: entAuroraDrift 16s ease-in-out infinite alternate;
+}
+@keyframes entAuroraDrift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(-14px, 8px, 0) scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-dash-hero-aurora { animation: none; }
+}
+.ent-dash-hero-inner { position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.ent-dash-hero-side {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-color) 62%, transparent);
+}
+.ent-dash-hero h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: -0.018em;
+    color: var(--main-content-header-color);
+}
+.ent-dash-hero p { margin: 4px 0 0; font-size: 0.82rem; color: var(--secondary-text-color); }
+/* The identity row: initials avatar + greeting block. */
+.ent-dash-hero-id { display: flex; align-items: flex-start; gap: 14px; }
+.ent-dash-titlewrap { min-width: 0; flex: 1 1 auto; }
+/* The greeting and the role pill share ONE line and only wrap when the
+   viewport truly cannot fit both - so the hero opens with a single strong
+   statement instead of a title, a pill and a sentence stacked three deep. */
+.ent-dash-titlerow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.ent-dash-titlerow .ent-dash-scope { margin-top: 0; }
+.ent-dash-role {
+    margin: 4px 0 0 !important;
+    font-size: 0.8rem !important;
+    color: var(--secondary-text-color) !important;
+}
+/* Today-status row: the mood pill plus the two alarm pills (review queue +
+   follow-ups). One flex line that wraps neatly instead of three stacked
+   full-width lines. A faint gradient rule sits above it, so the hero reads
+   as "who you are" over "what is going on today" - without it those pills
+   float under the name with nothing to anchor them. Pure decoration: one
+   hairline, no extra markup. */
+.ent-dash-statusrow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg,
+        color-mix(in srgb, var(--primary-color) 34%, transparent),
+        transparent 82%) 1;
+}
+/* Inside the status row the pills are flex children, so their own top
+   margins would fight the row's align-items: center and make the mood pill
+   sit lower than the alarms beside it. Zeroed here, not in the base rules,
+   because the base margins are still wanted wherever these pills appear
+   outside a flex row. */
+.ent-dash-statusrow .ent-dash-mood,
+.ent-dash-statusrow .ent-dash-alert { margin: 0; }
+/* Meta row: last entry + streak, kept as small quiet text instead of two
+   more pill boxes competing with the status row above. */
+.ent-dash-footrow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 12px; }
+.ent-dash-last { margin: 0 !important; font-size: 0.76rem !important; }
+.ent-dash-avatar {
+    flex: none;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 22%, transparent),
+        0 6px 16px rgba(2, 132, 199, 0.28);
+}
+.ent-dash-avatar.role-secretary { background: linear-gradient(135deg, #8b5cf6, #ec4899); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22), 0 6px 16px rgba(139, 92, 246, 0.26); }
+.ent-dash-avatar.role-admin { background: linear-gradient(135deg, #f59e0b, #ef4444); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22), 0 6px 16px rgba(245, 158, 11, 0.24); }
+/* The tagline: a quiet italic line under the mood. */
+.ent-dash-tagline {
+    margin: 8px 0 0 !important;
+    font-size: 0.76rem !important;
+    font-style: italic;
+    color: var(--secondary-text-color) !important;
+}
+/* The cheerful emoji line right under the hello. */
+.ent-dash-mood {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 9px 0 0;
+    padding: 5px 12px;
+    max-width: 100%;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--panel-bg-color) 100%);
+    box-shadow: var(--input-shadow);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.ent-dash-mood:empty { display: none; }
+/* The side card's three blocks, finally given a layout: the old duplicate
+   .ent-dash-hero-side rule below (a leftover horizontal flex from before
+   the card existed) overrode this card's own align-items and silently
+   un-stretched every button in it. Removed, and the inner rows it wraps
+   are defined here instead:
+     · side-top  - clock on the left, the live dot on the right, one
+                   hairline under it so the buttons read as actions
+     · actions   - a column: Refresh full width, then the export row
+     · actions-row - Print / CSV / Settings sharing one line. */
+.ent-dash-side-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-dash-side-top .ent-dash-sync { margin-top: 0; }
+.ent-dash-actions { display: flex; flex-direction: column; gap: 8px; }
+.ent-dash-actions-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    /* A safety net, not a layout: the three are meant to share one line, and
+       at this card's width they do. If a long label or a large user font ever
+       makes that impossible, they wrap instead of overflowing the card. */
+    flex-wrap: wrap;
+}
+/* EVERY button here becomes a real flex box. The shared .ent-btn in auth.css
+   is an inline-block, so the justify-content these rows had been setting did
+   nothing at all - each glyph sat hard against the left padding with its
+   label drifting off to the right, which is exactly why Print / CSV / the
+   gear never looked aligned to one another. */
+.ent-dash-actions .ent-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-decoration: none;
+}
+/* The ghost style this row always asked for and never had: .ent-dash-ghost
+   appears in the markup but was defined in NO stylesheet, so Print and CSV
+   fell back to plain .ent-btn and shouted at the same weight as the solid
+   Refresh above them. A quieter fill and a slightly smaller face make them
+   read as secondary actions - the exports are the afterthought, Refresh is
+   the point. */
+.ent-dash-actions-row .ent-dash-ghost {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--panel-bg-color);
+    color: var(--secondary-text-color);
+}
+.ent-dash-actions-row .ent-dash-ghost:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-color);
+    color: var(--primary-hover-color, #0284c7);
+}
+body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
+/* The gear is an ICON, not a label: square, and never grown to match the
+   worded buttons beside it. */
+.ent-dash-actions-row .ent-dash-iconbtn {
+    flex: 0 0 auto;
+    padding: 6px;
+}
+.ent-dash-clock {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.25;
+    font-size: 0.72rem;
+    color: var(--secondary-text-color);
+}
+.ent-dash-clock b { font-size: 0.86rem; color: var(--text-color); }
+/* Last-sync status dot + text. A tiny coloured dot whose pulse is off, so it
+   reads as a status light, not an alarm. */
+.ent-dash-sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--secondary-text-color);
+}
+.ent-dash-sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--secondary-text-color);
+    flex: none;
+}
+.ent-dash-sync.is-live { color: var(--success-color); }
+.ent-dash-sync.is-live .ent-dash-sync-dot { background: var(--success-color); }
+.ent-dash-sync.is-stale { color: #b9770e; }
+.ent-dash-sync.is-stale .ent-dash-sync-dot { background: #f39c12; }
+.ent-dash-sync.is-local { color: var(--primary-hover-color, #0284c7); }
+.ent-dash-sync.is-local .ent-dash-sync-dot { background: var(--primary-color, #0284c7); }
+/* Streak line under the hero. */
+.ent-dash-streak {
+    display: inline-block;
+    margin: 6px 0 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(243, 156, 18, 0.34);
+    background: rgba(243, 156, 18, 0.1);
+    color: #b9770e;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.ent-dash-streak b { color: #b9770e; }
+/* [hidden] is only the UA sheet's display:none - the author `display:
+   inline-block` above outranks it, so WITHOUT this restatement the pill
+   drew on the hero no matter what renderHero decided. Same guard the
+   .ent-dash-alert / .ent-queue-toggle below already carry. */
+.ent-dash-streak[hidden] { display: none; }
+.ent-dash-refresh { padding: 8px 14px; font-weight: 600; }
+.ent-dash-refresh[data-busy="1"] { opacity: 0.6; pointer-events: none; }
+
+/* Card-header polish, scoped to THIS page so the admin console and settings
+   keep their own look. A gradient title and a short accent underline read as
+   "designed" without changing a single id, class or layout the code relies on. */
+#dashMain .ent-card-head { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+#dashMain .ent-card-head h3 {
+    position: relative;
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--primary-color);
+}
+#dashMain .ent-card-head h3::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -11px;
+    width: 34px;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+}
+
+/* The gradient title above clips its background to the TEXT and makes the
+   glyphs transparent (-webkit-text-fill-color). A colour emoji (the 📅 on the
+   Follow-ups card) is not a glyph that can show a gradient, so it would
+   disappear. This opts the emoji back out: it drops the clip and the
+   transparent fill, keeps its own natural colour, and stays visible. The
+   words around it keep the gradient. */
+#dashMain .ent-card-head h3 .ent-h3-emoji {
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    -webkit-text-fill-color: initial;
+    font-style: normal;
+}
+
+/* ---------------------------- Team queue --------------------------- */
+/* Hero pill: "n waiting for review" - the fastest way to notice. */
+.ent-dash-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 6px 0 0;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(231, 76, 60, 0.34);
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    animation: entQueuePulse 2.4s ease-in-out infinite;
+}
+.ent-dash-alert:hover { background: rgba(231, 76, 60, 0.18); }
+.ent-dash-alert[hidden] { display: none; }
+@keyframes entQueuePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.13); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-dash-alert { animation: none; }
+}
+.ent-queue-head-side { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ent-queue-toggle {
+    padding: 5px 12px;
+    white-space: nowrap;
+    border-radius: 999px;
+    border: 1px solid rgba(2, 132, 199, 0.32);
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ent-queue-toggle:hover { background: var(--primary-color); color: #fff; }
+.ent-queue-toggle[hidden] { display: none; }
+.ent-queue-refresh {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.ent-queue-refresh:hover { color: var(--primary-color); border-color: var(--primary-color); }
+.ent-queue-refresh.is-busy { animation: entQueueSpin 0.7s linear infinite; }
+@keyframes entQueueSpin { to { transform: rotate(360deg); } }
+.ent-queue-alert {
+    margin: 0 0 4px;
+    padding: 9px 13px;
+    border-radius: 11px;
+    border: 1px solid rgba(243, 156, 18, 0.34);
+    background: rgba(243, 156, 18, 0.11);
+    color: var(--text-color);
+    font-size: 0.78rem;
+}
+.ent-queue-alert b { color: #b9770e; }
+/* "Finished by your team" - compact, counts first, one View button per row */
+.ent-fresh-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 8px 10px 8px 12px;
+    min-width: 0;
+    margin-bottom: 8px;
+    border: 1px solid rgba(39, 174, 96, 0.34);
+    border-left: 4px solid var(--success-color);
+    border-radius: 12px;
+    background: rgba(39, 174, 96, 0.07);
+}
+.ent-fresh-main { min-width: 0; display: flex; flex-direction: column; }
+.ent-fresh-main b {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-fresh-main small {
+    font-size: 0.7rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-fresh-view {
+    padding: 5px 11px;
+    white-space: nowrap;
+    border-radius: 9px;
+    border: 1px solid rgba(2, 132, 199, 0.3);
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-family: inherit;
+    font-size: 0.73rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ent-fresh-view:hover { background: var(--primary-color); color: #fff; }
+.ent-fresh-ok {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    border: 1px solid rgba(39, 174, 96, 0.4);
+    background: var(--bg-color);
+    color: var(--success-color);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ent-fresh-ok:hover { background: var(--success-color); color: #fff; }
+@media (max-width: 560px) {
+    .ent-fresh-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
+    .ent-fresh-main small { white-space: normal; }
+}
+
+/* Secretary view: grouped sections instead of tabs */
+.ent-queue-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 8px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-queue-section:first-child { margin-top: 0; }
+.ent-queue-section b {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: var(--text-color);
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 0 8px;
+}
+.ent-queue-subempty {
+    margin: 0 0 4px;
+    padding: 12px 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    font-size: 0.76rem;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+}
+.ent-queue-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 12px; }
+.ent-queue-tabs[hidden] { display: none; }
+.ent-queue-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.ent-queue-tabs button:hover { border-color: var(--primary-color); color: var(--text-color); }
+.ent-queue-tabs button.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+.ent-queue-tab-n {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-align: center;
+}
+.ent-queue-tabs button.active .ent-queue-tab-n { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.ent-queue { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---- "View all" · the button under the list --------------------------
+   Collapsed, the queue shows five rows. This button is what says there is
+   more, and it says how much - a button with no count leaves the user
+   guessing whether it is worth tapping. Expanded it becomes "Show fewer",
+   so the way back is always in the same place. */
+.ent-queue-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    margin-top: 2px;
+    padding: 11px 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    color: var(--primary-hover-color, #0284c7);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.ent-queue-more:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+.ent-queue-more:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+
+/* ---- Expanded: a bounded, scrolling box -------------------------------
+   Forty rows at full height would push the rest of the dashboard off the
+   screen, so once expanded the queue takes a fixed share of the viewport
+   and scrolls inside itself. The user still sees every patient; the page
+   below simply stays reachable.
+
+   Collapsed is deliberately left alone - five rows are short, and capping
+   them would add a second scrollbar for no reason. */
+.ent-queue.is-expanded {
+    max-height: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* Room for the focus ring of the last row before it is clipped. */
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+.ent-queue-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+}
+.ent-queue-row.is-saved { border-left-color: var(--success-color); }
+.ent-queue-row.is-mine { opacity: 0.78; }
+.ent-queue-av {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+.ent-queue-row.is-saved .ent-queue-av { background: rgba(39, 174, 96, 0.14); color: var(--success-color); }
+.ent-queue-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ent-queue-name {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-queue-meta, .ent-queue-by { font-size: 0.7rem; color: var(--secondary-text-color); }
+.ent-queue-flags { display: flex; }
+.ent-queue .ent-pill.wait {
+    background: rgba(243, 156, 18, 0.16);
+    color: #b9770e;
+    border: 1px solid rgba(243, 156, 18, 0.34);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.ent-queue-open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    border-radius: 9px;
+    border: 1px solid rgba(2, 132, 199, 0.3);
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ent-queue-open:hover { background: var(--primary-color); color: #fff; }
+.ent-queue-open:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+.ent-queue-foot { margin: 9px 0 0; }
+@media (max-width: 620px) {
+    .ent-queue-row { grid-template-columns: 34px minmax(0, 1fr); }
+    .ent-queue-flags, .ent-queue-open { grid-column: 1 / -1; }
+    .ent-queue-open { width: 100%; }
+}
+
+/* ---------------------------------------------------------------------
+   FOLLOW-UPS — "come back on this day" reminders (payload.followUpDate).
+   The badge reuses .ent-dash-alert but in a calmer amber so it reads as a
+   calendar nudge rather than the red "drafts waiting" alarm beside it.
+   --------------------------------------------------------------------- */
+.ent-dash-alert.is-followup {
+    border-color: rgba(243, 156, 18, 0.4);
+    background: rgba(243, 156, 18, 0.12);
+    color: #b9770e;
+    animation: none;
+}
+.ent-dash-alert.is-followup:hover { background: rgba(243, 156, 18, 0.2); }
+.ent-followup { display: flex; flex-direction: column; gap: 8px; }
+.ent-followup-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 9px 12px;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--secondary-text-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+}
+.ent-followup-row.is-overdue { border-left-color: var(--danger-color); }
+.ent-followup-row.is-today { border-left-color: var(--warning-color); }
+.ent-followup-row.is-soon { border-left-color: var(--primary-color); }
+.ent-followup-row.is-future { border-left-color: var(--success-color); }
+.ent-followup-date {
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+}
+.ent-followup-row.is-overdue .ent-followup-date { color: var(--danger-color); }
+.ent-followup-row.is-today .ent-followup-date { color: var(--warning-color); }
+.ent-followup-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ent-followup-name {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-followup-meta { font-size: 0.7rem; color: var(--secondary-text-color); }
+.ent-followup-state {
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    color: var(--secondary-text-color);
+}
+.ent-followup-row.is-overdue .ent-followup-state {
+    background: rgba(231, 76, 60, 0.14);
+    color: var(--danger-color);
+    border-color: rgba(231, 76, 60, 0.32);
+}
+.ent-followup-row.is-today .ent-followup-state {
+    background: rgba(243, 156, 18, 0.16);
+    color: #b9770e;
+    border-color: rgba(243, 156, 18, 0.34);
+}
+.ent-followup-row.is-soon .ent-followup-state {
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+    border-color: rgba(2, 132, 199, 0.3);
+}
+.ent-followup-row.is-future .ent-followup-state {
+    background: rgba(39, 174, 96, 0.14);
+    color: var(--success-color);
+    border-color: rgba(39, 174, 96, 0.32);
+}
+@media (max-width: 620px) {
+    .ent-followup-row { grid-template-columns: auto minmax(0, 1fr); }
+    .ent-followup-state { grid-column: 1 / -1; justify-self: start; }
+}
+
+.ent-dash-scope {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 7px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+    border: 1px solid var(--border-color);
+}
+.ent-dash-scope.role-secretary { background: rgba(243, 156, 18, 0.16); color: #b9770e; }
+.ent-dash-scope.role-admin { background: rgba(231, 76, 60, 0.14); color: var(--danger-color); }
+
+/* ------------------------------ Notices ---------------------------- */
+.ent-dash-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning-color);
+    background: var(--panel-bg-color);
+    font-size: 0.78rem;
+    color: var(--secondary-text-color);
+}
+.ent-dash-notice strong { color: var(--text-color); }
+.ent-dash-notice.is-bad { border-left-color: var(--danger-color); }
+.ent-dash-notice.is-info { border-left-color: var(--primary-color); }
+/* Used when the server returned rows that are not this account's. The notice
+   base already carries --warning-color on its left edge, which is exactly the
+   severity this is: not an error (nothing broke) but not fine either (a
+   privacy boundary did not hold where it should have). Left as its own rule
+   rather than reusing is-info so the meaning survives a future recolour. */
+.ent-dash-notice.is-warn { border-left-color: var(--warning-color); }
+.ent-dash-notice .ent-btn { margin-left: auto; }
+.ent-dash-notice[hidden] { display: none; }
+
+/* ====================================================================
+   NEW WORK BADGE · doctor / secretary dashboard
+   ---------------------------------------------------------------------
+   Sits above the queue card, which is below the fold on a phone and hidden
+   until the first load. Red because it is an alarm, not a statistic: it is
+   hidden entirely at zero, so when it IS on screen it always means work.
+
+   Deliberately not a plain number on a label. A red pill with a dot reads as
+   "something is waiting" from across the room, which is the only thing this
+   has to do on a screen a doctor glances at between patients.
+   ==================================================================== */
+.ent-dash-top {
+    margin-bottom: 12px;
+}
+.ent-newwork {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 13px 7px 11px;
+    border: 1px solid var(--danger-color);
+    border-radius: 999px;
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1;
+}
+.ent-newwork[hidden] { display: none; }
+/* A slow pulse, stopped dead for anyone who asked for less motion: the badge
+   is read peripherally, and a static red pill is easier to notice than one
+   already animating. */
+.ent-newwork-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger-color);
+    animation: ent-newwork-pulse 2s ease-in-out infinite;
+}
+@keyframes ent-newwork-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.45; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-newwork-dot { animation: none; }
+}
+.ent-newwork-n {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--danger-color);
+    color: #fff;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+/* An admin reply is a different kind of news from "a draft is waiting": it is
+   the only thing on this dashboard that requires the person to go somewhere
+   else and read words. It keeps the same red because it is the same urgency,
+   but the pill is darker so the two are distinguishable at a glance when both
+   are showing. */
+.ent-newwork.is-ticket .ent-newwork-n { background: #8b1a10; }
+.ent-newwork.is-ticket { background: rgba(139, 26, 16, 0.1); }
+.ent-dash-top { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* --------------------------- Quick actions ------------------------- */
+.ent-quick-grid {
+    display: grid;
+    /* TWO columns, deliberately, not auto-fit. auto-fit fitted three cards on
+       a laptop and left a lonely fourth on its own row, which read as a
+       mistake. Two by two is balanced at every width that matters, and the
+       cards below are sized to be comfortable at half the row. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* 8px, was 12px. Five cards in two columns means THREE rows, and the
+       original 12px gap multiplied into a lot of dead air between rows -
+       the block read as loose cards floating apart rather than one action
+       panel. 8px keeps the cards visually grouped (the 1px border + shadow
+       already separate neighbours) while staying above the 6px minimum
+       where two tap targets start to feel like one. */
+    gap: 8px;
+}
+@media (max-width: 560px) {
+    .ent-quick-grid { grid-template-columns: 1fr; }
+}
+.ent-quick {
+    /* Centered COLUMN: the icon sits on top and the text sits under it, both
+       horizontally centered, so every card in the grid reads as one balanced
+       tile instead of a left-aligned strip. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    text-align: center;
+    /* Taller than the original 13px/14px. A quick action you tap on a phone
+       with a busy clinic in front of you should be a comfortable target, not
+       a strip you have to aim at. */
+    padding: 20px 18px;
+    min-height: 78px;
+    border-radius: 13px;
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    background: linear-gradient(150deg, var(--panel-bg-color) 0%, var(--bg-color) 100%);
+    color: var(--text-color);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: var(--input-shadow);
+    min-width: 0;
+}
+.ent-quick:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary-color);
+}
+.ent-quick:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+.ent-quick-icon {
+    font-size: 1.55rem;
+    line-height: 1;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--primary-light);
+}
+/* The cards now hold monochrome stroke SVGs instead of emoji (the emoji
+   brought their own bitmaps, which read as "some colour blob" against
+   these tinted badges - you could not tell WHICH icon it was). The SVG
+   inherits the badge tint, so every icon is drawn in its card's own hue
+   and stays legible in both light and dark themes. */
+.ent-quick-icon svg {
+    width: 1.35rem;
+    height: 1.35rem;
+    display: block;
+}
+.ent-quick-text { display: flex; flex-direction: column; min-width: 0; }
+.ent-quick-label { font-size: 0.92rem; font-weight: 700; color: var(--primary-hover-color); }
+.ent-quick-sub {
+    font-size: 0.68rem;
+    color: var(--secondary-text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-quick-cf4 { border-top-color: var(--success-color); }
+.ent-quick-cf4 .ent-quick-icon { background: rgba(39, 174, 96, 0.14); }
+.ent-quick-cf4 .ent-quick-label { color: var(--success-color); }
+
+/* Each card keeps its own accent hue - the top rule already says "this
+   card starts a different thing", the icon tint repeats it where the eye
+   actually lands. CF4's rules above predate this block and are simply the
+   same pattern in the success colour. */
+.ent-quick .ent-quick-icon { color: var(--primary-hover-color); }
+.ent-quick[data-report-type="nasal"] { border-top-color: #0284c7; }
+.ent-quick[data-report-type="nasal"] .ent-quick-icon { background: rgba(2, 132, 199, 0.13); color: #0284c7; }
+.ent-quick[data-report-type="laryngeal"] { border-top-color: #7c3aed; }
+.ent-quick[data-report-type="laryngeal"] .ent-quick-icon { background: rgba(124, 58, 237, 0.13); color: #7c3aed; }
+.ent-quick-ticket { border-top-color: #d97706; }
+.ent-quick-ticket .ent-quick-icon { background: rgba(217, 119, 6, 0.14); color: #d97706; }
+.ent-quick-viewall { border-top-color: #4f46e5; }
+.ent-quick-viewall .ent-quick-icon { background: rgba(79, 70, 229, 0.13); color: #4f46e5; }
+/* A small motion reward: the magnifier tips as the card is hovered. Off
+   under prefers-reduced-motion, like every other animation here. */
+.ent-quick[data-report-type="laryngeal"]:hover .ent-quick-icon svg {
+    transition: transform 0.25s ease;
+    transform: rotate(-8deg);
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-quick[data-report-type="laryngeal"]:hover .ent-quick-icon svg { transition: none; transform: none; }
+}
+
+
+/* --------------------------- Count tiles --------------------------- */
+.ent-dash-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
+    gap: 12px;
+}
+.ent-tile {
+    position: relative;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 13px;
+    padding: 11px 13px 12px;
+    background: var(--bg-color);
+    text-align: left;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ent-tile:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hover); }
+.ent-tile.ent-tile-week { border-left-color: #6366f1; }
+.ent-tile.ent-tile-month { border-left-color: var(--success-color); }
+.ent-tile.ent-tile-year { border-left-color: var(--secondary-color); }
+/* The icon + label row at the top of each tile. */
+.ent-tile-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ent-tile-icon {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    background: var(--primary-light);
+}
+.ent-tile.ent-tile-week .ent-tile-icon { background: rgba(99, 102, 241, 0.14); }
+.ent-tile.ent-tile-month .ent-tile-icon { background: rgba(39, 174, 96, 0.14); }
+.ent-tile.ent-tile-year .ent-tile-icon { background: rgba(100, 116, 139, 0.16); }
+.ent-tile-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ent-tile-n {
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--primary-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-tile-week .ent-tile-n { color: #6366f1; }
+.ent-tile-month .ent-tile-n { color: var(--success-color); }
+.ent-tile-year .ent-tile-n { color: var(--secondary-color); }
+.ent-tile-n small { font-size: 0.68rem; font-weight: 600; color: var(--secondary-text-color); margin-left: 5px; }
+/* The per-type split inside each tile: Endoscopy (nasal + laryngeal) vs CF4,
+   so the mix is visible without opening the Report types card. */
+.ent-tile-sub {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    letter-spacing: 0.01em;
+    margin-top: 2px;
+}
+/* Week-over-week trend chip on the This-Week tile. */
+.ent-trend {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    color: var(--secondary-text-color);
+}
+.ent-trend.is-up {
+    background: rgba(39, 174, 96, 0.14);
+    color: var(--success-color);
+    border-color: rgba(39, 174, 96, 0.32);
+}
+.ent-trend.is-down {
+    background: rgba(231, 76, 60, 0.12);
+    color: var(--danger-color);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+.ent-trend.is-flat { opacity: 0.8; }
+
+/* ------------------------- My secretaries -------------------------- */
+.ent-dash-team { display: flex; flex-direction: column; gap: 8px; }
+.ent-team-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+}
+.ent-team-avatar {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.76rem;
+    font-weight: 800;
+    background: rgba(243, 156, 18, 0.18);
+    color: #b9770e;
+}
+.ent-team-main { display: flex; flex-direction: column; min-width: 0; }
+.ent-team-name { font-size: 0.88rem; font-weight: 700; color: var(--text-color); }
+.ent-team-meta { font-size: 0.68rem; color: var(--secondary-text-color); }
+.ent-team-flag {
+    margin-left: auto;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: rgba(231, 76, 60, 0.14);
+    color: var(--danger-color);
+}
+.ent-team-empty { margin: 0; font-size: 0.8rem; }
+
+/* ---------------------------- Report mix ---------------------------
+   One card per report type: a tinted icon badge in the type's own hue
+   (the same sky / indigo / green as its activity chart), the name, the
+   count with its share of the month, then the bar. The rows used to be
+   a bare label-and-number over a thin rule - as three small cards the
+   numbers read like the table they are. */
+.ent-mix { display: flex; flex-direction: column; gap: 8px; }
+.ent-mix-item {
+    padding: 9px 11px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    /* The bar fills from the bottom edge: a flat pill with 4px of track
+       showing on all sides reads as a progress meter that stopped short;
+       anchored, the fill IS the item's width. */
+    position: relative;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+/* Hover lights the item in its OWN type hue (--ent-hue / --ent-tint are
+   set inline by renderMix) - the same colour the bar, the icon badge and
+   the matching activity chart already wear, so the row answers "which
+   type is this?" in colour before the label is read. */
+.ent-mix-item:hover {
+    border-color: var(--ent-hue);
+    background: var(--ent-tint);
+}
+.ent-mix-head { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.ent-mix-ic {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1;
+}
+.ent-mix-label {
+    min-width: 0;
+    font-size: 0.76rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+.ent-mix-val { margin-left: auto; display: flex; align-items: baseline; gap: 6px; }
+.ent-mix-val b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* The share badge wears the type's own hue (--ent-tint / --ent-hue from
+   the item) instead of anonymous grey - same pill shape, but it now
+   belongs to the row's colour story. */
+.ent-mix-val i {
+    font-style: normal;
+    font-size: 0.64rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--ent-tint, rgba(100, 116, 139, 0.14));
+    color: var(--ent-hue, var(--secondary-text-color));
+    font-variant-numeric: tabular-nums;
+}
+.ent-mix-bar { height: 9px; border-radius: 999px; background: rgba(100, 116, 139, 0.18); overflow: hidden; }
+.ent-mix-bar > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    transition: width 0.45s ease;
+    /* Same top-lit fade the chart bars use - the mix bars and the
+       activity charts are one visual family now. */
+    background-image: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.08));
+}
+/* Month's shape at a glance: one proportion bar above the three rows.
+   flex-grow is set inline per type (its raw count), so the segment
+   widths ARE the shares - no JS rounding, no gaps that would break the
+   proportions. A zero-count type is dropped in JS, so no empty slice. */
+.ent-mix-summary {
+    display: flex;
+    gap: 3px;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+.ent-mix-summary-seg {
+    min-width: 6px;
+    border-radius: 999px;
+    background-image: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.08));
+    transition: flex 0.45s ease;
+}
+.ent-mix-note { font-size: 0.68rem; color: var(--secondary-text-color); margin-top: 10px; }
+
+/* --------------------------- Recent list --------------------------- */
+/* LATEST PATIENTS, REDESIGNED - one confusion drove this: every row showed
+   TWO days (the visit day under the name, the save stamp on the right) with
+   nothing saying which was which. Now the row has ONE hero timestamp - the
+   ENTRY stamp on the right ("Oct 11, 2026 / 3:42 PM · 2 h ago") - while the
+   visit day is a dim "Visit ..." sub-line that can never be mistaken for it.
+   Layout: avatar / main (name + visit sub-line + entered-by) / hospital chip
+   / entry card / count. The avatar wears the report-type hue (same sky /
+   indigo / green the queue rows and mix chart use) so type is one glance. */
+.ent-recent { display: flex; flex-direction: column; gap: 8px; }
+.ent-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    min-width: 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.ent-recent-row:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 38%, var(--border-color));
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.10);
+    transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-recent-row:hover { transform: none; box-shadow: none; }
+}
+.ent-recent-dot { display: none; }
+.ent-recent-av {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+.ent-recent-av.is-nasal     { background: rgba(14, 165, 233, 0.15);  color: #0284c7; border-color: rgba(14, 165, 233, 0.32); }
+.ent-recent-av.is-laryngeal { background: rgba(99, 102, 241, 0.15);  color: #4f46e5; border-color: rgba(99, 102, 241, 0.32); }
+.ent-recent-av.is-cf4       { background: rgba(39, 174, 96, 0.15);   color: #1e8449; border-color: rgba(39, 174, 96, 0.32); }
+.ent-recent-av.is-other     { background: rgba(100, 116, 139, 0.16); color: var(--secondary-text-color); border-color: rgba(100, 116, 139, 0.3); }
+body.dark-mode .ent-recent-av.is-nasal     { color: #7dd3fc; }
+body.dark-mode .ent-recent-av.is-laryngeal { color: #a5b4fc; }
+body.dark-mode .ent-recent-av.is-cf4       { color: #6ee7a8; }
+.ent-recent-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.ent-recent-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* The VISIT day: deliberately the dimmest line on the row, so it never
+   competes with the ENTRY card on the right. */
+.ent-recent-meta { font-size: 0.66rem; color: var(--secondary-text-color); opacity: 0.85; }
+.ent-recent-by,
+.ent-clinic-by { font-size: 0.66rem; color: var(--secondary-text-color); }
+/* The hero: the moment the record was ENTERED. Date on line one, clock +
+   relative age on line two, boxed like a tiny calendar card so the eye
+   lands here first. */
+.ent-recent-entry {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 5px 10px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 30%, var(--border-color));
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--panel-bg-color) 100%);
+    text-align: right;
+    white-space: nowrap;
+}
+.ent-recent-entry-date { font-size: 0.72rem; font-weight: 800; color: var(--text-color); letter-spacing: -0.01em; }
+.ent-recent-entry-time { font-size: 0.64rem; color: var(--secondary-text-color); font-weight: 600; }
+/* Tiny eyebrow above the date so the card literally says what it is:
+   no more guessing which of the two dates is the entry time. */
+.ent-recent-entry-label {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--primary-hover-color, #0284c7);
+}
+.ent-recent-count {
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+}
+.ent-recent-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin: 0 0 9px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+}
+.ent-recent-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.ent-recent-legend i,
+.ent-legend-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+.ent-recent-legend-dim { font-weight: 400; margin-left: auto; opacity: 0.9; }
+/* ---------------------------- hospital chip -------------------------- */
+/* Which BUILDING the patient was seen at - RMCI (Rever) or CUMC (Capitol).
+   Same sky-blue / indigo the DB Records and drafts badges use, so the tag
+   reads as the same fact everywhere it appears. Drawn only when the record
+   carries payload.site at all: an untagged record says nothing rather than
+   saying "unknown". */
+.ent-site-chip,
+.ent-clinic-site .ent-site-chip {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+.ent-site-chip.is-rmci {
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(2, 132, 199, 0.30);
+    color: #0369a1;
+}
+.ent-site-chip.is-cumc {
+    background: rgba(124, 58, 237, 0.16);
+    border-color: rgba(109, 40, 217, 0.30);
+    color: #6d28d9;
+}
+body.dark-mode .ent-site-chip.is-rmci { color: #7dd3fc; background: rgba(14, 165, 233, 0.26); border-color: rgba(125, 211, 252, 0.34); }
+body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58, 237, 0.26); border-color: rgba(196, 181, 253, 0.34); }
+/* The chip never squeezes the name it sits beside: it is a tag, so it may
+   wrap onto its own line rather than truncate the patient. */
+.ent-recent-site,
+.ent-clinic-site { display: flex; align-items: center; flex: 0 0 auto; }
+/* ---------------------- per-clinic latest patients ---------------------- */
+/* Admin view: one entry per clinic, each headed "clinic name" with the
+   newest patient, last save time, and who saved it (doctor / secretary). */
+.ent-recent-group { display: flex; flex-direction: column; gap: 14px; }
+.ent-recent-group .ent-recent { margin-top: 7px; }
+.ent-clinic-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 10px;
+    margin: 0 0 6px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--panel-bg-color) 100%);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--primary-hover-color, #0284c7);
+}
+.ent-clinic-head .ent-clinic-count {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 1px 7px;
+}
+.ent-clinic-head .ent-clinic-makers {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    font-size: 0.6rem;
+    color: var(--secondary-text-color);
+}
+.ent-clinic-head .ent-clinic-makers b {
+    color: var(--text-color);
+    font-weight: 700;
+    font-size: 0.66rem;
+}
+.ent-clinic-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    min-width: 0;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.ent-clinic-row:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 38%, var(--border-color));
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.10);
+    transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-clinic-row:hover { transform: none; box-shadow: none; }
+}
+.ent-clinic-row .ent-clinic-dot { display: none; }
+.ent-clinic-row .ent-clinic-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.ent-clinic-row .ent-clinic-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-clinic-row .ent-clinic-pts {
+    font-size: 0.66rem;
+    color: var(--secondary-text-color);
+    opacity: 0.85;
+}
+.ent-clinic-row .ent-clinic-when,
+.ent-clinic-row .ent-clinic-who { display: none; }
+/* ---- end per-clinic ---- */
+
+
+
+/* ------------------------------ Activity ------------------------------ */
+.dash-activity-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -ms-overflow-style: thin;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--panel-bg-color);
+    padding: 8px 4px 16px;
+    pointer-events: auto;
+}
+.dash-activity-scroll::-webkit-scrollbar { height: 10px; }
+.dash-activity-scroll::-webkit-scrollbar-track { background: var(--panel-bg-color); }
+.dash-activity-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 999px;
+}
+.dash-activity-scroll::-webkit-scrollbar-thumb:hover { background: var(--secondary-text-color); }
+.dash-activity-scroll .ent-card-grid,
+.dash-activity-scroll .ent-card {
+    flex-shrink: 0;
+}
+
+/* ------------------------------ Activity ------------------------------ */
+.ent-activity-plot {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+.ent-activity-selector {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.ent-activity-selector label {
+    font-size: 0.72rem;
+    color: var(--secondary-text-color);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ent-activity-selector select {
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+}
+.ent-activity-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.ent-activity-selector select option { font-size: 0.82rem; }
+/* In the Activity Growth card head the picker takes the hint's usual slot
+   on the right (.ent-card-head is a flex row - auth.css). */
+.ent-card-head .ent-activity-selector { margin-left: auto; }
+
+/* Activity Growth cloud counters: one chip per report type over the same
+   month the chart draws, in the type's own hue (the same sky / indigo /
+   green as the split charts and the Report types rows). They are the
+   chart's legend - but they no longer carry the month alone: the summary
+   on their left is the headline, the chips are its breakdown. */
+.ent-growth-stats { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* The month's headline, left of the chips: one big number plus the two
+   facts that give it a scale. Three chips of equal weight made the reader
+   add them up by hand; here the total IS the number and the chips are the
+   parts. A single subtle panel (not a chip) keeps it visually distinct
+   from the three coloured chips beside it. */
+.ent-growth-total {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+    margin-right: 4px;
+}
+.ent-growth-total-n {
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-color);
+}
+.ent-growth-total-meta { display: flex; flex-direction: column; gap: 2px; }
+.ent-growth-total-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary-text-color);
+}
+.ent-growth-total-sub {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-growth-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.74rem;
+    font-weight: 600;
+}
+.ent-growth-stat b {
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.ent-growth-cloud { width: 18px; height: 18px; flex: 0 0 auto; }
+.ent-growth-stat.is-nasal     { background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.4); color: #0284c7; }
+.ent-growth-stat.is-laryngeal { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #6366f1; }
+.ent-growth-stat.is-cf4       { background: rgba(39, 174, 96, 0.15);  border-color: rgba(39, 174, 96, 0.4);  color: #1e8449; }
+
+/* One row per period: the ENT growth charts sit side-by-side as a single
+   compact row, not a tall stacked column. */
+.ent-chart {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+}
+.ent-chart-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 6px;
+    min-width: 32px;
+    border-radius: 8px;
+    background: var(--panel-bg-color);
+    transition: background 0.15s ease;
+    /* Split charts get the same full-width treatment as the month grid:
+       seven days flex to fill their narrow card instead of clustering
+       centred with dead space at both ends. max-width keeps the columns
+       from becoming billboards on a wide monitor. */
+    flex: 1 1 32px;
+    max-width: 64px;
+}
+.ent-chart-col:hover { background: var(--border-color); }
+/* Today's column in the stacked Activity Growth chart stays lit so it
+   reads as "so far today" without recolouring the three type hues. */
+.ent-chart-col.is-today { background: var(--primary-light); }
+.ent-chart-val {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-color);
+    min-width: 18px;
+    text-align: center;
+}
+.ent-chart-stack {
+    width: 100%;
+    max-width: 46px;
+    border-radius: 6px;
+    background: var(--primary-light);
+    overflow: hidden;
+}
+.ent-chart-seg {
+    display: block;
+    border-radius: 6px;
+    transition: height 0.35s ease;
+    /* A gentle top-lit fade, not a flat fill: the bar keeps its exact
+       type hue (inline from JS) but gains a sense of light from above,
+       the way a physical column reads. Same recipe for the single-hue
+       split charts and each segment of the stacked month chart. */
+    background-image: linear-gradient(to bottom,
+        rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.06));
+}
+.ent-chart-x {
+    font-size: 0.6rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+}
+
+/* The Activity Growth card draws the WHOLE selected month (28..31
+   columns), so it must not wrap: one narrow, horizontally scrollable row
+   keeps every day on the same baseline instead of breaking into rows that
+   look like separate weeks. Day numbers stay under each column. */
+.ent-chart-month {
+    /* SPACE-BETWEEN is the fix for the dead space on the right: 31 fixed
+       20px columns only reach ~640px, so on a wider card they clustered
+       left and stranded the rest. Now every day keeps its 20px MINIMUM
+       and the leftover room is shared as gaps - the columns run from the
+       card's left padding to its right padding with no scroll and no
+       orphan space. The gap is capped so an over-wide monitor does not
+       shred the chart into far-flung slivers. */
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 0 4px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+.ent-chart-month .ent-chart-col { min-width: 20px; flex: 1 1 20px; max-width: 52px; padding: 4px 2px; }
+.ent-chart-month .ent-chart-stack { max-width: 26px; }
+.ent-chart-month .ent-chart-val { font-size: 0.62rem; min-width: 0; }
+/* Day numbers (01..31) under every column - big and dark enough to read
+   at a glance, in the same weight as the counts above the bars. */
+.ent-chart-month .ent-chart-x {
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+/* GRID BANDS. One faint rule per DAY, not a generic pixel grid: 100/31
+   = 3.2258% matches the month's 31 equal columns, so each band lands on
+   one day's slice of the chart whatever width the card is. They are
+   painted on .ent-chart-month's own background - the element itself
+   scrolls with the columns, so the rules hold their days. The columns
+   stay transparent or the bands vanish behind them. */
+.ent-chart-month {
+    background-image: repeating-linear-gradient(to bottom,
+        transparent 0 calc(3.2258% - 1px),
+        var(--border-color) calc(3.2258% - 1px) 3.2258%);
+}
+/* The empty label sits where the columns end - it is injected right after
+   the chart, so it must not inherit the grid lines or indent with the
+   scrolled content. */
+.ent-chart-empty {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    background: none;
+}
+/* WEEKEND COLUMNS. Sat/Sun tinted lighter than a weekday column: the
+   clinic's rhythm (busy weekdays, quiet weekends) becomes the SHAPE of
+   the chart instead of a pattern the reader has to decode from day
+   numbers. Hover keeps the shared tint so the column still reads as
+   interactive. */
+.ent-chart-month .ent-chart-col.is-weekend { background: rgba(148, 163, 184, 0.12); }
+.ent-chart-month .ent-chart-col.is-weekend:hover { background: rgba(148, 163, 184, 0.26); }
+/* Weekday label under each day number (Mon, Tue, ...). Small, muted and
+   three letters so 31 of them never compete with the counts above; the
+   rules keep it from crowding the number. Today's column says "Today"
+   instead - the one day worth naming outright. */
+.ent-chart-dow {
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    line-height: 1.2;
+}
+.ent-chart-dow.is-today-dow {
+    font-size: 0.56rem;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+/* Today's column stays lit AND gains a solid cap line across its top -
+   with 31 near-identical bars, the accent is what makes "here, now"
+   findable without hunting the stack colours for a hue shift. */
+.ent-chart-month .ent-chart-col.is-today {
+    background: var(--primary-light);
+    box-shadow: inset 0 2px 0 0 var(--primary-color);
+}
+.ent-chart-month .ent-chart-col.is-today .ent-chart-x,
+.ent-chart-month .ent-chart-col.is-today .ent-chart-val { color: var(--primary-color); }
+
+@media (max-width: 720px) {
+    .ent-activity-plot { gap: 10px; }
+    .ent-activity-selector { justify-content: flex-start; }
+    .ent-chart { gap: 6px; }
+    .ent-chart-col { min-width: 24px; padding: 3px 4px; }
+    .ent-chart-stack { max-width: 30px; }
+    /* The headline shrinks but never wraps: on a phone the summary stays
+       one line so the chips fall to the row below instead of the panel
+       breaking across two lines. */
+    .ent-growth-total { padding: 6px 11px 6px 10px; gap: 8px; }
+    .ent-growth-total-n { font-size: 1.5rem; }
+    .ent-growth-total-sub { font-size: 0.7rem; }
+}
+
+/* Icon-only header button (the Settings gear): the same pill as Refresh
+   and Export, just square - so it reads as part of the same button row
+   without spending width on a label nobody needs to see twice. The box
+   and colour come from .ent-dash-actions above; only the square shape and
+   the glyph size belong here. */
+.ent-dash-iconbtn svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+/* --------------------------- Admin gate ---------------------------- */
+.ent-dash-gate { max-width: 540px; margin: 40px auto; text-align: center; }
+.ent-dash-gate .ent-card { padding: 26px 22px 22px; }
+.ent-dash-gate-icon { font-size: 2.4rem; }
+.ent-dash-gate h2 { margin: 8px 0 6px; font-size: 1.2rem; color: var(--primary-color); }
+.ent-dash-gate p { font-size: 0.85rem; color: var(--secondary-text-color); margin: 0 0 18px; }
+.ent-dash-gate-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------------------------- Responsive --------------------------- */
+@media (max-width: 860px) {
+    /* The side card is a fixed 248px column beside the greeting. Below this
+       width that column starves the greeting instead of supporting it, so
+       the hero becomes one column and the card drops underneath it. */
+    .ent-dash-hero { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+    .ent-dash-main { padding: 12px 12px 50px; }
+    .ent-dash-hero { align-items: flex-start; padding: 18px 16px; border-radius: 16px; }
+    .ent-dash-hero h2 { font-size: 1.18rem; }
+    /* The avatar was sized for a desktop hero beside a wide greeting; a
+       smaller one keeps the identity row from eating the whole width. */
+    .ent-dash-avatar { width: 44px; height: 44px; font-size: 1rem; }
+    .ent-dash-hero-id { gap: 11px; }
+    .ent-quick-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 9px; }
+    .ent-quick { padding: 11px 10px; }
+    .ent-quick-icon { width: 34px; height: 34px; font-size: 1.3rem; }
+    .ent-quick-label { font-size: 0.82rem; }
+    .ent-quick-sub { display: none; }
+    .ent-dash-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ent-tile-n { font-size: 1.7rem; }
+}
+
+@media (max-width: 420px) {
+    .ent-dash-tiles { grid-template-columns: 1fr; }
+    .ent-quick-grid { grid-template-columns: 1fr; }
+}
+
+
+
+/* =====================================================================
+
+
+/* =====================================================================
+   "Report a problem" POP-UP   (ticketForm.js, opened from index.html)
+
+   Three decisions worth stating, because they are what makes it read as
+   a dialog rather than a form that was shoved into a box:
+
+   1. SCOPE is asked FIRST and in the biggest type in the dialog. It is the
+      only question whose answer changes what happens next - it decides
+      which person reads the ticket. Subject and description are free text
+      and can be written at any size, so they do not get to lead.
+   2. The four choices are 2x2 tiles with an icon, a name and a plain
+      hint. One tile = one tap, and the hint says what the thing IS, so
+      someone who has never met the word "laryngeal" can still pick.
+   3. "Your tickets" sits BELOW the form, separated by a rule, not mixed
+      into it. Filing and reading are different jobs and the eye should be
+      told which one it is doing.
+   ===================================================================== */
+.ent-modal-card-wide { max-width: 640px; }
+@media (max-width: 660px) { .ent-modal-card-wide { max-width: 100%; } }
+
+/* The dialog is a fixed-height flex column: header pinned, one scrolling
+   region below it.
+   This rule used to be `overflow: hidden`, which quietly overrode the
+   base .ent-modal-card `overflow: auto` - so the Send button and the whole
+   ticket list were unreachable with no visible scrollbar to explain why.
+   Nothing in the page scrolled and nothing looked scrollable. */
+.ent-tf-card {
+    position: relative;          /* anchor for the one-ticket pop-up below */
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    /* The page body is `text-align: center` (index.css), which is right for
+       the hero and the old dashboard, but wrong inside this dialog. Every
+       line here is prose the reader scans left to right - the ticket list,
+       the "What you reported" read-back, the thread - so the dialog resets
+       the inherited centring once, for everything inside it. Without this,
+       anything that did not set its own alignment (the scope tiles, the
+       thread messages, the ticket title) came out centred. */
+    text-align: left;
+    /* Bounded by the viewport, with a little air so the card never touches
+       the edge. dvh matters on a phone, where the toolbar shrinks and
+       shrinks the visible area after the page has loaded. */
+    max-height: calc(100vh - 36px);
+    max-height: calc(100dvh - 36px);
+    overflow: hidden;
+}
+
+/* The one region that scrolls. min-height:0 is REQUIRED: a flex item's
+   default min-height is auto, which lets it grow past the container instead
+   of scrolling - which is exactly the bug this whole block exists to fix. */
+.ent-tf-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;   /* stop it dragging the dashboard behind it */
+}
+
+/* ------------------------------ header ---------------------------- */
+/* Pinned: it must not scroll away, or the close X leaves reach. */
+.ent-tf-head { flex: 0 0 auto; }
+.ent-tf-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding: 18px 20px 16px;
+    background: linear-gradient(180deg,
+        rgba(231, 76, 60, 0.10), rgba(231, 76, 60, 0));
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tf-head-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    display: grid; place-items: center;
+    background: rgba(231, 76, 60, 0.15);
+    font-size: 1.15rem; line-height: 1;
+    color: var(--danger-color);
+}
+.ent-tf-head-icon svg { width: 20px; height: 20px; }
+.ent-tf-head h3 { margin: 0 0 2px; font-size: 1.02rem; color: var(--text-color); }
+.ent-tf-head p { margin: 0; font-size: 0.78rem; color: var(--secondary-text-color); line-height: 1.4; }
+
+.ent-tf-x {
+    width: 30px; height: 30px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    border: 1px solid transparent; border-radius: 9px;
+    background: none; color: var(--secondary-text-color);
+    font-size: 1.3rem; line-height: 1; cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.ent-tf-x:hover { background: var(--border-color); color: var(--text-color); }
+
+/* ------------------------------ blocks ---------------------------- */
+.ent-tf-card form { padding: 4px 20px 0; }
+
+.ent-tf-block {
+    border: 0; padding: 16px 0 4px; margin: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tf-block:last-of-type { border-bottom: 0; }
+.ent-tf-block > legend {
+    padding: 0; margin: 0 0 11px;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+
+/* --------------------------- scope tiles -------------------------- */
+.ent-tf-scopes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+@media (max-width: 520px) { .ent-tf-scopes { grid-template-columns: 1fr; } }
+
+.ent-tf-scope {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 12px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.ent-tf-scope:hover { border-color: var(--danger-color); }
+/* The chosen tile has to be obvious from across the room, so it gets a
+   border, a tint AND a shadow - never the tick alone. */
+.ent-tf-scope:has(input:checked) {
+    border-color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.08);
+    box-shadow: inset 0 0 0 1px var(--danger-color);
+}
+.ent-tf-scope input { position: absolute; opacity: 0; pointer-events: none; }
+.ent-tf-scope-icon {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: grid; place-items: center;
+    background: rgba(127, 140, 160, 0.14);
+    font-size: 1rem; line-height: 1;
+}
+/* Stroke SVGs replace the emoji here too - and unlike the emoji, each one
+   is tinted to the scope it stands for (the same three hues the header
+   chips use), so a grey tile still says "nasal" vs "laryngeal" at a
+   glance instead of two undifferentiated grey glyphs. */
+.ent-tf-scope-icon svg { width: 17px; height: 17px; }
+.ent-tf-scope-icon { color: var(--secondary-text-color); }
+.ent-tf-scope:nth-child(1) .ent-tf-scope-icon { color: #0284c7; }
+.ent-tf-scope:nth-child(2) .ent-tf-scope-icon { color: #7c3aed; }
+.ent-tf-scope:nth-child(3) .ent-tf-scope-icon { color: var(--success-color); }
+.ent-tf-scope:nth-child(4) .ent-tf-scope-icon { color: var(--secondary-text-color); }
+.ent-tf-scope:has(input:checked) .ent-tf-scope-icon { background: rgba(231, 76, 60, 0.18); }
+.ent-tf-scope-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ent-tf-scope-text b { font-size: 0.87rem; line-height: 1.25; }
+.ent-tf-scope-text small {
+    font-size: 0.71rem; line-height: 1.3; color: var(--secondary-text-color);
+}
+
+/* Focus must still be visible now that the radio is invisible. */
+.ent-tf-scope:has(input:focus-visible) {
+    outline: 3px solid var(--primary-color); outline-offset: 2px;
+}
+
+/* ------------------------------ fields ---------------------------- */
+.ent-tf-card .ent-field { margin-bottom: 12px; }
+.ent-tf-card .ent-field > label {
+    display: block; margin: 0 0 5px;
+    font-size: 0.73rem; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-tf-card input[type="text"],
+.ent-tf-card select,
+.ent-tf-card textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit; font-size: 0.9rem; line-height: 1.45;
+}
+.ent-tf-card textarea { resize: vertical; min-height: 78px; }
+.ent-tf-card input[type="text"]:focus,
+.ent-tf-card select:focus,
+.ent-tf-card textarea:focus {
+    outline: none; border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+}
+.ent-tf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+@media (max-width: 520px) { .ent-tf-row { grid-template-columns: 1fr; gap: 0; } }
+
+/* ------------------------------- send ----------------------------- */
+.ent-tf-notice {
+    display: none; margin: 0 20px; padding: 10px 12px;
+    border-radius: 10px; border-left: 4px solid var(--border-color);
+    background: var(--bg-color); font-size: 0.84rem;
+}
+.ent-tf-notice.show { display: block; }
+.ent-tf-notice.is-bad { border-left-color: var(--danger-color); color: var(--danger-color); }
+.ent-tf-notice.is-ok  { border-left-color: #1e8449; color: #1e8449; }
+
+.ent-tf-send { padding: 4px 20px 20px; }
+.ent-tf-send .ent-btn { width: 100%; padding: 11px 16px; font-size: 0.92rem; }
+
+/* --------------------------- your tickets ------------------------- */
+
+  /* ------------------------ tabs: list or report ------------------------
+     This dialog used to be one long column with "Your tickets" at the very
+     bottom, under four scope tiles, three fields and the send button. The
+     tabs put the two jobs side by side and, more to the point, make the LIST
+     the thing that opens. */
+  .ent-tf-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--panel-bg-color);
+      flex: 0 0 auto;
+  }
+  .ent-tf-tab {
+      appearance: none;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      padding: 11px 14px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+  }
+  .ent-tf-tab:hover { color: var(--text-color); }
+  .ent-tf-tab.is-active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+  }
+  .ent-tf-tab:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -2px;
+      border-radius: 6px 6px 0 0;
+  }
+  .ent-tf-tabcount {
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: var(--primary-color);
+      color: #fff;
+      border-radius: 999px;
+      padding: 1px 7px;
+      line-height: 1.5;
+  }
+  .ent-tf-pane { min-height: 0; }
+  /* The heading is now the tab label itself, so the duplicate is hidden
+     rather than left on screen as a second, smaller heading. */
+  .ent-tf-sr {
+      position: absolute; width: 1px; height: 1px;
+      margin: -1px; padding: 0; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ------------------------- a reply is waiting -------------------------- */
+  .ent-ticket.is-unread {
+      border-color: var(--primary-color);
+      background: rgba(52, 152, 219, 0.07);
+  }
+  .ent-ticket.is-unread .ent-ticket-row strong { color: var(--primary-color); }
+  .ent-ticket-pip {
+      flex: 0 0 auto;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--primary-color);
+  }
+  .ent-ticket-flag {
+      flex: 0 0 auto;
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--primary-color);
+      border-radius: 999px;
+      padding: 1px 7px;
+      white-space: nowrap;
+  }
+  .ent-ticket-meta b { color: var(--primary-color); font-weight: 600; }
+
+  /* REMOVED. The bell button (#tfBell / #tfBellCount) was removed from index.html on
+     request: it had no click handler and so did nothing. Its whole style block -
+     .ent-bell, .ent-bell-icon, .ent-bell-count and the hover / focus / has-unread
+     states - went with it rather than being left behind as dead rules. */
+.ent-tf-mine {
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+.ent-tf-mine h4 {
+    margin: 0 0 10px;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-tf-list { display: flex; flex-direction: column; gap: 7px; }
+.ent-tf-empty {
+    margin: 0; padding: 16px; text-align: center;
+    font-size: 0.83rem; color: var(--secondary-text-color);
+}
+
+/* =====================================================================
+   TICKET ROWS  �  .ent-ticket
+   ---------------------------------------------------------------------
+   These were flat outlined boxes. Every row carried the same weight, so
+   the list read as a wall of identical rectangles, and the STATUS - the
+   only thing that decides whether you need to act today - was a thin
+   outlined word competing with three lines of grey metadata.
+
+   What changed, and why:
+
+     � a 4px status rail down the left edge, coloured per status, so a
+       resolved ticket is scannable without reading a single word;
+     � the badge became a FILLED pill so it carries real visual weight
+       instead of being an outline around a word;
+     � a resting shadow plus a small lift on hover, which is what makes a
+       row read as something you can press rather than as a text box;
+     � "View" keeps a visible arrow and only FILLS on hover, so the row
+       is not a solid blue slab at rest.
+
+   Markup is untouched: ticketForm.js already emits every class used here,
+   so this is presentation only and no JS contract changes.
+   ===================================================================== */
+.ent-ticket {
+    position: relative;
+    display: flex; flex-direction: column; gap: 7px;
+    width: 100%; text-align: left; cursor: pointer;
+    padding: 13px 15px 13px 17px;
+    border: 1px solid var(--border-color); border-radius: 13px;
+    background: var(--panel-bg-color); color: var(--text-color); font: inherit;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(2, 6, 23, 0.05);
+    transition: border-color .15s ease, box-shadow .18s ease,
+                transform .18s ease, background .15s ease;
+}
+.ent-ticket::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--secondary-text-color);
+    transition: background .15s ease;
+}
+.ent-ticket:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -8px rgba(2, 6, 23, .22);
+}
+.ent-ticket:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, .3);
+}
+.ent-ticket.is-open {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+.ent-ticket.is-open::before { background: #c0392b; }
+
+/* the rail carries the status colour */
+.ent-ticket:has(.ent-badge.is-progress)::before { background: #b9770e; }
+.ent-ticket:has(.ent-badge.is-resolved)::before { background: #1e8449; }
+.ent-ticket:has(.ent-badge.is-closed)::before   { background: var(--secondary-text-color); }
+
+/* Every line in a ticket row is prose the reader scans left to right, so the
+   alignment is stated on the row and its parts rather than only inherited
+   from .ent-ticket above. The page body is `text-align: center` (index.css),
+   and an inherited rule is exactly the sort of thing that gets lost when a
+   stylesheet is served from cache. */
+.ent-ticket-row { display: flex; align-items: center; gap: 9px; text-align: left; }
+.ent-ticket-row strong {
+    flex: 1 1 auto; min-width: 0; text-align: left;
+    font-size: 0.9rem; font-weight: 650; line-height: 1.35;
+}
+.ent-ticket-row .ent-badge { text-align: left; }
+.ent-ticket-meta { font-size: 0.72rem; color: var(--secondary-text-color); text-align: left; }
+.ent-ticket-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; }
+.ent-ticket-view {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--primary-color);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 3px 11px;
+    white-space: nowrap;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.ent-ticket:hover .ent-ticket-view,
+.ent-ticket.is-open .ent-ticket-view { background: var(--primary-color); color: #fff; }
+
+.ent-badge {
+    flex: 0 0 auto; padding: 3px 10px; border-radius: 999px;
+    font-size: 0.63rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    white-space: nowrap; border: 1px solid transparent;
+}
+/* Status is a WORD first, colour second, so it survives a colour-blind
+   reader and a printed page. The text stays in both themes; only the fill
+   changes, which is why these use a translucent tint plus a solid label. */
+.ent-badge.is-open     { color: #a93226; background: rgba(192, 57, 43, 0.14);  border-color: rgba(192, 57, 43, 0.32); }
+.ent-badge.is-progress { color: #9c640c; background: rgba(185, 119, 14, 0.16); border-color: rgba(185, 119, 14, 0.34); }
+.ent-badge.is-resolved { color: #1a6b3d; background: rgba(30, 132, 73, 0.14);  border-color: rgba(30, 132, 73, 0.32); }
+.ent-badge.is-closed   { color: var(--secondary-text-color); background: rgba(100, 116, 139, 0.13); border-color: rgba(100, 116, 139, 0.28); }
+
+/* ------------------------------ thread ---------------------------- */
+
+  /* ---------------------- what you actually reported -------------------
+     The description was the only part of the report that stayed on screen.
+     The scope, the kind of problem and the urgency were chosen on three
+     other controls and then disappeared, so "the report I filled in" could
+     only be half read back. This puts all four back, read off the ticket
+     row itself rather than out of local state, so they cannot drift from
+     what the database actually holds. */
+  .ent-tf-report {
+      margin: 0 0 14px;
+      padding: 13px 15px;
+      border: 1px solid var(--border-color);
+      border-left: 3px solid var(--primary-color);
+      border-radius: 10px;
+      background: var(--panel-bg-color);
+  }
+  .ent-tf-report h5 {
+      margin: 0 0 10px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+  }
+  .ent-tf-report dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+      gap: 10px 18px;
+  }
+  .ent-tf-report dt {
+      font-size: 0.68rem;
+      color: var(--secondary-text-color);
+      margin-bottom: 2px;
+  }
+  .ent-tf-report dd {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-color);
+  }
+  /* The opening message is the report, not a reply. Label it as such so the
+     thread does not read as a conversation that started with a stray bubble. */
+  .ent-tf-msg.is-report {
+      border-style: solid;
+      border-color: var(--primary-color);
+      background: rgba(52, 152, 219, 0.07);
+  }
+  .ent-tf-msg.is-report header b { color: var(--primary-color); }
+.ent-tf-thread {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+.ent-tf-thread-head { display: flex; align-items: center; gap: 9px; }
+.ent-tf-thread-head strong { flex: 1 1 auto; min-width: 0; font-size: 0.9rem; }
+.ent-tf-thread-meta {
+    margin: 4px 0 12px; font-size: 0.74rem; color: var(--secondary-text-color);
+}
+.ent-tf-msgs {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 12px; max-height: 38vh; overflow-y: auto;
+}
+.ent-tf-msg {
+    padding: 10px 12px; border-radius: 11px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+}
+.ent-tf-msg.is-mine {
+    border-color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.07);
+}
+.ent-tf-msg header {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 4px; font-size: 0.72rem;
+}
+.ent-tf-msg header time { margin-left: auto; color: var(--secondary-text-color); }
+.ent-tf-msg p { margin: 0; font-size: 0.87rem; line-height: 1.5; word-break: break-word; }
+
+.ent-tf-reply { display: flex; flex-direction: column; gap: 8px; }
+.ent-tf-reply textarea {
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color); color: var(--text-color);
+    font-family: inherit; font-size: 0.88rem; resize: vertical;
+}
+
+/* ------------------------ one ticket, opened ----------------------
+   An overlay INSIDE the dialog: it covers the list without stacking a second
+   full-screen modal, so there is exactly one backdrop, one Escape target and
+   one focus trap to reason about. */
+.ent-tf-view {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    background: rgba(15, 23, 42, 0.55);
+    animation: ent-tfv-fade 0.16s ease;
+}
+.ent-tf-view[hidden] { display: none; }
+@keyframes ent-tfv-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ent-tf-view-card {
+    width: 100%;
+    max-width: 560px;
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 24px 50px -12px rgba(2, 6, 23, 0.5);
+    animation: v28-modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Header pinned to the top of the card, so the title and the close X are
+   reachable no matter how long the conversation gets. */
+.ent-tfv-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding: 16px 18px 14px;
+    background: linear-gradient(180deg,
+        rgba(52, 152, 219, 0.10), rgba(52, 152, 219, 0));
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(2px);
+}
+.ent-tfv-headmain { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ent-tfv-headmain .ent-badge { align-self: flex-start; }
+.ent-tfv-title {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.3;
+    color: var(--text-color);
+    word-break: break-word;
+}
+.ent-tfv-meta { margin: 0; font-size: 0.72rem; color: var(--secondary-text-color); }
+.ent-tfv-body { padding: 15px 18px 18px; }
+/* The report card already carries its own frame; inside the pop-up it needs a
+   touch less weight so the card does not read as two nested boxes. */
+.ent-tf-view-card .ent-tf-report { margin-top: 0; }
+
+/* The subject is optional now, so say so right on the label rather than
+   making someone discover it by being refused. */
+.ent-tf-optional {
+    margin-left: 6px; padding: 1px 6px;
+    border-radius: 999px; font-size: 0.62rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: none;
+    background: rgba(127, 140, 160, 0.18);
+    color: var(--secondary-text-color);
+}
+
+/* ====================================================================
+   DASHBOARD HEADER - title, tagline, and the three report types.
+
+   It used to read, as one line, for every role:
+
+       ENT Endoscopy Dashboard
+       Quick actions and your own patient counts — nasal, laryngeal, CF4
+
+   Two problems. The three report types were welded onto the end of a
+   sentence with a dash, so they read as more prose rather than as the
+   three things you can actually start here. And "your own patient
+   counts" was hardcoded, which is false for an admin (their counters
+   cover the whole clinic) and misleading for a secretary (the counts are
+   her assigned doctor's, not hers).
+
+   The sentence now ends at the sentence. The three types are chips, each
+   carrying the same icon as its quick-action card, so the header shows
+   the same three things the cards below it do.
+   ==================================================================== */
+
+.ent-dash-page .header-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    text-align: center;
+}
+.ent-dash-page .header-content h1 {
+    font-size: 1.62rem;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+}
+.ent-dash-page .header-tagline {
+    margin: 0;
+    font-size: 0.87rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 60ch;
+}
+
+/* The three report types. */
+/* "Dashboard" sits after the app name in the h1 but must not compete with
+   it: the app name carries the weight, the page name just says which view
+   of it you are on. An em-dash before it keeps the two visually joined on
+   one line without reading as a single run-on title. */
+.header-title-sub {
+    font-weight: 500;
+    font-size: 0.82em;
+    letter-spacing: 0;
+    color: rgba(255, 255, 255, 0.66);
+}
+.header-title-sub::before { content: "\2014\00a0"; opacity: 0.7; }
+.header-scopes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 3px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.ent-scope-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px 4px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #fff;
+    /* A tinted glass pill, so the chips sit on the gradient without
+       needing three hardcoded background colours that would fight it. */
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    white-space: nowrap;
+}
+.ent-scope-ic {
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    line-height: 1;
+    /* The emoji version had no box, so the glyph size alone decided the
+       pill height - an inline SVG needs an explicit frame to sit in. */
+}
+.ent-scope-ic svg { width: 13px; height: 13px; }
+
+/* Each scope keeps its own hue, matching the ticket modal's 2x2 scope
+   tiles, so "CF4" means the same colour everywhere in the app. The icon
+   picks up the pill's own accent hue as well, so it reads as a coloured
+   symbol instead of a white speck on a dark tint. */
+.ent-scope-chip.is-nasal     { background: rgba(12, 74, 110, 0.42); border-color: rgba(125, 211, 252, 0.55); }
+.ent-scope-chip.is-laryngeal { background: rgba(76, 29, 149, 0.42); border-color: rgba(196, 181, 253, 0.55); }
+.ent-scope-chip.is-cf4       { background: rgba(134, 39, 17, 0.40); border-color: rgba(253, 186, 116, 0.55); }
+.ent-scope-chip.is-nasal     .ent-scope-ic { color: #7dd3fc; }
+.ent-scope-chip.is-laryngeal .ent-scope-ic { color: #c4b5fd; }
+.ent-scope-chip.is-cf4       .ent-scope-ic { color: #fdba74; }
+
+@media (max-width: 640px) {
+    .ent-dash-page .header-content h1 { font-size: 1.28rem; }
+    .ent-dash-page .header-tagline { font-size: 0.78rem; }
+    .ent-scope-chip { font-size: 0.72rem; padding: 3px 9px 3px 7px; }
+}
+/* The emoji version sat on the text baseline and sized itself - an SVG
+   needs an explicit frame plus a negative offset to line up the same way. */
+.ent-queue-ic {
+    width: 1.05em;
+    height: 1.05em;
+    vertical-align: -0.16em;
+    margin-right: 2px;
+    color: currentColor;
+    opacity: 0.85;
+}
+/* =====================================================================
+   ADMIN SECTION - the Team queue
+   ---------------------------------------------------------------------
+   The queue is the one card on the dashboard that only a doctor or an
+   admin ever sees, and until now it looked exactly like the "Patients you
+   handled" tile above it: same card, same border, same weight. An admin
+   scanning the page had no way to tell that this block is the part they
+   are responsible for.
+
+   What changed, and why each piece is there:
+
+     � a left accent rail, so the card reads as "yours to action"
+       rather than "more information";
+     � the heading promoted out of the muted --secondary-text-color into
+       --primary-color, matching .ent-card-head h3 in auth.css;
+     � the tabs given a real container so they do not float loose on the
+       card background;
+     � rows given a hover state and a left border that colours by state
+       (amber = waiting on you, green = already in the database).
+
+   Nothing here changes markup or behaviour - these are the same
+   .ent-queue-* classes dashboard.js already renders.
+   ===================================================================== */
+#dashQueueCard {
+    position: relative;
+    border-left: 4px solid var(--primary-color);
+    background: var(--panel-bg-color);
+}
+#dashQueueCard .ent-card-head h3 { font-size: 1.02rem; }
+
+#dashQueueCard .ent-queue-tabs {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 14px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+#dashQueueCard .ent-queue-tabs button {
+    border-radius: 9px;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#dashQueueCard .ent-queue-row {
+    transition: background 0.15s ease, border-color 0.15s ease;
+    border-left: 3px solid transparent;
+}
+#dashQueueCard .ent-queue-row:hover { background: var(--primary-light); }
+#dashQueueCard .ent-queue-row.is-saved {
+    border-left-color: var(--success-color);
+}
+#dashQueueCard .ent-queue-row.is-review {
+    border-left-color: var(--warning-color);
+}
+
+#dashQueueCard .ent-queue-row.is-review:hover { background: rgba(243, 156, 18, 0.08); }
+#dashQueueCard .ent-queue-row.is-saved:hover { background: rgba(39, 174, 96, 0.08); }
+
+body.dark-mode #dashQueueCard { border-left-color: var(--primary-color); }
+body.dark-mode #dashQueueCard .ent-queue-row:hover { background: rgba(14, 165, 233, 0.12); }
+
+/* =====================================================================
+   QUEUE ROW, REDESIGNED (v33an) - colour, chips, relative time
+   ---------------------------------------------------------------------
+   Purely presentational: the same .ent-queue-* classes, the same grid
+   (av / main / flags / action), the same buttons and data-attributes the
+   click wiring in dashboard.js already binds to.
+
+     · the avatar and the leading meta chip wear the REPORT TYPE's hue
+       (sky / indigo / green - the same three the mix chart and the growth
+       stats use), so "which of these are CF4?" is one glance, while the
+       row's left edge still answers saved-vs-waiting;
+     · the meta line is a wrapping chip row instead of one grey sentence;
+     · the by-line shows RELATIVE time ("2 h ago") and the whole row's
+       title carries the exact stamp;
+     · the status pill's pulsing dot (auth.css .ent-pill .dot) is kept on
+       "Waiting" and silenced on "In database" so only open work blinks;
+     · the secretary's two sections and the doctor's "Finished by your
+       team" get tone-coded count chips (amber = waiting, green = done);
+     · the "Needs review" tab count turns amber while it is not zero.
+
+   Scoping everything under #dashQueueCard keeps these hues out of the
+   follow-ups / recent-records lists that share .ent-queue-section.
+   ===================================================================== */
+#dashQueueCard .ent-queue-row {
+    transition: background 0.15s ease, border-color 0.15s ease,
+        transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* A 1px lift + soft shadow on hover: the row reads as tappable without
+   the card underneath moving. */
+#dashQueueCard .ent-queue-row:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.10);
+}
+@media (prefers-reduced-motion: reduce) {
+    #dashQueueCard .ent-queue-row:hover { transform: none; box-shadow: none; }
+}
+
+/* ---- type-hued avatar (wins over the saved/review green tint) ------- */
+#dashQueueCard .ent-queue-av.is-nasal     { background: rgba(14, 165, 233, 0.15);  color: #0284c7; }
+#dashQueueCard .ent-queue-av.is-laryngeal { background: rgba(99, 102, 241, 0.15);  color: #4f46e5; }
+#dashQueueCard .ent-queue-av.is-cf4       { background: rgba(39, 174, 96, 0.15);   color: #1e8449; }
+#dashQueueCard .ent-queue-av.is-other     { background: rgba(100, 116, 139, 0.16); color: var(--secondary-text-color); }
+body.dark-mode #dashQueueCard .ent-queue-av.is-nasal     { color: #7dd3fc; }
+body.dark-mode #dashQueueCard .ent-queue-av.is-laryngeal { color: #a5b4fc; }
+body.dark-mode #dashQueueCard .ent-queue-av.is-cf4       { color: #6ee7a8; }
+
+/* ---- the meta line becomes chip + separators ------------------------ */
+#dashQueueCard .ent-queue-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+}
+.ent-qtype {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.63rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+.ent-qtype.is-nasal     { background: rgba(14, 165, 233, 0.13); color: #0284c7; border-color: rgba(14, 165, 233, 0.32); }
+.ent-qtype.is-laryngeal { background: rgba(99, 102, 241, 0.13); color: #4f46e5; border-color: rgba(99, 102, 241, 0.32); }
+.ent-qtype.is-cf4       { background: rgba(39, 174, 96, 0.13);  color: #1e8449; border-color: rgba(39, 174, 96, 0.32); }
+.ent-qtype.is-other     { background: rgba(100, 116, 139, 0.13); color: var(--secondary-text-color); border-color: rgba(100, 116, 139, 0.3); }
+body.dark-mode .ent-qtype.is-nasal     { color: #7dd3fc; border-color: rgba(125, 211, 252, 0.4); }
+body.dark-mode .ent-qtype.is-laryngeal { color: #a5b4fc; border-color: rgba(196, 181, 253, 0.4); }
+body.dark-mode .ent-qtype.is-cf4       { color: #6ee7a8; border-color: rgba(110, 231, 168, 0.4); }
+.ent-qsep { color: var(--border-color); user-select: none; }
+
+/* ---- the status pills: only OPEN work blinks ------------------------ */
+.ent-queue .ent-pill.live .dot { animation: none; opacity: 0.65; }
+
+/* ---- tone-coded section chips (secretary groups + fresh block) ------- */
+#dashQueueCard .ent-queue-section.is-wait b {
+    color: #b9770e;
+    background: rgba(243, 156, 18, 0.14);
+    border-color: rgba(243, 156, 18, 0.36);
+}
+#dashQueueCard .ent-queue-section.is-saved b,
+#dashQueueCard .ent-queue-section.is-fresh b {
+    color: var(--success-color);
+    background: rgba(39, 174, 96, 0.13);
+    border-color: rgba(39, 174, 96, 0.36);
+}
+
+/* ---- "Needs review" count is amber while work is waiting ------------ */
+.ent-queue-tabs .ent-queue-tab-n.is-hot {
+    background: rgba(243, 156, 18, 0.16);
+    color: #b9770e;
+}
+body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
+
+/* =====================================================================
+   TICKET DIALOG BUTTONS  ·  .ent-tf-pane
+   ---------------------------------------------------------------------
+   Three different button idioms were stacked in one dialog: underlined
+   tabs, bordered radio tiles, and a plain full-width Send. Nothing
+   matched, so the dialog read as three borrowed components rather than
+   one form.
+
+   What changed:
+
+     · the tabs became a SEGMENTED CONTROL - a container with a sliding
+       active pill - because a tab that changes what the panel shows is a
+       switch, not a link, and the underline implied navigation;
+     · the scope tiles got a real radio affordance (a dot that fills) so
+       "which one is selected" is answered by shape as well as colour;
+     · Send became a proper full-width primary with the same 11px radius
+       the rest of the app uses, instead of inheriting whatever .ent-btn
+       happened to be.
+
+   Markup untouched - ticketForm.js already emits every class used here.
+   ===================================================================== */
+.ent-tf-tabs {
+    display: inline-flex;
+    gap: 3px;
+    padding: 4px;
+    margin: 0 20px 14px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+.ent-tf-tab {
+    appearance: none;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.ent-tf-tab:hover { color: var(--text-color); }
+.ent-tf-tab.is-active {
+    color: var(--text-color);
+    background: var(--panel-bg-color);
+    box-shadow: 0 1px 3px rgba(2, 6, 23, .12);
+}
+.ent-tf-tab:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, .3);
+}
+.ent-tf-tabcount {
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: var(--border-color);
+    color: var(--secondary-text-color);
+    border-radius: 999px;
+    padding: 1px 7px;
+    line-height: 1.5;
+    transition: background .16s ease, color .16s ease;
+}
+.ent-tf-tab.is-active .ent-tf-tabcount { background: var(--primary-color); color: #fff; }
+
+/* the scope tiles answer "which one" with a shape, not only a colour */
+.ent-tf-scope input[type="radio"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--panel-bg-color);
+    display: grid;
+    place-items: center;
+    transition: border-color .16s ease, background .16s ease;
+}
+.ent-tf-scope input[type="radio"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    transform: scale(0);
+    transition: transform .16s ease;
+}
+.ent-tf-scope:has(input:checked) input[type="radio"] {
+    border-color: var(--danger-color);
+    background: var(--danger-color);
+}
+.ent-tf-scope:has(input:checked) input[type="radio"]::after { transform: scale(1); }
+.ent-tf-scope:has(input:focus-visible) {
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, .3);
+}
+
+/* one primary action, full width, app radius */
+.ent-tf-send { padding: 4px 20px 20px; }
+.ent-tf-send .ent-btn {
+    width: 100%;
+    padding: 12px 18px;
+    font-size: 0.94rem;
+    font-weight: 650;
+    border-radius: 11px;
+    justify-content: center;
+}
+.ent-tf-pane { min-height: 0; }
+
+@media (max-width: 520px) {
+    .ent-tf-tabs { margin: 0 14px 12px; }
+    .ent-tf-tab { flex: 1 1 0; justify-content: center; padding: 8px 10px; }
+}
+
+/* =====================================================================
+   VIEW ALL PATIENTS CARD
+   ---------------------------------------------------------------------
+   It is the only quick action that is a LINK to another screen rather
+   than a button that opens a form on this one. Every other card in the
+   grid is left-aligned, which made this one read as a fifth report type
+   - so a user who tapped it expecting a form got a different page.
+
+   Centring it (icon above the words, text centred) is what separates it
+   without inventing a new colour, and the dashed edge says "goes
+   somewhere" where the solid top rule says "starts something here".
+   ===================================================================== */
+.ent-quick-viewall {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 9px;
+    border-style: dashed;
+    border-top-style: solid;
+    /* SPAN THE FULL ROW - the fix for the hole in the grid. Five items in
+       two columns can never tile evenly: four fill row one (2x2) and the
+       fifth sat ALONE in row three, leaving an empty cell beside it that
+       read as a missing card or a rendering bug. Letting this one span
+       both columns makes the last row a deliberate footer bar: no hole at
+       any width the two-column grid is used (641px and up), and at
+       <=720px where the grid auto-fits to three columns, five items tile
+       3 + 2 with zero orphan cells - this span is a no-op there. Below
+       640px everything is one column, so again nothing to span. The
+       centring below is UNCHANGED and actually reads better wide: icon
+       over words in a full-width strip is unmistakably "a link that goes
+       somewhere", not a fourth report form. */
+    grid-column: 1 / -1;
+}
+.ent-quick-viewall .ent-quick-text { align-items: center; }
+.ent-quick-viewall .ent-quick-sub { text-align: center; }
+.ent-quick-viewall .ent-quick-icon { margin: 0 auto; }
+.ent-quick-viewall:hover { transform: translateY(-2px); }
+
+/* =====================================================================
+   .ent-tf-list  ·  your tickets
+   ---------------------------------------------------------------------
+   The container was a bare `gap: 7px` flex column, so the rows my
+   redesign gave a status rail and a shadow sat on a flat background with
+   no rhythm of their own. Given real breathing room and an empty state
+   that explains itself instead of showing one grey line of text.
+   ===================================================================== */
+.ent-tf-list { display: flex; flex-direction: column; gap: 11px; }
+
+.ent-tf-empty {
+    margin: 0;
+    padding: 30px 18px;
+    text-align: center;
+    font-size: 0.86rem;
+    color: var(--secondary-text-color);
+    background: var(--bg-color);
+    border: 1px dashed var(--border-color);
+    border-radius: 13px;
+    line-height: 1.6;
+}
+
+/* ====================================================================
+   MOBILE / TOUCH · the dashboard on a phone (doctor & secretary)
+   --------------------------------------------------------------------
+   This is the page a doctor opens between patients and a secretary opens
+   all day, and it was built entirely for a laptop: a two-column quick
+   action grid, a wide stat strip, and rows carrying four facts side by
+   side.
+
+   Everything below is a size or a wrap decision. Nothing is hidden and no
+   feature is removed - the doctor sees the same dashboard, laid out for a
+   thumb instead of a cursor.
+
+   640px rather than the 560/620px breakpoints already in this file: a
+   common phone is 390-430px wide, and 640 also catches large phones and
+   small tablets, where two columns stop being comfortable.
+
+   Each block below is a SIBLING @media query, never a nested one. A
+   nested @media is invalid CSS and browsers drop it silently, which is
+   exactly the bug this section had once.
+   ==================================================================== */
+
+/* ---------- the header --------------------------------------------- */
+@media (max-width: 640px) {
+    .header { padding: 12px 14px; margin-bottom: 14px; }
+    .header-content {
+        flex-wrap: wrap;
+        gap: 10px 12px;
+        /* Brand on its own line, then the control row. Centring the brand
+           was right on a laptop; on a phone it spends a third of the width
+           on empty space either side of a two-word title. */
+        align-items: flex-start;
+    }
+    .header-brand,
+    .header-brand-center { text-align: left; flex: 1 1 100%; min-width: 0; }
+    /* The tagline restates the quick-action cards directly below it, so on
+       a phone it is a whole line spent saying nothing new. */
+    .header-tagline { display: none; }
+
+    /* auth.css gives this justify-content:flex-end with margin-left:auto.
+       Beside a title that is right; once it wraps it leaves a ragged,
+       right-aligned row that reads as a mistake. */
+    .header-meta {
+        flex: 1 1 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        margin-left: 0;
+        gap: 10px;
+    }
+    .header-meta .connection-status { margin-left: 0; }
+
+    /* #installAppBtn carries NO class - index.css styles it by id at
+       padding 6px 12px. Every other rule here targets classes, so without
+       an explicit one it stayed a ~30px target while its neighbours grew. */
+    #installAppBtn {
+        min-height: 40px;
+        padding: 8px 14px;
+        display: inline-flex;
+        align-items: center;
+    }
+    /* The bell is 38x38 by default. Below 44 it is a miss with a thumb. */
+    /* The theme switch is a small input inside a label, and the label is
+       what is tapped - so the label is what has to be tall. */
+    .header-meta .theme-switch-wrapper {
+        min-height: 44px;
+        min-width: 52px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .header-meta .ent-btn,
+    .header-meta .header-user-slot button,
+    .header-meta .ent-pill { min-height: 40px; }
+
+    /* Scope chips scroll sideways rather than wrapping to four lines. */
+    .header-scopes {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    .header-scopes::-webkit-scrollbar { display: none; }
+    .header-scopes li { flex: 0 0 auto; }
+}
+
+/* ---------- the hero: greeting, clock and refresh ------------------- */
+@media (max-width: 640px) {
+    .ent-dash-hero {
+        /* Side by side, the greeting is squeezed into ~200px while the
+           clock and Refresh take the rest. Stacked, both get full width. */
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .ent-dash-hero h2 { font-size: 1.12rem; }
+    .ent-dash-hero-side {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+    }
+    .ent-dash-refresh { min-height: 42px; padding: 10px 18px; }
+    /* Both pills are wide; a line each stops them fighting each other. */
+    .ent-dash-scope,
+    .ent-dash-alert { display: inline-flex; margin-top: 6px; font-size: 0.76rem; }
+}
+
+/* ---------- stat tiles --------------------------------------------- */
+@media (max-width: 640px) {
+    /* Two per row, not one: a single column of four numbers is four rows
+       of scrolling to answer "how many today?". */
+    .ent-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .ent-stat-value { font-size: 1.3rem; }
+    .ent-stat-label { font-size: 0.68rem; }
+}
+
+/* ---------- quick actions: two columns become one ------------------- */
+@media (max-width: 640px) {
+    .ent-quick-grid { grid-template-columns: 1fr; gap: 6px; }
+    /* These cards were sized as halves of a wide row. Full width on a
+       phone they become tall, comfortable targets. */
+    .ent-quick { min-height: 72px; padding: 13px 14px; gap: 12px; }
+    .ent-quick:hover { transform: none; }
+    .ent-quick-label { font-size: 0.97rem; }
+    /* There is room for the sub-line, and tapping the wrong card costs a
+       whole form to redo. */
+    .ent-quick-sub { font-size: 0.76rem; }
+
+    /* "View All Patients" STAYS centred with its siblings now that every
+       quick-action card is a centred column (icon over words). It used to
+       snap back to a left-aligned row here to contrast with its row-based
+       neighbours - but there is no contrast left to make: all cards read as
+       centred tiles, so this one simply matches them on a phone too. */
+}
+/* ---------- the team queue ----------------------------------------- */
+@media (max-width: 640px) {
+    /* The head carries a title, a hint, a toggle and a refresh button.
+       Stacked, the refresh button is no longer under the thumb. */
+    .ent-queue-head-side { width: 100%; justify-content: space-between; }
+    .ent-queue-refresh { min-height: 40px; min-width: 40px; }
+
+    /* Three tabs with a count each: equal thirds, so all three answers are
+       visible at once. */
+    .ent-queue-tabs { display: flex; gap: 6px; }
+    .ent-queue-tabs button {
+        flex: 1 1 0;
+        justify-content: center;
+        min-height: 44px;
+        padding: 9px 8px;
+        text-align: center;
+    }
+    .ent-queue-tab-label { font-size: 0.74rem; overflow-wrap: anywhere; }
+
+    /* A queue row is name, status and two buttons on one line. The buttons
+       move to their own full-width row. */
+    .ent-fresh-row { flex-wrap: wrap; row-gap: 9px; }
+    .ent-fresh-main { flex: 1 1 100%; }
+    .ent-fresh-view,
+    .ent-fresh-ok {
+        flex: 1 1 auto;
+        min-height: 42px;
+        padding: 10px 14px;
+        justify-content: center;
+    }
+}
+
+/* ---------- your secretaries ---------------------------------------- */
+@media (max-width: 640px) {
+    .ent-team-row { flex-wrap: wrap; row-gap: 7px; padding: 11px 12px; }
+    .ent-team-row .ent-btn { min-height: 40px; }
+}
+
+/* ---------- the latest-patients rows ------------------------------- */
+@media (max-width: 640px) {
+    /* Name block takes the full first line; the ENTRY card drops to its own
+       full-width second line so the date + time never squeeze the name. */
+    .ent-recent-row,
+    .ent-clinic-row { flex-wrap: wrap; row-gap: 6px; padding: 10px 11px; }
+    .ent-recent-av { width: 32px; height: 32px; font-size: 0.68rem; }
+    /* The name+meta block takes the whole first line, so the pill and the
+       time cannot squeeze it. */
+    .ent-recent-main,
+    .ent-clinic-row .ent-clinic-main { flex: 1 1 calc(100% - 42px); }
+    .ent-recent-name,
+    .ent-clinic-row .ent-clinic-name {
+        /* No ellipsis here: wrapping shows the whole patient name, which is
+           the entire point of the row. */
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.3;
+    }
+    .ent-recent-entry {
+        flex: 1 1 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+    .ent-recent-by,
+    .ent-clinic-by { font-size: 0.64rem; }
+    .ent-recent-site,
+    .ent-clinic-site { margin-left: auto; }
+}
+
+/* ---------- cards, tools, charts ------------------------------------ */
+@media (max-width: 640px) {
+    .ent-dash-main { padding: 12px 12px 40px; }
+    .ent-card { padding: 14px 13px; }
+    .ent-card-head { flex-wrap: wrap; row-gap: 4px; }
+    .ent-card-head h3 { font-size: 0.98rem; }
+    /* A long patient name in a card title must wrap, not widen the card. */
+    .ent-card-head h3,
+    .ent-fresh-main b { overflow-wrap: anywhere; }
+
+    /* The header's icon-only Settings button keeps a square, thumb-sized
+       tap target even with the text buttons sharing its row. */
+    .ent-dash-iconbtn { min-width: 44px; min-height: 44px; padding: 10px; }
+    .ent-legend { gap: 6px 12px; font-size: 0.68rem; }
+    /* A label and a count share one line inside each report-type card;
+       the label is the one that is allowed to shrink - min-width:0 and
+       overflow-wrap are already in its base rule. */
+    .ent-dash-gate { margin: 24px auto; padding: 0 14px; }
+}
+
+/* ---------- any wide table reachable from this page ------------------
+   The dashboard has no table of its own, but the ticket pop-up and the
+   View All page are one tap away and both carry .ent-table. The same rule
+   lives in admin.css on purpose: each page has to stand on its own, because
+   either one can be the first thing opened on a phone.
+
+   min-width: 640px in auth.css is the culprit - it is what forces the
+   sideways scroll - so it has to be undone here or nothing else matters. */
+@media (max-width: 640px) {
+    .ent-table-wrap { overflow: visible; }
+    table.ent-table { min-width: 0; display: block; }
+    table.ent-table thead { display: none; }
+    table.ent-table tbody,
+    table.ent-table tr,
+    table.ent-table td { display: block; width: 100%; }
+    table.ent-table tbody tr {
+        margin-bottom: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 13px;
+        background: var(--bg-color);
+    }
+    table.ent-table td {
+        padding: 8px 13px;
+        border-bottom: 1px solid var(--border-color);
+        text-align: right;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+    table.ent-table tbody tr td:last-child { border-bottom: none; }
+    table.ent-table td[data-label]::before {
+        content: attr(data-label);
+        float: left;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+    }
+    table.ent-table td.ent-empty { text-align: center; border-bottom: none; }
+    table.ent-table td.ent-empty::before { display: none; }
+}
+
+/* ====================================================================
+   YOUR TICKETS · the redesigned card
+   ---------------------------------------------------------------------
+   APPENDED, not merged in place. The old rules are still above and are now
+   overridden - `.ent-ticket-row`, `.ent-ticket-foot` and `.ent-ticket-view`
+   cannot match anything, because the markup no longer emits them. They are
+   left in place rather than deleted by line surgery: an earlier attempt to cut
+   them out with brace counting removed the wrong lines and un-balanced the
+   whole stylesheet, and a dead selector costs nothing while an unbalanced file
+   costs everything.
+
+   WHAT CHANGED, AND WHY
+   The old row put the subject, a "New reply" flag and the status badge all on
+   ONE line, so the subject - the only thing that identifies a ticket - was
+   squeezed between a dot and a pill and clamped to a single line. "View >" was
+   a small pill in the corner, which made the card look decorative when in fact
+   the card IS the button.
+
+   Three lines, one job each:
+       1  what it is       subject, two lines of room
+       2  where and when   the part of the app, and how long ago
+       3  what to do       the new-reply banner, or nothing
+   The chevron is a pointer at a target that is already comfortably tappable,
+   not a control the reader has to find.
+   ==================================================================== */
+
+/* ---- the count line ------------------------------------------------ */
+.ent-tf-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-tf-sum-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 5px 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--bg-color);
+    font-size: 0.72rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+}
+.ent-tf-sum-item b {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-tf-sum-item.is-quiet { opacity: 0.7; }
+/* The one thing the reporter opened the panel to find, so it is the only chip
+
+/* ---------------------------------------------------------------------
+   PRINT — the dashboard on paper / "Save as PDF".
+   Interactive chrome disappears (buttons, the theme switch, the sign-out
+   chip); the data stays. Black-on-white, no animation, each card kept
+   whole so a tile or follow-up row never splits across a page break.
+   --------------------------------------------------------------------- */
+@media print {
+    body { background: #fff !important; }
+    .ent-dash-refresh,
+    .ent-dash-hero-side button,
+    .header-user-slot,
+    .theme-switch-wrapper,
+    #installAppBtn,
+    .ent-quick,
+    .ent-queue-refresh,
+    .ent-queue-toggle,
+    .ent-dash-notice,
+    .ent-followup-state,
+    .no-print { display: none !important; }
+    .ent-dash-main { padding: 0 !important; }
+    .ent-card,
+    .ent-tile,
+    .ent-followup-row,
+    .ent-queue-row,
+    .ent-recent-row,
+    .ent-topclinic { break-inside: avoid; box-shadow: none !important; }
+    .ent-card { border: 1px solid #ccc !important; margin-bottom: 10px; }
+    /* A printed chart with transparent bars vanishes on white; give the
+       columns a visible frame so the 7-day view still reads on paper. */
+    .ent-chart-stack { border: 1px solid #bbb; }
+    .ent-dash-hero { border: none !important; }
+}
+   that is coloured - and it only appears when there IS one. */
+.ent-tf-sum-item.is-alert {
+    color: #a93226;
+    background: rgba(192, 57, 43, 0.1);
+    border-color: rgba(192, 57, 43, 0.28);
+}
+.ent-tf-sum-item.is-alert b { color: #a93226; }
+
+/* ---- the card ----------------------------------------------------- */
+.ent-ticket {
+    gap: 0;   /* margins on the parts, so the banner sits near the subject */
+    /* right padding clears the chevron */
+    padding: 13px 46px 13px 18px;
+    border-radius: 14px;
+    /* The whole card is the button, so the card is the target: 44px is the
+       smallest one a thumb hits reliably. */
+    min-height: 44px;
+}
+
+/* ---- line 1: the subject and the status ---------------------------- */
+.ent-ticket-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+}
+.ent-ticket-subject {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    /* TWO lines, not one. A title like "CF4 will not save when the patient
+       has no PhilHealth number" is two lines of real information, and clipping
+       it hides the very thing being scanned for. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 0.94rem;
+    font-weight: 650;
+    line-height: 1.36;
+    letter-spacing: -0.005em;
+}
+.ent-ticket-top .ent-badge { margin-top: 1px; text-align: left; }
+/* ---- line 2: scope and when ---------------------------------------- */
+.ent-ticket-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px;
+    text-align: left;
+    font-size: 0.74rem;
+    color: var(--secondary-text-color);
+    min-width: 0;
+}
+/* The part of the app is a chip, because it is a CATEGORY, and categories are
+   what a reporter with four open tickets scans for first. */
+.ent-ticket-scope {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* A drawn dot, not a typed middle-dot character: it is decoration, so it should
+   not be something a screen reader reads aloud. */
+.ent-ticket-sep {
+    flex: 0 0 auto;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .55;
+}
+.ent-ticket-when { flex: 0 0 auto; white-space: nowrap; }
+
+/* ---- line 3: the new-reply banner ----------------------------------- */
+.ent-ticket-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    align-self: flex-start;
+    margin-top: 9px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 999px;
+    background: rgba(192, 57, 43, 0.1);
+    border: 1px solid rgba(192, 57, 43, 0.26);
+    color: #a93226;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.ent-ticket-pip {
+    flex: 0 0 auto;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.16);
+}
+
+/* ---- the chevron ---------------------------------------------------- */
+/* Drawn with two borders rather than a glyph: no font dependency, and it
+   survives a print or a PDF where a dingbat character may not. */
+.ent-ticket-go {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    width: 9px; height: 9px;
+    margin-top: -5px;
+    border-right: 2px solid var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    transform: rotate(-45deg);
+    opacity: .55;
+    transition: transform .18s ease, opacity .18s ease;
+}
+.ent-ticket:hover .ent-ticket-go,
+.ent-ticket:focus-visible .ent-ticket-go {
+    opacity: 1;
+    transform: rotate(-45deg) translateX(2px);
+}
+
+/* ---- sign-out confirmation ---------------------------------------- */
+.signout-overlay {
+    z-index: 10006;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.signout-overlay.is-open { opacity: 1; }
+.signout-overlay.is-closing { opacity: 0; }
+.signout-dialog {
+    width: min(100%, 410px);
+    padding: 32px 30px 26px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -15%, rgba(14, 165, 233, 0.12), transparent 58%),
+        var(--panel-bg-color);
+    color: var(--text-color);
+    text-align: center;
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.3), 0 4px 14px rgba(2, 12, 27, 0.12);
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.signout-overlay.is-open .signout-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.signout-overlay.is-closing .signout-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.signout-icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 15px;
+    border: 1px solid rgba(14, 165, 233, 0.17);
+    border-radius: 20px;
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.14), rgba(2, 132, 199, 0.07));
+    color: var(--primary-color);
+}
+.signout-icon svg { width: 30px; height: 30px; }
+.signout-eyebrow {
+    margin: 0 0 5px;
+    color: var(--primary-color);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+.signout-dialog h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.25;
+}
+.signout-dialog > p:last-of-type {
+    max-width: 310px;
+    margin: 10px auto 24px;
+    color: var(--secondary-text-color);
+    font-size: 0.93rem;
+    line-height: 1.6;
+}
+.signout-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color);
+}
+.signout-actions button {
+    min-width: 0;
+    min-height: 48px;
+    flex: 1 1 50%;
+    padding: 11px 15px;
+    border-radius: 13px;
+    font-size: 0.82rem;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-transform: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.signout-cancel {
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    box-shadow: none;
+}
+.signout-cancel:hover {
+    transform: translateY(-1px);
+    background: var(--panel-bg-color);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.08);
+}
+.signout-confirm {
+    background: linear-gradient(135deg, #ef6262, #dc3e4b);
+    box-shadow: 0 5px 14px rgba(220, 62, 75, 0.24);
+}
+.signout-confirm:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #e9545a, #c92f3f);
+    box-shadow: 0 8px 18px rgba(220, 62, 75, 0.3);
+}
+.signout-confirm svg { width: 17px; height: 17px; }
+.signout-actions button:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.45);
+    outline-offset: 3px;
+}
+@media (max-width: 420px) {
+    .signout-dialog { padding: 28px 20px 21px; border-radius: 21px; }
+    .signout-actions { flex-direction: column-reverse; }
+    .signout-actions button { flex: 0 0 auto; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .signout-overlay,
+    .signout-dialog,
+    .signout-actions button { transition-duration: 0.01ms; }
+}

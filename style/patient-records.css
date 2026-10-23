@@ -1,0 +1,2344 @@
+/* =========================================
+   PATIENT RECORDS HEADER CONTROL
+   ========================================= */
+#patientRecordsBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: 7px;
+    min-height: 36px;
+    box-sizing: border-box;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #4338ca) !important;
+    box-shadow: 0 3px 8px rgba(79, 70, 229, 0.4) !important;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: nowrap;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#patientRecordsBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.5) !important;
+}
+
+#patientRecordsBtn:active {
+    transform: translateY(0);
+}
+
+#patientRecordsBtn:focus-visible {
+    outline: 3px solid #a5b4fc;
+    outline-offset: 2px;
+}
+
+#patientRecordsBtn .btn-label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    line-height: 1.15;
+}
+
+#patientRecordsBtn .btn-main {
+    font-size: 12px;
+    font-weight: 800;
+}
+
+#patientRecordsBtn .btn-sub {
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.88;
+}
+
+#patientRecordsBtn .btn-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.patient-records-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.patient-records-count[hidden] {
+    display: none;
+}
+
+.patient-records-popover {
+    position: fixed;
+    z-index: 10050;
+    top: 58px;
+    right: 14px;
+    display: none;
+    flex-direction: column;
+    width: min(440px, calc(100vw - 24px));
+    max-height: min(650px, calc(100vh - 76px));
+    overflow: hidden;
+    color: var(--text-color);
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 20px 55px rgba(15, 23, 42, 0.24);
+}
+
+.patient-records-popover.is-open {
+    display: flex;
+}
+
+.patient-records-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 10px;
+}
+
+.patient-records-title {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.patient-records-subtitle {
+    margin: 3px 0 0;
+    color: var(--secondary-text-color);
+    font-size: 11px;
+}
+
+.patient-records-close {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--secondary-text-color);
+    background: var(--input-bg-color);
+    cursor: pointer;
+    font-size: 19px;
+}
+
+.patient-records-search-wrap {
+    padding: 4px 16px 10px;
+}
+
+.patient-records-search {
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    outline: 0;
+    color: var(--text-color);
+    background: var(--input-bg-color);
+}
+
+.patient-records-search:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+.patient-records-filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 0 16px 10px;
+    scrollbar-width: none;
+}
+
+.patient-records-filter {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.patient-records-filter.is-active {
+    border-color: var(--primary-color);
+    color: #fff;
+    background: var(--primary-color);
+}
+
+.patient-records-list {
+    min-height: 90px;
+    overflow-y: auto;
+    padding: 0 12px 10px;
+}
+
+.patient-record-card {
+    margin-bottom: 9px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #6366f1;
+    border-radius: 12px;
+    background: var(--input-bg-color);
+}
+
+.patient-record-card[data-report-type="cf4"] { border-left-color: #0ea5e9; }
+.patient-record-card[data-report-type="nasal"] { border-left-color: #14b8a6; }
+.patient-record-card[data-report-type="laryngeal"] { border-left-color: #8b5cf6; }
+
+.patient-record-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.patient-record-type {
+    color: var(--primary-color);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.patient-record-id {
+    color: var(--secondary-text-color);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.patient-record-name {
+    margin: 0 0 8px;
+    color: var(--text-color);
+    font-size: 15px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.patient-record-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.patient-record-meta-item {
+    min-width: 0;
+    padding: 7px 8px;
+    border-radius: 8px;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.patient-record-meta-item strong {
+    display: block;
+    margin-bottom: 1px;
+    color: var(--text-color);
+    font-size: 10px;
+}
+
+.patient-record-file {
+    margin-top: 7px;
+    color: var(--secondary-text-color);
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.patient-records-empty {
+    display: grid;
+    place-items: center;
+    min-height: 150px;
+    padding: 22px;
+    text-align: center;
+    color: var(--secondary-text-color);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.patient-records-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--border-color);
+    background: var(--panel-bg-color);
+}
+
+.patient-records-summary {
+    color: var(--secondary-text-color);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.patient-records-clear {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #b91c1c;
+    background: #fff1f2;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+body.dark-mode .patient-records-clear {
+    border-color: #7f1d1d;
+    color: #fecaca;
+    background: #450a0a;
+}
+
+/* The standalone Records button must match each page's header treatment. */
+body.cf4-page #patientRecordsBtn {
+    min-height: 28px;
+    padding: 3px 6px;
+    gap: 3px;
+    font-size: 9px;
+}
+
+body.cf4-page #patientRecordsBtn .btn-icon {
+    font-size: 12px;
+}
+
+body.cf4-page #patientRecordsBtn .btn-main {
+    font-size: 9px;
+}
+
+body.cf4-page #patientRecordsBtn .btn-sub {
+    display: none;
+}
+
+.report-header.header-scrolled #patientRecordsBtn {
+    min-height: 34px;
+    padding: 4px 10px;
+}
+
+@media (max-width: 768px) {
+    #patientRecordsBtn {
+        min-height: 34px;
+        padding: 5px 8px;
+    }
+
+    #patientRecordsBtn .btn-sub {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .patient-records-popover {
+        top: 40px;
+        right: 8px;
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 48px);
+    }
+
+    .patient-record-meta {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================
+   DATABASE GROUP - final save & cloud browsing
+   The colours live in style/auth.css (loaded last): Save to Database is the
+   brand sky-blue primary action, DB Records wears the soft sky chip. Only the
+   shared disabled state stays here.
+   ========================================= */
+.group-database button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
+}
+
+/* =========================================
+/* =========================================
+   POSSIBLE EXISTING PATIENT MODAL
+   ========================================= */
+.ent-dup-modal {
+    z-index: 10005;
+    padding: 16px;
+}
+.ent-dup-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(680px, 96vw);
+    max-height: min(84vh, 900px);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-top: 4px solid var(--warning-color, #f59e0b);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    text-align: left;
+}
+.ent-dup-header { padding: 16px 18px 10px; }
+.ent-dup-header h2 { margin: 0 0 4px; font-size: 1.1rem; color: var(--text-color); }
+.ent-dup-subtitle { margin: 0; font-size: 0.8rem; color: var(--secondary-text-color); }
+.ent-dup-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ent-dup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-left: 4px solid var(--primary-color, #0ea5e9);
+    border-radius: 12px;
+    background: var(--bg-color, #f8fafc);
+}
+.ent-dup-row.is-sameday { border-left-color: var(--warning-color, #f59e0b); }
+.ent-dup-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ent-dup-main b { font-size: 0.88rem; color: var(--text-color); }
+.ent-dup-main span { font-size: 0.72rem; color: var(--secondary-text-color); }
+.ent-dup-warn {
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #b9770e;
+}
+.ent-dup-local {
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--secondary-text-color);
+}
+.ent-dup-open {
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid rgba(2, 132, 199, 0.3);
+    background: var(--primary-light, #e0f2fe);
+    color: var(--primary-hover-color, #0284c7);
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.ent-dup-open:hover { background: var(--primary-color, #0ea5e9); color: #fff; }
+.ent-dup-note {
+    margin: 12px 18px 0;
+    padding: 9px 12px;
+    border-radius: 11px;
+    background: rgba(2, 132, 199, 0.08);
+    border: 1px solid var(--border-color, #e5e7eb);
+    font-size: 0.74rem;
+    color: var(--secondary-text-color);
+}
+.ent-dup-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    flex-wrap: wrap;
+    padding: 14px 18px 16px;
+}
+.ent-dup-foot button {
+    padding: 9px 15px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-color);
+}
+.ent-dup-new {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+}
+.ent-dup-cancel:hover { background: rgba(231, 76, 60, 0.1); border-color: rgba(231, 76, 60, 0.4); color: var(--danger-color); }
+@media (max-width: 560px) {
+    .ent-dup-row { flex-direction: column; align-items: stretch; }
+    .ent-dup-open { width: 100%; }
+    .ent-dup-foot button { flex: 1 1 auto; }
+}
+
+/* The field a final save is waiting for */
+.ent-field-missing {
+    border-color: var(--danger-color) !important;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.22) !important;
+    animation: entMissingPulse 1.1s ease-in-out 2;
+}
+@keyframes entMissingPulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.22); }
+    50% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0.34); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-field-missing { animation: none; }
+}
+
+/* ================================
+   MISSING PATIENT DETAILS DIALOG
+   ================================ */
+.ent-miss-modal { z-index: 10006; padding: 16px; }
+.ent-miss-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(520px, 96vw);
+    max-height: min(86vh, 900px);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 18px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    text-align: left;
+}
+.ent-miss-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px 14px;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.16), rgba(231, 76, 60, 0.08));
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.ent-miss-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: rgba(243, 156, 18, 0.2);
+    font-size: 1.15rem;
+}
+.ent-miss-banner > div { flex: 1 1 auto; min-width: 0; }
+.ent-miss-banner h2 { margin: 2px 0 3px; font-size: 1.05rem; line-height: 1.25; }
+.ent-miss-banner p { margin: 0; font-size: 0.78rem; color: var(--secondary-text-color); }
+.ent-miss-close {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--secondary-text-color);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.ent-miss-close:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-color); }
+.ent-miss-list {
+    list-style: none;
+    margin: 0;
+    padding: 14px 16px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+.ent-miss-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 11px 13px;
+    text-align: left;
+    font-family: inherit;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-left: 4px solid var(--danger-color);
+    border-radius: 12px;
+    background: var(--bg-color, #f8fafc);
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.ent-miss-row:hover {
+    transform: translateX(2px);
+    border-color: var(--danger-color);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.14);
+}
+.ent-miss-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: rgba(231, 76, 60, 0.12);
+    font-size: 0.95rem;
+}
+.ent-miss-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.ent-miss-text b { font-size: 0.88rem; color: var(--text-color); }
+.ent-miss-text small { font-size: 0.7rem; color: var(--secondary-text-color); }
+.ent-miss-go {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--danger-color);
+    white-space: nowrap;
+}
+.ent-miss-note {
+    margin: 12px 16px 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px dashed var(--border-color, #e5e7eb);
+    background: rgba(2, 132, 199, 0.06);
+    font-size: 0.75rem;
+    color: var(--secondary-text-color);
+}
+.ent-miss-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    flex-wrap: wrap;
+    padding: 14px 16px 16px;
+}
+.ent-miss-foot button {
+    padding: 10px 16px;
+    border-radius: 11px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-color);
+}
+.ent-miss-draft:hover { border-color: var(--success-color); color: var(--success-color); }
+.ent-miss-ok {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+}
+@media (max-width: 520px) {
+    .ent-miss-foot { flex-direction: column-reverse; }
+    .ent-miss-foot button { width: 100%; }
+    .ent-miss-go { display: none; }
+}
+
+/* ================================
+   WHICH HOSPITAL? - save-time prompt (feature-flagged in dbRecords.js)
+   Only Dr. Jardin's clinic ever reaches it. The choices borrow the
+   drafts' RMCI sky-blue / CUMC purple so the two screens agree, and the
+   device's letterhead gets an "is-guess" ring - a hint, never a
+   commitment, because a secretary may be working at the other hospital.
+   ================================ */
+.ent-site-modal { z-index: 10006; padding: 16px; }
+
+.ent-site-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(520px, 96vw);
+    padding: 18px;
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    text-align: left;
+}
+
+.ent-site-head h2 { margin: 0 0 6px; font-size: 1rem; }
+
+.ent-site-head p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-site-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 14px 0 4px;
+}
+
+.ent-site-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color, #e5e7eb);
+    background: var(--panel-bg-color, #fff);
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ent-site-choice span {
+    font-size: 0.56rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.ent-site-choice.is-rmci {
+    border-color: rgba(2, 132, 199, 0.30);
+    background: rgba(14, 165, 233, 0.16);
+    color: #0369a1;
+}
+
+.ent-site-choice.is-cumc {
+    border-color: rgba(109, 40, 217, 0.30);
+    background: rgba(124, 58, 237, 0.16);
+    color: #6d28d9;
+}
+
+.ent-site-choice.is-guess { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35); }
+.ent-site-choice:hover { filter: brightness(0.96); }
+
+.ent-site-foot {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 12px;
+}
+
+.ent-site-cancel {
+    border: none;
+    background: transparent;
+    color: var(--secondary-text-color, #6b7280);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+.ent-site-cancel:hover { background: rgba(0, 0, 0, 0.06); }
+
+/* The optional follow-up date input inside the same site-modal shell. */
+.ent-followup-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 4px 2px 10px;
+}
+.ent-followup-field label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-color, #1f2937);
+}
+.ent-followup-field input[type="date"] {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #d1d5db);
+    background: var(--bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    width: 100%;
+    box-sizing: border-box;
+}
+.ent-followup-field input[type="date"]:focus-visible {
+    outline: 3px solid var(--primary-color, #0284c7);
+    outline-offset: 1px;
+}
+.ent-followup-field .ent-hint { margin: 0; }
+.ent-site-save {
+    border: none;
+    border-radius: 9px;
+    padding: 8px 16px;
+    margin-right: 4px;
+    background: var(--primary-color, #0284c7);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ent-site-save:hover { filter: brightness(0.94); }
+
+@media (max-width: 480px) {
+    .ent-site-choices { grid-template-columns: 1fr; }
+    .ent-site-foot { flex-direction: column-reverse; }
+    .ent-site-save, .ent-site-cancel { width: 100%; }
+}
+
+/* =========================================
+   DATABASE RECORDS MODAL
+   ========================================= */
+.ent-db-modal {
+    z-index: 10000;
+    padding: 16px;
+}
+
+.ent-db-dialog {
+    display: flex;
+    flex-direction: column;
+    /* Widened and made taller on request: doctors read this dialog, not just
+       glance at it. 720px/84vh truncated the record cards (case no. + MRN +
+       saver wrapped) and only fit ~4 rows. Now near-fullscreen on small
+       screens while still bounded (1100px / 94vh) so the header, toolbar and
+       sort chips stay visible without scrolling. The list below is the flex
+       scroller, so the whole height goes to visible records. */
+    width: min(1100px, 96vw);
+    max-height: min(94vh, 1200px);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    text-align: left;
+}
+
+.ent-db-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.08));
+}
+
+.ent-db-heading h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.ent-db-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-db-close {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--secondary-text-color, #6b7280);
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+
+.ent-db-close:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.ent-db-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px 0;
+}
+
+.ent-db-search {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--input-border-color, #d1d5db);
+    border-radius: 9px;
+    background: var(--input-bg-color, var(--panel-bg-color, #fff));
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+.ent-db-refresh {
+    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--panel-bg-color, #fff);
+    color: inherit;
+    border-radius: 9px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ent-db-refresh:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+/* Hospital tabs - All | CUMC Records | RMCI Records. Feature-flagged:
+   dbRecords.js keeps the container hidden for every other clinic, and
+   [hidden] has to be re-stated here because display:flex would otherwise
+   beat the user-agent rule for the hidden attribute. */
+.ent-db-sites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 18px 0;
+}
+
+.ent-db-sites[hidden] { display: none; }
+
+/* Sort bar - Latest (default) | A-Z. NOT feature-flagged: every clinic
+   gets it, so it never carries the [hidden] rule. Same pill shape as the
+   hospital tabs - one visual language, and the active chip uses the same
+   indigo "this view" colour (never a hospital colour). */
+.ent-db-sortbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 18px 0;
+}
+
+.ent-db-sortlabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-db-site,
+.ent-db-sort {
+    border: 1px solid var(--border-color, #e5e7eb);
+    background: var(--panel-bg-color, #fff);
+    color: var(--secondary-text-color, #6b7280);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-db-site:hover, .ent-db-sort:hover { border-color: #6366f1; color: #6366f1; }
+
+/* The ACTIVE tab is indigo, deliberately not a hospital colour: it says
+   "this view", never "this hospital". */
+.ent-db-site.is-active,
+.ent-db-sort.is-active {
+    background: rgba(99, 102, 241, 0.14);
+    border-color: rgba(99, 102, 241, 0.40);
+    color: #4f46e5;
+}
+
+.ent-db-status {
+    padding: 8px 18px 0;
+    font-size: 0.75rem;
+    color: var(--secondary-text-color, #6b7280);
+    min-height: 1.2em;
+}
+
+.ent-db-status.is-error {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.ent-db-status.is-loading::after {
+    content: ' …';
+}
+
+.ent-db-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 18px 18px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 120px;
+}
+
+.ent-db-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    background: var(--panel-bg-color, #fff);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ent-db-card:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.ent-db-card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.ent-db-card-topline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.ent-db-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #4338ca;
+    background: rgba(99, 102, 241, 0.12);
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.ent-db-card-id {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-db-card-name {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+}
+
+/* The name row, feature ON: the hospital zone rides on the RIGHT of the
+   patient's name - the one place the clinic asked to read it. The wrapper
+   only exists while the flag is on, so every other clinic keeps a plain
+   <h4> and this rule never applies to it. */
+.ent-db-card-namerow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.ent-db-card-namerow .ent-db-card-name {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ent-db-progress-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    margin: 1px 0 4px;
+}
+.ent-db-work-progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 17px;
+    margin: 0;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.68rem;
+    line-height: 1;
+}
+.ent-db-work-progress-label {
+    flex: 0 0 auto;
+    color: var(--text-color, #1f2937);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ent-db-work-progress strong {
+    flex: 0 0 auto;
+    color: #0369a1;
+    font-variant-numeric: tabular-nums;
+}
+.ent-db-work-progress progress {
+    flex: 1 1 56px;
+    width: 56px;
+    min-width: 24px;
+    height: 4px;
+    margin: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #0284c7;
+    accent-color: #0284c7;
+}
+.ent-db-work-progress progress::-webkit-progress-bar {
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+.ent-db-work-progress progress::-webkit-progress-value {
+    border-radius: 999px;
+    background: #0284c7;
+}
+.ent-db-work-progress progress::-moz-progress-bar {
+    border-radius: 999px;
+    background: #0284c7;
+}
+.ent-db-work-progress-status {
+    flex: 0 0 auto;
+    color: #15803d;
+    font-size: 0.62rem;
+    font-weight: 700;
+}
+.ent-db-work-progress.is-complete strong {
+    color: #15803d;
+}
+.ent-db-work-progress.is-complete progress,
+.ent-db-work-progress.is-complete progress::-webkit-progress-value,
+.ent-db-work-progress.is-complete progress::-moz-progress-bar {
+    color: #16a34a;
+    accent-color: #16a34a;
+    background: #16a34a;
+}
+.ent-db-work-progress.is-unavailable {
+    min-height: 17px;
+    margin: 0;
+    font-size: 0.66rem;
+}
+body.dark-mode .ent-db-work-progress strong {
+    color: #7dd3fc;
+}
+body.dark-mode .ent-db-work-progress.is-complete strong,
+body.dark-mode .ent-db-work-progress.is-complete .ent-db-work-progress-status {
+    color: #86efac;
+}
+
+.ent-db-card-site {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap; /* a narrow card wraps the buttons, never overflows */
+    max-width: 100%;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+/* Re-scoped copies of the drafts badge (style/auth.css), so the badge
+   keeps its colours even on a page that does not load auth.css.
+   Identical declarations - no conflict when both sheets are present.
+   Two hues, not two shades of one: RMCI sky-blue vs CUMC purple, so the
+   two hospitals are distinguishable without reading the letters. */
+.ent-db-card .ent-drafts-site-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.ent-db-card .ent-drafts-site-badge.is-rmci {
+    background: rgba(14, 165, 233, 0.16);
+    color: #0369a1;
+    border-color: rgba(2, 132, 199, 0.30);
+}
+
+.ent-db-card .ent-drafts-site-badge.is-cumc {
+    background: rgba(124, 58, 237, 0.16);
+    color: #6d28d9;
+    border-color: rgba(109, 40, 217, 0.30);
+}
+
+/* No hospital recorded: honest and muted, deliberately NOT a third colour
+   that could be mistaken for a real one (the rule drafts follow). */
+.ent-db-site-none {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    background: rgba(120, 113, 108, 0.12);
+    border: 1px dashed rgba(120, 113, 108, 0.40);
+    color: var(--secondary-text-color, #6b7280);
+}
+
+/* Final-saved status beside the ID chip: green check when final saved,
+   amber "Editable" pill while the record is still editable */
+.ent-db-card-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border-radius: 999px;
+    background: #10b981;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    cursor: default;
+    transition: background 0.2s ease;
+}
+.ent-db-card-check.is-shown { display: inline-flex; }
+.ent-db-card-check:not(.is-shown) { display: none; }
+.ent-db-card-check:hover { background: #059669; }
+
+.ent-db-card-editable {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.55);
+    color: #b45309;
+}
+
+/* Final-saved \u2192 editable toggle button: sits right beside the Move button,
+   the Set/Move sibling and this toggle now share ONE compact pill. The
+   form pages ship a page-wide `button` rule (12px/24px padding, a 140px
+   min-width, uppercase text and a gradient) that is far too big for a
+   name row, so every property it sets is re-claimed here. Width is
+   content-driven (padding + nowrap): each label always sits INSIDE the
+   pill - never clipped, never spilling past the border - and a narrow
+   card wraps the pair instead of overflowing. toggleFinalSaved() in
+   dbRecords.js drives the toggle, and its blue accent keeps it visually
+   apart from Set/Move. */
+.ent-db-card-site button {
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    width: auto;
+    min-width: 34px;
+    padding: 0 11px;
+    margin: 0;
+    box-sizing: border-box;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: none;
+    line-height: 1;
+    white-space: nowrap;
+    border-radius: 999px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background: #fff;
+    color: var(--text-color, #334155);
+    box-shadow: none;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.ent-db-card-site button:hover {
+    transform: none;
+    box-shadow: none;
+    background: #f1f5f9;
+}
+.ent-db-card-site button:active { transform: none; }
+
+/* The status toggle keeps the blue accent so it reads apart from Set/Move. */
+.ent-db-card-site .ent-db-final-saved {
+    background: var(--primary-light, #dbeafe);
+    border-color: var(--primary-color, #3b82f6);
+    color: var(--primary-color, #3b82f6);
+}
+.ent-db-card-site .ent-db-final-saved:hover {
+    background: #93c5fd;
+    border-color: #2563eb;
+    color: #1e3a8a;
+}
+
+body.dark-mode .ent-db-card-site button {
+    background: #111827;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+body.dark-mode .ent-db-card-site button:hover { background: #1f2937; }
+body.dark-mode .ent-db-card .ent-db-final-saved {
+    background: #1e3a5f;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+body.dark-mode .ent-db-card .ent-db-final-saved:hover {
+    background: #3b82f6;
+    color: #fff;
+}
+
+body.dark-mode .ent-db-card .ent-db-card-check { background: #059669; border-color: #10b981; }
+body.dark-mode .ent-db-card .ent-db-card-check:hover { background: #047857; }
+body.dark-mode .ent-db-card .ent-db-card-editable { background: rgba(245, 158, 11, 0.16); border-color: #f59e0b; color: #fbbf24; }
+
+.ent-db-card-meta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+/* Who saved this patient - the first letter acts as a small avatar. */
+.ent-db-card-by {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    color: var(--text-color, #1f2937);
+}
+
+.ent-db-card-by strong { font-weight: 700; }
+
+.ent-db-card-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border-radius: 50%;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+}
+
+/* Status chip, kept in case a row can never be confirmed as finished */
+.ent-db-card-state {
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.ent-db-card-state.is-saved {
+    color: #15803d;
+    background: rgba(21, 128, 61, 0.12);
+}
+
+.ent-db-card-state.is-draft {
+    color: #b45309;
+    background: rgba(217, 119, 6, 0.13);
+}
+
+.ent-db-card-id.is-empty {
+    color: #9ca3af;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Returning-patient count: "9 records - 4 visits", from loadPatientStats().
+   A pill so it reads as a fact about the PATIENT, beside the report badge
+   and the ID chip - not as part of this one record's metadata. */
+.ent-db-card-visits {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: #0f766e;
+    background: rgba(13, 148, 136, 0.12);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.ent-db-open {
+    flex: 0 0 auto;
+    border: none;
+    border-radius: 9px;
+    padding: 9px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+    box-shadow: 0 3px 8px rgba(99, 102, 241, 0.35);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.ent-db-open:hover {
+    transform: translateY(-1px);
+}
+
+/* Delete on a card - a SOFT delete into the recycle bin (0026/0034).
+   Deliberately red, deliberately beside Open, and it never means "erase":
+   the row, its payload and its photos all survive until an admin presses
+   "Delete forever" in the Admin Console. */
+.ent-db-del {
+    flex: 0 0 auto;
+    margin-left: 8px;
+    border: 1px solid rgba(231, 76, 50, 0.45);
+    border-radius: 9px;
+    padding: 9px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--danger-color, #dc2626);
+    background: rgba(231, 76, 50, 0.08);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.ent-db-del:hover {
+    transform: translateY(-1px);
+    background: rgba(231, 76, 50, 0.16);
+}
+
+/* Recycle-bin toggle in the toolbar. Drawn for an admin, a secretary, or
+   the row's own doctor (dbRecords.js hides it otherwise) -
+   ent_deleted_reports() refuses anyone else (0034, 0039). */
+.ent-db-trashbtn {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 9px;
+    background: var(--panel-bg-color, #fff);
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ent-db-trashbtn:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+/* Bin rows reuse the record card, tinted + dashed so "this one is
+   deleted" reads at a glance. Restore reuses .ent-db-open, recoloured
+   green: putting a record back is the hopeful action here. */
+.ent-db-trashcard {
+    border: 1px dashed rgba(231, 76, 50, 0.45);
+    background: rgba(231, 76, 50, 0.04);
+}
+
+.ent-db-restore {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 3px 8px rgba(5, 150, 105, 0.35);
+}
+
+.ent-db-empty {
+    padding: 28px 12px;
+    text-align: center;
+    font-size: 0.85rem;
+    white-space: pre-line;
+    color: var(--secondary-text-color, #6b7280);
+    border: 1px dashed var(--border-color, #e5e7eb);
+    border-radius: 12px;
+}
+
+/* Confirm dialog shown on top of the records modal */
+.ent-db-confirm {
+    z-index: 10050;
+    padding: 16px;
+}
+
+.ent-db-confirm-dialog {
+    width: min(420px, 94vw);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: left;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.ent-db-confirm-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.ent-db-confirm-text {
+    margin: 0 0 16px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.ent-db-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.ent-db-confirm-no,
+.ent-db-confirm-yes {
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ent-db-confirm-no {
+    background: transparent;
+    color: inherit;
+}
+
+.ent-db-confirm-yes {
+    border: none;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #4338ca);
+}
+
+@media (max-width: 600px) {
+    .ent-db-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ent-db-open {
+        width: 100%;
+    }
+
+    .ent-db-toolbar {
+        flex-direction: column;
+    }
+}
+
+/* =========================================
+   LOCAL DRAFTS - "My Drafts" button & popup
+   ========================================= */
+.group-work .btn-local-drafts {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4);
+    color: #fff;
+}
+
+.ent-drafts-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.55);
+}
+
+.ent-drafts-modal.is-open {
+    display: flex;
+}
+
+.ent-drafts-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(760px, 96vw);
+    max-height: min(86vh, 920px);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    text-align: left;
+}
+
+.ent-drafts-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(217, 119, 6, 0.08));
+}
+
+.ent-drafts-heading h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.ent-drafts-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-drafts-close {
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--secondary-text-color, #6b7280);
+    border-radius: 8px;
+    padding: 2px 8px;
+}
+
+.ent-drafts-close:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.ent-drafts-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px 0;
+}
+
+.ent-drafts-search {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--input-border-color, #d1d5db);
+    border-radius: 9px;
+    background: var(--input-bg-color, var(--panel-bg-color, #fff));
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+/* Two views of the same shelf. Deliberately quiet: a tab is a way to look,
+   not a call to action - only the active one gets the left rule. */
+.ent-drafts-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 18px 0;
+}
+
+.ent-drafts-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-left: 3px solid transparent;
+    border-radius: 9px;
+    background: var(--panel-bg-color, #fff);
+    color: var(--secondary-text-color, #6b7280);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ent-drafts-tab:hover {
+    background: rgba(14, 165, 233, 0.08);
+}
+
+.ent-drafts-tab.is-active {
+    border-left-color: var(--primary-color, #0ea5e9);
+    color: var(--text-color, #1f2937);
+    background: rgba(14, 165, 233, 0.12);
+}
+
+.ent-drafts-tabcount {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--secondary-text-color, #6b7280);
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 1px 7px;
+    min-width: 22px;
+    text-align: center;
+}
+
+/* WHO WROTE IT - only ever shown on somebody else's card. */
+.ent-drafts-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.12);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+/* WHO LAST EDITED IT. Amber rather than purple: on a card the purple chip
+   already says "theirs", this one says "and then somebody carried it on". */
+.ent-drafts-edited {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #b45309;
+    background: rgba(217, 119, 6, 0.12);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
+.ent-drafts-status {
+    margin: 10px 18px 0;
+    padding: 8px 12px;
+    border-radius: 9px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+}
+
+.ent-drafts-status.is-error {
+    background: rgba(185, 28, 28, 0.12);
+    color: #b91c1c;
+}
+
+.ent-drafts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 18px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 140px;
+}
+
+/* Draft card: one tidy block, patient first, small quiet actions. */
+.ent-drafts-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-left: 4px solid var(--primary-color, #0ea5e9);
+    border-radius: 13px;
+    padding: 11px 13px;
+    background: var(--panel-bg-color, #fff);
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.ent-drafts-card:hover {
+    border-color: var(--primary-color, #0ea5e9);
+    border-left-color: var(--primary-color, #0ea5e9);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.16);
+    transform: translateY(-1px);
+}
+.ent-drafts-main { flex: 1 1 auto; min-width: 0; }
+.ent-drafts-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+}
+.ent-drafts-badge {
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(14, 165, 233, 0.14);
+    color: #0369a1;
+    border: 1px solid rgba(2, 132, 199, 0.28);
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+.ent-drafts-date {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--secondary-text-color, #6b7280);
+}
+.ent-drafts-state {
+    margin-left: auto;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color, #6b7280);
+    background: rgba(100, 116, 139, 0.12);
+    border-radius: 999px;
+    padding: 2px 9px;
+    white-space: nowrap;
+}
+.ent-drafts-state.is-shared {
+    color: #15803d;
+    background: rgba(39, 174, 96, 0.14);
+}
+.ent-drafts-state.is-error {
+    color: #b91c1c;
+    background: rgba(231, 76, 60, 0.14);
+}
+.ent-drafts-name {
+    margin: 0 0 3px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color, #1f2937);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-drafts-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 0.72rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+.ent-drafts-meta span:not(:last-child)::after {
+    content: '\00b7';
+    margin-left: 12px;
+    color: var(--border-color, #cbd5e1);
+}
+.ent-drafts-id { font-weight: 700; color: var(--text-color, #1f2937); }
+.ent-drafts-file {
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: var(--secondary-text-color, #6b7280);
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Two tidy columns: Open | JSON on top, Share | Delete below.
+   Fixed width + equal rows = every button is the same size, and the text can
+   never spill out of its cell. */
+.ent-drafts-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 30px;         /* both rows exactly the same height */
+    align-items: stretch;         /* buttons fill their cell */
+    align-content: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    width: 232px;          /* wide enough for "Save copy" without an ellipsis */
+}
+
+/* Normal case: the draft is already with the team, so there is no Share
+   button and the three actions sit in one tidy row. */
+.ent-drafts-actions.is-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 276px;
+}
+/* Small, quiet buttons: only Open is filled. */
+.ent-drafts-actions button {
+    display: block;               /* block so the ellipsis actually works */
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 8px;
+    padding: 0 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 30px;            /* matches grid-auto-rows -> perfectly even */
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.ent-drafts-open {
+    background: linear-gradient(135deg, var(--primary-color, #0ea5e9), #0369a1);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
+}
+.ent-drafts-download {
+    background: transparent;
+    color: #15803d;
+    border: 1px solid rgba(21, 128, 61, 0.35);
+}
+.ent-drafts-download:hover:not(:disabled) { background: rgba(21, 128, 61, 0.1); }
+.ent-drafts-share {
+    background: transparent;
+    color: var(--primary-hover-color, #0284c7);
+    border: 1px solid rgba(2, 132, 199, 0.32);
+}
+.ent-drafts-share:hover:not(:disabled) { background: rgba(2, 132, 199, 0.1); }
+/* The retry button only exists when the team copy is missing. */
+.ent-drafts-share.is-error {
+    background: rgba(231, 76, 60, 0.12);
+    color: #b91c1c;
+    border-color: rgba(185, 28, 28, 0.35);
+}
+.ent-drafts-share.is-error:hover:not(:disabled) { background: rgba(185, 28, 28, 0.1); }
+.ent-drafts-delete {
+    background: transparent;
+    color: #b91c1c;
+    border: 1px solid rgba(185, 28, 28, 0.28);
+    font-size: 0.72rem;
+}
+.ent-drafts-delete:hover:not(:disabled) { background: rgba(185, 28, 28, 0.1); }
+.ent-drafts-open:hover:not(:disabled) { transform: translateY(-1px); }
+.ent-drafts-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ent-drafts-empty {
+    padding: 28px 12px;
+    text-align: center;
+    color: var(--secondary-text-color, #6b7280);
+    font-size: 0.85rem;
+    border: 1px dashed var(--border-color, #e5e7eb);
+    border-radius: 12px;
+}
+
+.ent-drafts-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.ent-drafts-summary {
+    font-size: 0.72rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-drafts-clear {
+    border: 1px solid rgba(185, 28, 28, 0.4);
+    background: transparent;
+    color: #b91c1c;
+    border-radius: 9px;
+    padding: 7px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-drafts-clear:hover:not(:disabled) {
+    background: rgba(185, 28, 28, 0.08);
+}
+
+.ent-drafts-clear:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Confirm dialog shown on top of the drafts modal */
+.ent-drafts-confirm {
+    position: absolute;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.ent-drafts-confirm-dialog {
+    width: min(420px, 94vw);
+    background: var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.45);
+}
+
+.ent-drafts-confirm-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+}
+
+.ent-drafts-confirm-text {
+    margin: 0 0 16px;
+    font-size: 0.86rem;
+    color: var(--secondary-text-color, #6b7280);
+}
+
+.ent-drafts-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.ent-drafts-confirm-no,
+.ent-drafts-confirm-yes {
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-drafts-confirm-no {
+    background: transparent;
+    color: inherit;
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ent-drafts-confirm-yes {
+    border: none;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color, #0ea5e9), #0369a1);
+}
+
+/* Unsaved-form exit prompt */
+.form-exit-overlay {
+    z-index: 10060;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.66);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.form-exit-overlay.is-open { opacity: 1; }
+.form-exit-overlay.is-closing { opacity: 0; }
+.form-exit-dialog {
+    width: min(100%, 460px);
+    padding: 30px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -20%, rgba(14, 165, 233, 0.14), transparent 60%),
+        var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    text-align: center;
+    box-shadow: 0 30px 90px rgba(2, 12, 27, 0.36);
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.form-exit-overlay.is-open .form-exit-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.form-exit-overlay.is-closing .form-exit-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.form-exit-icon {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 15px;
+    border: 1px solid rgba(14, 165, 233, 0.2);
+    border-radius: 19px;
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.15), rgba(2, 132, 199, 0.06));
+    color: var(--primary-color, #0ea5e9);
+}
+.form-exit-icon svg { width: 30px; height: 30px; }
+.form-exit-eyebrow {
+    margin: 0 0 6px;
+    color: var(--primary-color, #0ea5e9);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+.form-exit-dialog h2 {
+    margin: 0;
+    color: var(--text-color, #1f2937);
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.3;
+}
+.form-exit-dialog > p:last-of-type {
+    max-width: 350px;
+    margin: 10px auto 22px;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.91rem;
+    line-height: 1.6;
+}
+.form-exit-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+}
+.form-exit-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    background: var(--bg-color, #f8fafc);
+    color: var(--text-color, #1f2937);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.form-exit-actions button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.1);
+}
+.form-exit-actions .form-exit-save {
+    grid-column: 1 / -1;
+    border: 0;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.24);
+}
+.form-exit-actions .form-exit-save:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow: 0 9px 20px rgba(3, 105, 161, 0.3);
+}
+.form-exit-actions .form-exit-discard {
+    border-color: rgba(220, 62, 75, 0.22);
+    background: rgba(220, 62, 75, 0.07);
+    color: #b42332;
+}
+.form-exit-actions button:disabled { cursor: wait; opacity: 0.7; }
+.form-exit-actions button:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.42);
+    outline-offset: 3px;
+}
+.form-exit-actions svg { width: 17px; height: 17px; flex: 0 0 auto; }
+
+/* Database save and record-loaded feedback */
+.db-feedback-overlay {
+    z-index: 10110;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.68);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    opacity: 0;
+    transition: opacity 190ms ease;
+}
+.db-feedback-overlay.is-open { opacity: 1; }
+.db-feedback-overlay.is-closing { opacity: 0; }
+.db-feedback-dialog {
+    width: min(100%, 440px);
+    padding: 30px 28px 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 50% -18%, rgba(22, 163, 74, 0.11), transparent 58%),
+        var(--panel-bg-color, #fff);
+    color: var(--text-color, #1f2937);
+    text-align: center;
+    box-shadow: 0 30px 90px rgba(2, 12, 27, 0.38);
+    opacity: 0;
+    transform: translateY(13px) scale(0.97);
+    transition: opacity 190ms ease, transform 230ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.db-feedback-overlay.is-open .db-feedback-dialog {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.db-feedback-overlay.is-closing .db-feedback-dialog {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+}
+.db-feedback-icon {
+    display: grid;
+    place-items: center;
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 16px;
+    border: 1px solid rgba(22, 163, 74, 0.2);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(22, 163, 74, 0.15), rgba(22, 163, 74, 0.06));
+    color: #16a34a;
+}
+.db-feedback-icon.is-loaded {
+    border-color: rgba(14, 165, 233, 0.2);
+    background: linear-gradient(145deg, rgba(14, 165, 233, 0.15), rgba(2, 132, 199, 0.06));
+    color: var(--primary-color, #0ea5e9);
+}
+.db-feedback-icon svg { width: 34px; height: 34px; }
+.db-feedback-eyebrow {
+    margin: 0 0 6px;
+    color: #15803d;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+}
+.db-feedback-icon.is-loaded + .db-feedback-eyebrow { color: var(--primary-color, #0ea5e9); }
+.db-feedback-dialog h2 {
+    margin: 0;
+    color: var(--text-color, #1f2937);
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.3;
+}
+.db-feedback-dialog > p:nth-of-type(2) {
+    margin: 10px auto 17px;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.93rem;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+.db-feedback-detail {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 21px;
+    padding: 13px 14px;
+    border: 1px solid rgba(22, 163, 74, 0.16);
+    border-radius: 13px;
+    background: rgba(22, 163, 74, 0.055);
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: left;
+}
+.db-feedback-detail strong { color: var(--text-color, #1f2937); }
+.db-feedback-detail-check {
+    display: grid;
+    place-items: center;
+    flex: 0 0 21px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background: #16a34a;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+.db-feedback-detail-check.is-blue { background: var(--primary-color, #0ea5e9); }
+.db-feedback-done {
+    width: 100%;
+    min-height: 47px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #15803d, #16a34a);
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.24);
+    font-size: 0.82rem;
+}
+.db-feedback-icon.is-loaded ~ .db-feedback-done {
+    background: linear-gradient(135deg, #0ea5e9, #0369a1);
+    box-shadow: 0 6px 16px rgba(3, 105, 161, 0.24);
+}
+.db-feedback-done:hover { transform: translateY(-1px); }
+.db-feedback-done:focus-visible {
+    outline: 3px solid rgba(22, 163, 74, 0.4);
+    outline-offset: 3px;
+}
+
+/* The shared feedback dialog is used after final database saves and record opens. */
+#messageModal {
+    z-index: 10100 !important;
+    padding: 20px;
+    background: rgba(8, 20, 38, 0.66);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+#messageModal .modal-content {
+    width: min(100%, 430px);
+    max-width: 430px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 21px !important;
+    background: var(--panel-bg-color, #fff);
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.34) !important;
+    animation: feedback-modal-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#messageModal .modal-header {
+    padding: 17px 21px !important;
+    background: linear-gradient(135deg, #0ea5e9, #0369a1) !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.02em;
+}
+#messageModal .modal-body { padding: 22px 21px !important; font-size: 0.94rem !important; }
+#messageModal .modal-body p { color: var(--text-color, #1f2937); }
+#messageModal .modal-footer {
+    padding: 14px 18px !important;
+    background: var(--bg-color, #f8fafc) !important;
+    border-color: var(--border-color, #e2e8f0) !important;
+}
+#messageModal .modal-footer button {
+    min-width: 100px;
+    min-height: 42px;
+    padding: 10px 19px;
+    border-radius: 11px;
+    font-size: 0.8rem;
+}
+
+/* Record-open confirmation sits above the DB browser and uses the same polished surface. */
+.ent-db-confirm {
+    background: rgba(8, 20, 38, 0.68);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.ent-db-confirm-dialog {
+    width: min(430px, 94vw);
+    padding: 28px;
+    border-radius: 22px;
+    box-shadow: 0 28px 80px rgba(2, 12, 27, 0.36);
+    transform: translateY(8px) scale(0.98);
+    animation: db-confirm-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.ent-db-confirm-icon {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 14px;
+    border: 1px solid rgba(14, 165, 233, 0.18);
+    border-radius: 18px;
+    background: rgba(14, 165, 233, 0.1);
+    color: var(--primary-color, #0ea5e9);
+}
+.ent-db-confirm-icon svg { width: 27px; height: 27px; }
+.ent-db-confirm-title { text-align: center; font-size: 1.2rem; letter-spacing: -0.025em; }
+.ent-db-confirm-text { margin: 10px 0 22px; color: var(--secondary-text-color, #64748b); text-align: center; }
+.ent-db-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ent-db-confirm-actions button {
+    min-height: 45px;
+    padding: 10px 12px;
+    border-radius: 11px;
+    font-size: 0.8rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ent-db-confirm-no { background: var(--bg-color, #f8fafc); }
+.ent-db-confirm-yes { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+@keyframes db-confirm-in { to { transform: translateY(0) scale(1); } }
+@keyframes feedback-modal-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 480px) {
+    .form-exit-dialog { padding: 26px 20px 20px; border-radius: 21px; }
+    .form-exit-actions { grid-template-columns: 1fr; }
+    .form-exit-actions .form-exit-save { grid-column: auto; grid-row: 1; }
+    .form-exit-actions .form-exit-keep { grid-row: 2; }
+    .form-exit-actions .form-exit-discard { grid-row: 3; }
+    .ent-db-confirm-actions { grid-template-columns: 1fr; }
+    .db-feedback-dialog { padding: 27px 20px 20px; border-radius: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .form-exit-overlay,
+    .form-exit-dialog,
+    .form-exit-actions button { transition-duration: 0.01ms; }
+    .ent-db-confirm-dialog { animation-duration: 0.01ms; }
+    #messageModal .modal-content { animation-duration: 0.01ms; }
+    .db-feedback-overlay,
+    .db-feedback-dialog { transition-duration: 0.01ms; }
+}
+
+@media (max-width: 600px) {
+    .ent-drafts-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .ent-drafts-state { margin-left: 0; }
+    .ent-drafts-actions,
+    .ent-drafts-actions.is-compact {
+        width: 100%;
+        grid-auto-rows: 38px;
+    }
+    .ent-drafts-actions button {
+        padding: 0 10px;
+        line-height: 38px;
+    }
+    .ent-drafts-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .ent-drafts-clear {
+        width: 100%;
+    }
+}

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console - ENT Endoscopy System</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../style/auth.css?v=v33al">
+    <link rel="stylesheet" href="../style/admin.css?v=v34ab">
+    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+</head>
+<body class="ent-admin-page">
+    <!-- Header: the actions row is a normal flex child now, so the sign-out
+         chip that auth.js injects can never land on top of "Back to app". -->
+    <div class="header ent-admin-header">
+        <div class="header-content">
+            <button type="button" class="ent-nav-toggle" id="adminNavToggle"
+                    aria-label="Open menu" aria-expanded="false" aria-controls="adminTabs">
+                <span class="ent-burger" aria-hidden="true"></span>
+            </button>
+            <div class="ent-admin-brand">
+                <span class="ent-admin-brand-icon">&#9881;</span>
+                <span class="ent-admin-brand-text">
+                    <h1>Admin Console</h1>
+                    <small id="adminGreeting">Clinic activity, growth &amp; database usage</small>
+                </span>
+            </div>
+            <div class="ent-admin-actions">
+                <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">checking&hellip;</span></span>
+                <div class="header-user-slot" id="headerUserSlot"></div>
+                <a class="ent-btn ent-admin-back" href="../index.html">&larr; Back to app</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="ent-admin-main">
+        <!-- ------------------ SIDEBAR ------------------
+             A solid rail down the left edge, not a strip across the top.
+             The tab strip used to wrap onto a second row, which read as a
+             mistake rather than a design. A rail has room for every label
+             at any width and never reflows.
+
+             Tickets and Settings are PANELS here, not links that navigate
+             away: leaving the console to answer a ticket loses your place,
+             and the whole point of the console is that everything an admin
+             does lives in one screen.
+
+             There is deliberately NO "My tickets" tab. An admin answers the
+             clinic queue; filing a ticket is what a doctor or a secretary
+             does, from tickets.html.
+        -->
+        <nav class="ent-admin-nav" id="adminTabs" aria-label="Admin sections">
+            <div class="ent-nav-cluster">
+                <span class="ent-nav-group-label">Workspace</span>
+                <button type="button" data-panel="overview" data-title="Overview" class="active" aria-current="true" title="Overview">
+                    <span class="ent-nav-icon" aria-hidden="true">&#9636;</span>
+                    <span class="ent-nav-text">Overview</span>
+                </button>
+            </div>
+            <span class="ent-nav-sep" aria-hidden="true"></span>
+            <div class="ent-nav-cluster">
+                <span class="ent-nav-group-label">Management</span>
+                <button type="button" data-panel="clinics" data-title="Clinics" title="Clinics - doctors and their secretaries">
+                    <span class="ent-nav-icon" aria-hidden="true">&#127974;</span>
+                    <span class="ent-nav-text">Clinics</span>
+                </button>
+                <button type="button" data-panel="growth" data-title="Records growth" title="Records growth per clinic">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128200;</span>
+                    <span class="ent-nav-text">Growth</span>
+                </button>
+                <button type="button" data-panel="users" data-title="Users" title="Doctors, secretaries, access">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128101;</span>
+                    <span class="ent-nav-text">Users</span>
+                </button>
+            </div>
+            <span class="ent-nav-sep" aria-hidden="true"></span>
+            <div class="ent-nav-cluster">
+                <span class="ent-nav-group-label">Operations</span>
+                <button type="button" data-panel="sessions" data-title="Active sessions" title="Who is online right now">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128250;</span>
+                    <span class="ent-nav-text">Active sessions</span>
+                </button>
+                <button type="button" data-panel="activity" data-title="Activity log" title="Every sign-in and record">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128203;</span>
+                    <span class="ent-nav-text">Activity log</span>
+                </button>
+                <button type="button" data-panel="tickets" data-title="Tickets" title="Problems your staff reported about the app">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128221;</span>
+                    <span class="ent-nav-text">Tickets</span>
+                    <span class="ent-nav-count" id="ticketNavCount" hidden>0</span>
+                </button>
+            </div>
+            <span class="ent-nav-sep" aria-hidden="true"></span>
+            <div class="ent-nav-cluster">
+                <span class="ent-nav-group-label">System</span>
+                <button type="button" data-panel="trash" data-title="Deleted records" title="Records a doctor deleted by mistake - restore them here">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128465;</span>
+                    <span class="ent-nav-text">Deleted records</span>
+                    <span class="ent-nav-count" id="trashNavCount" hidden>0</span>
+                </button>
+                <button type="button" data-panel="database" data-title="Database usage" title="Tables, size and plan limits">
+                    <span class="ent-nav-icon" aria-hidden="true">&#128190;</span>
+                    <span class="ent-nav-text">Database usage</span>
+                </button>
+                <button type="button" data-panel="settings" data-title="Settings" title="Clinic name and capability switches">
+                    <span class="ent-nav-icon" aria-hidden="true">&#9881;&#65039;</span>
+                    <span class="ent-nav-text">Settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Tapping the dimmed backdrop closes the drawer. It is a real
+             button, not a div, so it is reachable by keyboard and announced
+             as a control. -->
+        <button type="button" class="ent-drawer-scrim" id="adminNavScrim"
+                tabindex="-1" aria-hidden="true" aria-label="Close menu"></button>
+
+        <div class="ent-admin-body">
+
+        <div class="ent-admin-bar">
+            <h2 class="ent-admin-bar-title" id="panelTitle">Overview</h2>
+            <span class="ent-live-refresh" id="lastRefresh"></span>
+        </div>
+
+        <!-- ---------------------------- OVERVIEW --------------------------- -->
+        <section class="ent-admin-panel active" id="panel-overview">
+            <div class="ent-stat-groups">
+                <section class="ent-stat-group">
+                    <header class="ent-stat-group-head"><span class="ent-group-dot live"></span>Right now</header>
+                    <div class="ent-stat-grid">
+                        <div class="ent-stat"><div class="ent-stat-value" id="statActive">-</div><div class="ent-stat-label">Active now</div></div>
+                        <div class="ent-stat"><div class="ent-stat-value" id="statLogins">-</div><div class="ent-stat-label">Logins today</div></div>
+                        <div class="ent-stat ok"><div class="ent-stat-value" id="statRecords">-</div><div class="ent-stat-label">Records today</div></div>
+                    </div>
+                </section>
+
+                <section class="ent-stat-group">
+                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>People</header>
+                    <div class="ent-stat-grid">
+                        <div class="ent-stat"><div class="ent-stat-value" id="statUsers">-</div><div class="ent-stat-label">Total users</div></div>
+                        <div class="ent-stat ok"><div class="ent-stat-value" id="statDoctors">-</div><div class="ent-stat-label">Doctors</div></div>
+                        <div class="ent-stat warn"><div class="ent-stat-value" id="statSecretaries">-</div><div class="ent-stat-label">Secretaries</div></div>
+                        <div class="ent-stat danger"><div class="ent-stat-value" id="statInactive">-</div><div class="ent-stat-label">Deactivated</div></div>
+                    </div>
+                </section>
+
+                <section class="ent-stat-group">
+                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>Records</header>
+                    <div class="ent-stat-grid">
+                        <div class="ent-stat"><div class="ent-stat-value" id="statWeek">-</div><div class="ent-stat-label">This week</div></div>
+                        <div class="ent-stat"><div class="ent-stat-value" id="statMonth">-</div><div class="ent-stat-label">This month</div></div>
+                        <div class="ent-stat"><div class="ent-stat-value" id="statTotal">-</div><div class="ent-stat-label">All records</div></div>
+                    </div>
+                </section>
+
+                <section class="ent-stat-group">
+                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>Coverage</header>
+                    <div class="ent-stat-grid">
+                        <div class="ent-stat"><div class="ent-stat-value" id="statClinics">-</div><div class="ent-stat-label">Clinics reporting</div></div>
+                        <div class="ent-stat warn"><div class="ent-stat-value" id="statDb">-</div><div class="ent-stat-label">DB used</div></div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Clinic snapshot</h3>
+                    <span class="ent-hint" id="snapshotHint">Today vs yesterday, per consultation room / branch</span>
+                </div>
+                <div class="ent-snapshot-grid" id="clinicSnapshot">
+                    <div class="ent-empty">Loading clinic totals&hellip;</div>
+                </div>
+            </div>
+
+            <!-- Top clinics by volume. A podium of the three busiest clinics,
+                 ranked on the ALL-TIME record count (periodTotals().total),
+                 not today's - a clinic that is quiet this morning is still
+                 the one that has done the most work. -->
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Top clinics by records</h3>
+                    <span class="ent-hint" id="topClinicsHint">The three clinics that have recorded the most patients</span>
+                </div>
+                <div class="ent-topclinics" id="topClinics">
+                    <div class="ent-empty">Loading clinic totals&hellip;</div>
+                </div>
+            </div>
+
+            <div class="ent-card-grid">
+                <div class="ent-card">
+                    <div class="ent-card-head">
+                        <h3>Last 7 days &mdash; all clinics</h3>
+                        <span class="ent-hint" id="weekTrendHint"></span>
+                    </div>
+                    <div class="ent-chart" id="overviewChart"><div class="ent-empty">Loading&hellip;</div></div>
+                </div>
+                <div class="ent-card">
+                    <div class="ent-card-head"><h3>Report mix (30 days)</h3></div>
+                    <div id="typeMix"><div class="ent-empty">Loading&hellip;</div></div>
+                </div>
+            </div>
+
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Live sessions</h3></div>
+                <div class="ent-table-wrap">
+                    <table class="ent-table">
+                        <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Seen</th><th>Status</th></tr></thead>
+                        <tbody id="overviewSessions"><tr><td colspan="5" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LATEST PATIENT RECORDS, per clinic. The Overview already said
+                 HOW MANY records each clinic has; this answers WHO filed the
+                 newest ones, WHERE the patient was seen (RMCI / CUMC) and HOW
+                 LONG AGO - the three questions an admin is asked in the
+                 hallway and otherwise has to open DB Records to answer.
+                 Newest first, one block per clinic, capped at the five newest
+                 rows each so one busy clinic cannot push the rest off screen. -->
+            <!-- Clinic-wide follow-up tracker: every patient across the whole
+                 clinic who was told to come back, soonest (overdue) first.
+                 Reads payload.followUpDate, so it needs no migration and is
+                 empty until a record is saved with a follow-up date. -->
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>&#128197; Follow-ups due</h3>
+                    <span class="ent-hint" id="followUpHint">&mdash;</span>
+                </div>
+                <div class="ent-followup" id="adminFollowUp">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Latest patients records</h3>
+                    <span class="ent-hint" id="latestPatientsHint">Newest first &middot; grouped by clinic</span>
+                </div>
+                <div class="ent-latest" id="latestPatients">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+            <!-- POSSIBLE DUPLICATES (0041): a READ-ONLY review list from
+                 ent_possible_duplicates() - groups of live final rows on
+                 the SAME shelf sharing a normalised name + date + type.
+                 It has no merge and no delete: a name is not a patient
+                 identifier, and only a human may decide. Patient-ID
+                 duplicates never reach here - 0041's unique indexes stop
+                 them at the database. -->
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>&#128269; Possible duplicates</h3>
+                    <span class="ent-hint" id="dupHint">&mdash;</span>
+                </div>
+                <div class="ent-followup" id="adminDuplicates">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+        </section>
+        <!-- ----------------------------- CLINICS ---------------------------- -->
+        <section class="ent-admin-panel" id="panel-clinics">
+            <header class="ent-clinic-hero">
+                <div>
+                    <h2>Clinics</h2>
+                    <p>Every clinic in this account, who works where, and how much each one has recorded.
+                       Each doctor is listed with the secretaries linked to them.</p>
+                </div>
+                <div class="ent-clinic-hero-actions">
+                    <button type="button" class="ent-btn" id="exportDirectoryBtn">
+                        <span aria-hidden="true">&#8681;</span> Export CSV
+                    </button>
+                    <button type="button" class="ent-btn" id="refreshDirectoryBtn">
+                        <span aria-hidden="true">&#8635;</span> Refresh
+                    </button>
+                </div>
+            </header>
+
+            <div class="ent-admin-toolbar">
+                <div class="ent-clinic-searchwrap">
+                    <input type="search" id="clinicSearch"
+                           placeholder="Search a clinic, doctor or secretary&hellip;"
+                           aria-label="Search clinics">
+                    <button type="button" class="ent-clinic-searchclear" id="clinicSearchClear"
+                            title="Clear the search" aria-label="Clear the search" hidden>&times;</button>
+                </div>
+                <span class="spacer"></span>
+            </div>
+
+            <!-- Totals for the whole account, before any filtering, so the
+                 number you are looking at can always be compared to the
+                 number that exists. -->
+            <div class="ent-clinic-summary" id="clinicSummary"></div>
+
+            <div class="ent-clinic-directory" id="clinicDirectory">
+                <div class="ent-empty">Loading clinics&hellip;</div>
+            </div>
+        </section>
+
+        <!-- ----------------------------- GROWTH ----------------------------- -->
+        <section class="ent-admin-panel" id="panel-growth">
+            <div class="ent-admin-toolbar">
+                <select id="growthRange" title="How far back to look">
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="365">Last 12 months</option>
+                </select>
+                <select id="clinicFilter"><option value="">All clinics</option></select>
+                <span class="spacer"></span>
+                <button type="button" class="ent-btn" id="exportClinicsBtn">&#8681; Export CSV</button>
+                <button type="button" class="ent-btn" id="refreshClinicsBtn">&#8635; Refresh</button>
+            </div>
+
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Records growth</h3>
+                    <div class="ent-segmented" id="growthMode">
+                        <button type="button" data-mode="day" class="active">Daily</button>
+                        <button type="button" data-mode="week">Weekly</button>
+                        <button type="button" data-mode="month">Monthly</button>
+                    </div>
+                </div>
+                <div class="ent-chart" id="growthChart"><div class="ent-empty">Loading&hellip;</div></div>
+                <div class="ent-legend" id="growthLegend"></div>
+                <p class="ent-hint" id="growthCaption"></p>
+            </div>
+
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Clinic comparison</h3>
+                    <span class="ent-hint">Today &middot; this week &middot; this month &middot; all time</span>
+                </div>
+                <div class="ent-table-wrap">
+                    <table class="ent-table">
+                        <thead><tr>
+                            <th>Clinic</th><th>Today</th><th>This week</th><th>This month</th>
+                            <th>All records</th><th>Staff active</th><th>Last record</th>
+                        </tr></thead>
+                        <tbody id="clinicTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Staff scoreboard</h3>
+                    <span class="ent-hint">One card per person &middot; biggest producer first</span>
+                </div>
+                <div class="ent-staff-grid" id="staffCards">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ------------------------------ USERS ----------------------------
+             People directory: hero + role counts, then grouped cards.
+             Same ids the code binds to (userSearch, roleFilter,
+             refreshUsersBtn, addUserBtn, usersGrid). -->
+        <section class="ent-admin-panel" id="panel-users">
+            <header class="ent-users-hero">
+                <span class="ent-users-hero-icon" aria-hidden="true">&#128101;</span>
+                <div class="ent-users-hero-text">
+                    <span class="ent-users-kicker">People</span>
+                    <h2>Users</h2>
+                    <p>Doctors, secretaries and admins in your clinic. Edit a card to change
+                       a role, set a new password, or deactivate an account.</p>
+                </div>
+                <div class="ent-users-hero-actions">
+                    <button type="button" class="ent-btn" id="refreshUsersBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
+                    <button type="button" class="ent-btn primary" id="addUserBtn"><span aria-hidden="true">&#10133;</span> Add user</button>
+                </div>
+            </header>
+            <div class="ent-users-stats" role="status" aria-label="User totals">
+                <div class="ent-user-stat is-doctor">
+                    <span class="ent-user-stat-n" id="userStatDoctors">-</span>
+                    <span class="ent-user-stat-l">Doctors</span>
+                </div>
+                <div class="ent-user-stat is-secretary">
+                    <span class="ent-user-stat-n" id="userStatSecretaries">-</span>
+                    <span class="ent-user-stat-l">Secretaries</span>
+                </div>
+                <div class="ent-user-stat is-admin">
+                    <span class="ent-user-stat-n" id="userStatAdmins">-</span>
+                    <span class="ent-user-stat-l">Admins</span>
+                </div>
+                <div class="ent-user-stat is-off">
+                    <span class="ent-user-stat-n" id="userStatInactive">-</span>
+                    <span class="ent-user-stat-l">Deactivated</span>
+                </div>
+            </div>
+            <div class="ent-admin-toolbar ent-users-toolbar">
+                <div class="ent-users-searchwrap">
+                    <span class="ent-users-searchic" aria-hidden="true">&#128269;</span>
+                    <input type="search" id="userSearch" placeholder="Search name or username&hellip;" aria-label="Search users">
+                </div>
+                <select id="roleFilter" aria-label="Filter by role">
+                    <option value="">All roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="secretary">Secretary</option>
+                </select>
+            </div>
+            <div class="ent-user-grid" id="usersGrid">
+                <div class="ent-empty">Loading users&hellip;</div>
+            </div>
+            <p class="ent-hint">Secretaries can only open the patients of their assigned doctor. Deactivating a user blocks the next sign-in and revokes that user&rsquo;s open sessions.</p>
+        </section>
+
+        <!-- ---------------------------- SESSIONS --------------------------- -->
+        <section class="ent-admin-panel" id="panel-sessions">
+            <div class="ent-admin-toolbar">
+                <label class="ent-hint" style="font-size:.85rem;"><input type="checkbox" id="liveChk" checked style="width:auto;"> Auto-refresh every 15&nbsp;s</label>
+                <span class="spacer"></span>
+                <button type="button" class="ent-btn" id="refreshSessionsBtn">&#8635; Refresh</button>
+            </div>
+            <div class="ent-table-wrap">
+                <table class="ent-table">
+                    <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Signed in</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+                    <tbody id="sessionsTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ---------------------------- ACTIVITY --------------------------- -->
+        <section class="ent-admin-panel" id="panel-activity">
+            <div class="ent-stat-grid ent-stat-grid-slim" id="activityKpis"></div>
+            <div class="ent-admin-toolbar">
+                <select id="activityUser"><option value="">Everyone</option></select>
+                <select id="activityFilter">
+                    <option value="">All actions</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGOUT">Logout</option>
+                    <option value="SAVE_RECORD">Record saved</option>
+                    <option value="OPEN_RECORD">Record opened</option>
+                    <option value="USER_CREATED">User created</option>
+                    <option value="USER_UPDATED">User updated</option>
+                    <option value="USER_ACTIVATED">User activated</option>
+                    <option value="USER_DEACTIVATED">User deactivated</option>
+                    <option value="PASSWORD_RESET">Password reset</option>
+                    <option value="SESSION_REVOKED">Session revoked</option>
+                </select>
+                <select id="activityPeriod">
+                    <option value="1">Today</option>
+                    <option value="7" selected>Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="0">Everything loaded</option>
+                </select>
+                <input type="search" id="activitySearch" placeholder="Search detail, patient, clinic&hellip;">
+                <span class="spacer"></span>
+                <button type="button" class="ent-btn" id="exportActivityBtn">&#8681; Export CSV</button>
+                <button type="button" class="ent-btn" id="refreshActivityBtn">&#8635; Refresh</button>
+            </div>
+            <div class="ent-table-wrap">
+                <table class="ent-table">
+                    <thead><tr><th>When</th><th>Who</th><th>Role</th><th>Clinic</th><th>Action</th><th>Detail</th></tr></thead>
+                    <tbody id="activityTable"><tr><td colspan="6" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                </table>
+            </div>
+            <p class="ent-hint" id="activityFoot"></p>
+        </section>
+
+        <!-- --------------------------- DATABASE ---------------------------- -->
+        <section class="ent-admin-panel" id="panel-database">
+            <div class="ent-admin-toolbar">
+                <span class="ent-hint" id="dbSourceNote">Reading usage straight from Postgres&hellip;</span>
+                <span class="spacer"></span>
+                <button type="button" class="ent-btn" id="refreshDbBtn">&#8635; Refresh</button>
+            </div>
+
+            <div class="ent-quota-grid" id="quotaCards">
+                <div class="ent-empty">Loading usage&hellip;</div>
+            </div>
+
+            <div class="ent-card-grid">
+                <div class="ent-card">
+                    <div class="ent-card-head">
+                        <h3>Where the space goes</h3>
+                        <span class="ent-hint" id="dbTablesHint"></span>
+                    </div>
+                    <div class="ent-table-wrap">
+                        <table class="ent-table">
+                            <thead><tr><th>Table</th><th>Rows</th><th>Table size</th><th>Indexes</th><th>Total</th></tr></thead>
+                            <tbody id="dbTable"><tr><td colspan="5" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="ent-card">
+                    <div class="ent-card-head"><h3>Records &amp; weight per clinic</h3></div>
+                    <div class="ent-table-wrap">
+                        <table class="ent-table">
+                            <thead><tr><th>Clinic</th><th>Records (window)</th><th>Share</th></tr></thead>
+                            <tbody id="clinicUsageTable"><tr><td colspan="3" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="ent-plan-note" id="planNote"></div>
+                </div>
+            </div>
+        </section>
+        <!-- ---------------------------- DELETED ---------------------------- -->
+        <!-- The recycle bin. A deleted record is not erased: 0026 hides it from
+             every reader and only this panel can bring it back. So this is where
+             a doctor's "I fat-fingered New form" ends up.
+
+             Reads go through ent_deleted_reports(), never a plain query: RLS
+             hides deleted rows from everyone including this console, which is
+             what stops them leaking through any other screen. -->
+        <section class="ent-admin-panel" id="panel-trash">
+            <div class="ent-admin-toolbar">
+                <span class="ent-hint" id="trashHint">Deleted records stay here until an administrator restores them - or erases them for good with "Delete forever".</span>
+                <span class="spacer"></span>
+                <button type="button" class="ent-btn danger" id="emptyTrashBtn" title="Erase every record deleted more than 90 days ago. Live records are never touched.">&#128465; Empty old bin</button>
+                <button type="button" class="ent-btn" id="refreshTrashBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
+            </div>
+            <div class="ent-card">
+                <div class="ent-card-head">
+                    <h3>Deleted records</h3>
+                    <span class="ent-hint">Nothing here has been erased unless you press "Delete forever". Restoring puts the record back exactly where it was.</span>
+                </div>
+                <div class="ent-trash-list" id="trashList">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ---------------------------- TICKETS ---------------------------
+             A support inbox, not a bare list. Stats on top answer "how much
+             work is waiting" before anything is opened; the queue on the left
+             is the worklist and the thread on the right is where it gets
+             answered. All control ids are unchanged - admin.js binds to
+             ticketSearch, ticketScopeFilter, ticketStatusFilter,
+             refreshTicketsBtn, adminTicketNotice, adminTicketList and
+             adminTicketDetail. -->
+        <section class="ent-admin-panel" id="panel-tickets">
+            <header class="ent-tickets-hero">
+                <div class="ent-tickets-hero-text">
+                    <h2>Support inbox</h2>
+                    <p>Problems your staff reported about the app itself.
+                       Pick a ticket on the left, read the thread, reply on the right.</p>
+                </div>
+                <button type="button" class="ent-btn" id="refreshTicketsBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
+            </header>
+            <div class="ent-tickets-stats" role="status" aria-label="Ticket totals">
+                <div class="ent-ticket-stat is-open">
+                    <span class="ent-ticket-stat-n" id="ticketStatOpen">-</span>
+                    <span class="ent-ticket-stat-l">Open</span>
+                </div>
+                <div class="ent-ticket-stat is-progress">
+                    <span class="ent-ticket-stat-n" id="ticketStatProgress">-</span>
+                    <span class="ent-ticket-stat-l">In progress</span>
+                </div>
+                <div class="ent-ticket-stat is-urgent">
+                    <span class="ent-ticket-stat-n" id="ticketStatUrgent">-</span>
+                    <span class="ent-ticket-stat-l">Urgent</span>
+                </div>
+                <div class="ent-ticket-stat is-resolved">
+                    <span class="ent-ticket-stat-n" id="ticketStatResolved">-</span>
+                    <span class="ent-ticket-stat-l">Resolved</span>
+                </div>
+            </div>
+            <div class="ent-admin-toolbar ent-tickets-toolbar">
+                <div class="ent-tickets-searchwrap">
+                    <span class="ent-tickets-searchic" aria-hidden="true">&#128269;</span>
+                    <input type="search" id="ticketSearch" placeholder="Search subject or reporter&hellip;" aria-label="Search tickets">
+                </div>
+                <select id="ticketScopeFilter" title="Which part of the app" aria-label="Filter by area">
+                    <option value="">All areas</option>
+                    <option value="nasal">Nasal</option>
+                    <option value="laryngeal">Laryngeal</option>
+                    <option value="cf4">CF4</option>
+                    <option value="system">The app itself</option>
+                </select>
+                <select id="ticketStatusFilter" title="Only show these" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+            </div>
+            <p class="ent-ticket-notice" id="adminTicketNotice"></p>
+            <div class="ent-admin-tickets">
+                <div class="ent-ticket-queuewrap">
+                    <div class="ent-ticket-queuehead"><span>Inbox</span><span class="ent-ticket-queuecount" id="ticketQueueCount"></span></div>
+                    <div class="ent-ticket-queue" id="adminTicketList">
+                        <div class="ent-empty">Loading tickets&hellip;</div>
+                    </div>
+                </div>
+                <div class="ent-ticket-detail" id="adminTicketDetail">
+                    <div class="ent-empty">Choose a ticket on the left to read it and reply.</div>
+                </div>
+            </div>
+            <p class="ent-hint">
+                A ticket is about the <em>software</em>, not a patient, and is kept out of every
+                report list, search and PDF on purpose. Only tickets raised in your clinic are
+                visible here.
+            </p>
+        </section>
+
+        <!-- ---------------------------- SETTINGS --------------------------
+             Clinic control room: identity, name on reports, capability
+             switches, and who can reach what. Same ids and copy the tests
+             assert on (settingsClinicId, settingsStaffCount,
+             clinicNameInput, flagList, "Your clinic", "on the server",
+             "Who can see what") - only the shell around them is new. -->
+        <section class="ent-admin-panel" id="panel-settings">
+            <header class="ent-settings-hero">
+                <span class="ent-settings-hero-icon" aria-hidden="true">&#9881;</span>
+                <div class="ent-settings-hero-text">
+                    <span class="ent-settings-kicker">Control room</span>
+                    <h2>Settings</h2>
+                    <p>Clinic identity, what this app is allowed to do, and who can reach what.
+                       Everything here applies to <b>every device</b> in the clinic, not just yours.</p>
+                </div>
+                <button type="button" class="ent-btn" id="refreshSettingsBtn">
+                    <span aria-hidden="true">&#8635;</span> Refresh
+                </button>
+            </header>
+            <p class="ent-ticket-notice" id="settingsNotice"></p>
+
+            <!-- Identity strip: the clinic at a glance, before anything asks. -->
+            <section class="ent-settings-identity" aria-label="Your clinic">
+                <div class="ent-identity-main">
+                    <span class="ent-identity-icon" aria-hidden="true">&#127970;</span>
+                    <div class="ent-identity-text">
+                        <span class="ent-identity-kicker">Your clinic</span>
+                        <strong class="ent-identity-name" id="settingsClinicName">Loading&hellip;</strong>
+                        <span class="ent-identity-id">ID <code id="settingsClinicId">&mdash;</code></span>
+                    </div>
+                </div>
+                <dl class="ent-settings-facts">
+                    <div>
+                        <dt>Staff accounts</dt>
+                        <dd id="settingsStaffCount">&mdash;</dd>
+                    </div>
+                    <div>
+                        <dt>Doctors</dt>
+                        <dd id="settingsDoctorCount">&mdash;</dd>
+                    </div>
+                    <div>
+                        <dt>Secretaries</dt>
+                        <dd id="settingsSecretaryCount">&mdash;</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <div class="ent-settings-grid">
+
+                <!-- 2. THE CLINIC NAME ------------------------------------------ -->
+                <section class="ent-admin-subcard ent-settings-card is-name">
+                    <span class="ent-settings-step" aria-hidden="true">01</span>
+                    <h3><span class="ent-settings-ic" aria-hidden="true">&#128221;</span> Name on reports</h3>
+                    <p class="ent-hint">Printed on every report and letterhead your staff produce.</p>
+                    <div class="ent-field">
+                        <label for="clinicNameInput">Clinic name</label>
+                        <div class="ent-name-row">
+                            <input type="text" id="clinicNameInput" maxlength="120"
+                                   placeholder="e.g. Main ENT Clinic">
+                            <button type="button" class="ent-btn primary" id="saveClinicNameBtn">Save</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. FEATURE SWITCHES ------------------------------------------ -->
+                <section class="ent-admin-subcard ent-settings-card is-flags">
+                    <span class="ent-settings-step" aria-hidden="true">02</span>
+                    <h3><span class="ent-settings-ic" aria-hidden="true">&#128994;</span> What this app may do</h3>
+                    <p class="ent-hint">
+                        These are checked <b>on the server</b>, not just hidden in the app.
+                        A switch that is off is genuinely refused, so switching one off
+                        really does disable the feature on every device.
+                    </p>
+                    <div id="flagList" class="ent-flag-list">
+                        <div class="ent-empty">Loading&hellip;</div>
+                    </div>
+                </section>
+
+                <!-- 4. WHO CAN SEE WHAT ------------------------------------------ -->
+                <section class="ent-admin-subcard ent-settings-card is-roles">
+                    <span class="ent-settings-step" aria-hidden="true">03</span>
+                    <h3><span class="ent-settings-ic" aria-hidden="true">&#128101;</span> Who can see what</h3>
+                    <p class="ent-hint">
+                        Patient records are separated by doctor. This is enforced by the
+                        database, not by the menu, so signing in as someone else is the
+                        only way to see another doctor's patients.
+                    </p>
+                    <ul class="ent-settings-roles">
+                        <li>
+                            <span class="ent-role-pill is-admin">Admin</span>
+                            <span>Every doctor and every report in the clinic</span>
+                        </li>
+                        <li>
+                            <span class="ent-role-pill is-doctor">Doctor</span>
+                            <span>Only their own patients</span>
+                        </li>
+                        <li>
+                            <span class="ent-role-pill is-secretary">Secretary</span>
+                            <span>Only the patients of the doctor they are assigned to</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <!-- 5. THE OTHER SETTINGS PAGE ------------------------------------ -->
+                <section class="ent-admin-subcard ent-settings-card is-link">
+                    <span class="ent-settings-step" aria-hidden="true">04</span>
+                    <h3><span class="ent-settings-ic" aria-hidden="true">&#128203;</span> Report form settings</h3>
+                    <p class="ent-hint">
+                        Letterhead, physician lists and the CF4 template belong to whoever
+                        prepares the forms, so they live on their own page.
+                    </p>
+                    <a class="ent-btn" href="settings.html" target="_blank" rel="noopener">
+                        Open form settings &#8599;
+                    </a>
+                </section>
+            </div>
+        </section>
+        </div><!-- /.ent-admin-body -->
+    </main>
+
+    <!-- ------------------------- ADD / EDIT USER -------------------------- -->
+    <div class="ent-modal" id="userModal" role="dialog" aria-modal="true">
+        <div class="ent-modal-card">
+            <h3 id="userModalTitle">Add user</h3>
+            <div class="ent-field">
+                <label for="fFullName">Full name</label>
+                <input type="text" id="fFullName" autocomplete="off">
+            </div>
+            <div class="ent-field">
+                <label for="fUsername">Username</label>
+                <input type="text" id="fUsername" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <div class="ent-hint">Lowercase, no spaces. This is what they type to sign in.</div>
+            </div>
+            <div class="ent-field">
+                <label for="fRole">Role</label>
+                <select id="fRole">
+                    <option value="doctor">Doctor &mdash; sees only own patients</option>
+                    <option value="secretary">Secretary &mdash; sees the assigned doctor&rsquo;s patients</option>
+                    <option value="admin">Admin &mdash; sees everything</option>
+                </select>
+            </div>
+            <div class="ent-field" id="assignedWrap" style="display:none;">
+                <label for="fAssigned">Assigned doctor</label>
+                <select id="fAssigned"></select>
+                <div class="ent-hint">This secretary&rsquo;s home doctor and clinic. She is scoped here by default.</div>
+            </div>
+            <div class="ent-field" id="extraWrap" style="display:none;">
+                <label for="fExtraDoctors">Also works at (optional)</label>
+                <select id="fExtraDoctors" multiple size="4" style="height:auto;"></select>
+                <div class="ent-hint">Tick any other doctor this secretary may also file under, across clinics. When she signs in she picks which clinic she is working at today. Leave empty to keep her on her assigned doctor only.</div>
+            </div>
+            <div class="ent-field">
+                <label for="fSpecialty">Specialty / notes (optional)</label>
+                <input type="text" id="fSpecialty" autocomplete="off">
+            </div>
+            <div class="ent-field">
+                <label for="fPassword" id="passwordLabel">Password</label>
+                <input type="password" id="fPassword" autocomplete="new-password">
+                <div class="ent-hint" id="passwordHint">At least 6 characters.</div>
+            </div>
+            <div class="ent-field">
+                <label class="ent-hint" style="display:flex;align-items:center;gap:7px;font-size:.85rem;">
+                    <input type="checkbox" id="fActive" checked style="width:auto;"> Account is active
+                </label>
+            </div>
+            <div class="ent-login-error" id="userModalError"></div>
+            <div class="ent-modal-actions">
+                <button type="button" class="ent-btn" id="userModalCancel">Cancel</button>
+                <button type="button" class="ent-btn primary" id="userModalSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- supabase-js FIRST. Without it window.supabase is undefined,
+         supabaseClient.getClient() throws, auth.ready() resolves to null and
+         guard() sends the signed-in admin straight back to login.html - a
+         loop that looks like "the login does not work". The Sept-30 copy of
+         this file omitted the tag; it is back. -->
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js" defer></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/offlineStore.js"></script>
+    <script src="../function/admin.js?v=v34a" defer></script>
+</body>
+</html>

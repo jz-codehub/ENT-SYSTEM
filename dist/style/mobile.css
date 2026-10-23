@@ -1,0 +1,1719 @@
+/* Mobile layout refinements shared by every application page. */
+@media screen and (max-width: 820px) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    img,
+    svg,
+    canvas,
+    video {
+        max-width: 100%;
+    }
+
+    input,
+    select,
+    textarea {
+        max-width: 100%;
+        font-size: 16px;
+    }
+
+    button,
+    [role="button"],
+    .ent-btn,
+    .back-button {
+        min-height: 42px;
+        touch-action: manipulation;
+    }
+
+    .header {
+        padding: 12px 14px;
+    }
+
+    .header-content {
+        gap: 10px 12px;
+    }
+
+    .header-user-slot {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    body #entUserChip {
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .main-content,
+    .ent-admin-main,
+    .ent-dash-main,
+    .ent-tk-main,
+    .ent-cca-main {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .report-header {
+        position: relative;
+        top: auto;
+        margin-bottom: 12px;
+    }
+
+    .report-header .header-bar {
+        align-items: center;
+        gap: 8px;
+    }
+
+    .report-header .header-brand {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .report-header .header-hospital {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .report-header .header-meta {
+        width: auto;
+        flex: 0 0 auto;
+        justify-content: flex-end;
+    }
+
+    .report-header .header-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-items: stretch;
+        gap: 8px;
+        padding: 8px 10px 10px;
+    }
+
+    .report-header .header-btn-group {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+        min-width: 0;
+        gap: 6px;
+        padding: 7px;
+    }
+
+    .report-header .header-btn-group .group-label {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding: 2px 0 6px;
+        text-align: left;
+    }
+
+    .report-header .header-btn-group button {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 7px 8px;
+        white-space: normal;
+        line-height: 1.2;
+    }
+
+    .report-header .header-btn-group .btn-label {
+        min-width: 0;
+    }
+
+    .report-header .header-actions .back-button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .main-content {
+        margin: 12px auto 28px;
+        padding: 0 12px;
+    }
+
+    .report-layout {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .form-panel,
+    .image-panel {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .image-panel {
+        padding: 14px;
+    }
+
+    .section-nav {
+        justify-content: flex-start;
+        gap: 7px;
+        padding: 7px 10px;
+        scroll-padding-inline: 10px;
+    }
+
+    .section-nav-btn {
+        min-height: 42px;
+        padding: 9px 12px;
+        font-size: 0.78rem;
+    }
+
+    .ent-login-page {
+        min-height: 100vh;
+        min-height: 100svh;
+        padding: 18px 14px;
+    }
+
+    .ent-login-card {
+        width: min(100%, 440px);
+        margin: auto;
+        padding: 24px 20px;
+    }
+
+    .ent-login-card input,
+    .ent-login-submit {
+        min-height: 46px;
+    }
+
+    .settings-page .main-content {
+        padding-inline: 12px;
+    }
+
+    .settings-page .settings-card {
+        padding: 18px !important;
+        border-radius: 13px !important;
+    }
+
+    .settings-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .settings-nav-btn {
+        min-width: 0;
+        min-height: 60px;
+        padding: 9px;
+        text-align: left;
+    }
+
+    .settings-nav-btn small {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .header {
+        padding: 10px 12px;
+    }
+
+    .header-content {
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .header-brand,
+    .header-brand-center {
+        min-width: 0;
+    }
+
+    .header-meta {
+        min-width: 0;
+        gap: 7px;
+    }
+
+    .header-meta #installAppBtn {
+        min-height: 40px;
+        padding: 7px 9px;
+        font-size: 0.76rem;
+    }
+
+    .report-header .header-bar {
+        padding: 8px 10px;
+    }
+
+    .report-header .header-brand {
+        gap: 8px;
+    }
+
+    .report-header .logo {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+    }
+
+    .report-header h1 {
+        font-size: 0.94rem;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    .report-header .header-hospital {
+        font-size: 0.56rem;
+        letter-spacing: 0.035em;
+    }
+
+    .report-header .header-meta {
+        gap: 6px;
+    }
+
+    .report-header .header-user-slot #entUserChip .ent-user-meta {
+        display: none;
+    }
+
+    .report-header .header-actions {
+        gap: 7px;
+    }
+
+    .report-header .header-btn-group button {
+        font-size: 0.74rem;
+    }
+
+    .report-header .header-btn-group .btn-icon {
+        font-size: 1rem;
+    }
+
+    .report-header .header-btn-group .btn-sub {
+        display: none;
+    }
+
+    .main-content {
+        padding-inline: 10px;
+    }
+
+    fieldset,
+    .cf4-fieldset {
+        min-width: 0;
+        margin-bottom: 13px;
+        padding: 14px 12px;
+        border-radius: 11px;
+    }
+
+    .cf4-fieldset legend {
+        max-width: 100%;
+        padding: 6px 11px;
+        font-size: 0.92rem;
+        white-space: normal;
+    }
+
+    .form-row {
+        gap: 0;
+    }
+
+    .form-col,
+    .form-col-small,
+    .form-col-full {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .date-time-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .date-time-group input[type="date"],
+    .date-time-group input[type="time"] {
+        width: 100%;
+        min-width: 0;
+        padding: 10px 8px;
+        font-size: 16px;
+    }
+
+    .date-time-group select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        padding: 10px 8px;
+    }
+
+    .checkbox-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+        padding: 9px;
+    }
+
+    .checkbox-item,
+    .checkbox-inline {
+        min-height: 42px;
+        padding: 8px;
+        line-height: 1.35;
+    }
+
+    .course-in-ward-row,
+    .drugs-row {
+        min-width: 0;
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .course-in-ward-row input,
+    .course-in-ward-row select,
+    .course-in-ward-row textarea,
+    .drugs-row input,
+    .drugs-row select,
+    .drugs-row textarea {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .course-in-ward-row textarea {
+        min-height: 96px;
+    }
+
+    .course-row-header {
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .course-row-header .date-time-inputs-row {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .course-row-header .date-input-section,
+    .course-row-header .time-input-section {
+        flex: 1 1 145px;
+        min-width: 0;
+    }
+
+    .course-row-header input[type="date"],
+    .course-row-header input[type="time"] {
+        min-width: 0;
+        max-width: 100%;
+        font-size: 16px;
+    }
+
+    .course-row-header .template-select-btn,
+    .course-row-header .clear-text-btn,
+    .course-row-header .btn-remove-course,
+    .btn-remove-course,
+    .btn-remove-drug {
+        min-height: 40px;
+        align-self: stretch;
+    }
+
+    .cf4-template-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cf4-template-wrapper textarea {
+        width: 100%;
+        min-height: 112px;
+    }
+
+    .cf4-template-controls {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .ent-db-modal,
+    .ent-drafts-modal,
+    .ent-modal,
+    .cca-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .ent-db-dialog,
+    .ent-db-confirm-dialog,
+    .ent-drafts-dialog,
+    .ent-modal-card,
+    .cca-modal-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: 92vh;
+        max-height: 92dvh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .patient-records-popover {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-height: 86vh;
+        max-height: 86dvh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .ent-dash-page .header {
+        padding: 12px 14px;
+    }
+
+    .ent-dash-page .header-content {
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .ent-dash-page .header-brand-center {
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .ent-dash-page .header-brand-center .header-titles {
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .ent-dash-page .header-brand-center .header-titles h1 {
+        font-size: 1rem;
+        text-align: left;
+    }
+
+    .ent-dash-page .header-tagline {
+        margin: 2px 0 0;
+        font-size: 0.72rem;
+        text-align: left;
+    }
+
+    .ent-dash-page .header-scopes {
+        justify-content: flex-start;
+        gap: 5px;
+        margin-top: 5px;
+    }
+
+    .ent-dash-page .header-meta {
+        width: 100%;
+        justify-content: flex-end;
+        margin-left: 0;
+    }
+
+    .ent-dash-main {
+        padding: 10px 12px 30px;
+    }
+
+    .ent-dash-hero {
+        gap: 12px;
+        margin: 0 0 12px;
+        padding: 14px;
+        border-radius: 13px;
+    }
+
+    .ent-dash-hero-side {
+        padding: 11px;
+    }
+
+    .ent-dash-statusrow {
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .ent-dash-alert {
+        max-width: 100%;
+        min-height: 40px;
+        text-align: left;
+    }
+
+    .ent-dash-actions-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ent-dash-actions-row > * {
+        min-width: 0;
+        min-height: 42px;
+        justify-content: center;
+    }
+
+    .ent-quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .ent-quick {
+        min-width: 0;
+        min-height: 112px;
+        padding: 10px;
+    }
+
+    .ent-quick-text {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .ent-quick-label {
+        font-size: 0.76rem;
+        overflow-wrap: anywhere;
+    }
+
+    .ent-quick-sub {
+        display: block;
+        font-size: 0.66rem;
+        line-height: 1.3;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-overflow: clip;
+    }
+
+    .ent-dash-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .ent-tile {
+        padding: 10px;
+    }
+
+    .ent-tile-n {
+        font-size: 1.5rem;
+    }
+
+    .ent-card {
+        margin-bottom: 11px;
+        padding: 13px;
+        border-radius: 12px;
+    }
+
+    .ent-card-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .ent-cca-main {
+        padding: 14px 12px 28px;
+    }
+
+    .ent-cca-header .header-content {
+        gap: 7px;
+        padding: 8px 10px;
+    }
+
+    .ent-cca-header-brand .ent-cca-brand-text h1 {
+        font-size: 0.92rem;
+    }
+
+    .ent-cca-actions {
+        gap: 5px;
+    }
+
+    .ent-cca-header .ent-cca-iconbtn {
+        min-height: 40px;
+    }
+
+    .ent-cca-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .ent-cca-stat {
+        min-width: 0;
+        padding: 9px 7px;
+    }
+
+    .ent-cca-stat-n {
+        font-size: 1.22rem;
+    }
+
+    .ent-cca-stat-l {
+        font-size: 0.58rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .ent-cca-reqbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+    }
+
+    .cca-reqbtn {
+        min-height: 44px;
+        width: 100%;
+    }
+
+    .ent-cca-toolbar {
+        padding: 11px;
+    }
+
+    .ent-cca-search {
+        min-height: 46px;
+    }
+
+    .ent-cca-filters {
+        align-items: stretch;
+    }
+
+    .ent-cca-filter {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .ent-cca-select {
+        min-height: 42px;
+        max-width: 70%;
+    }
+
+    .ent-cca-toggle {
+        min-height: 42px;
+        width: 100%;
+    }
+
+    .ent-cca-table td.cca-act {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .ent-cca-table td.cca-act .cca-btn {
+        min-height: 40px;
+    }
+
+    .ent-tk-main {
+        padding: 0 12px 28px;
+    }
+
+    .ent-tk-header .header-content {
+        padding: 8px 12px;
+    }
+
+    .ent-tk-hero {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .ent-tk-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .ent-tk-stat {
+        min-width: 0;
+        padding: 10px;
+    }
+
+    .ent-tk-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .ent-tk-layout:has(#tkView:not([hidden])) .ent-tk-listpane,
+    .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tk-listpane {
+        display: none;
+    }
+
+    .ent-tk-layout:has(#tkView:not([hidden])) .ent-tk-detail,
+    .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tk-detail {
+        display: flex;
+    }
+
+    .ent-tk-pane {
+        max-height: none;
+        border-radius: 12px;
+    }
+
+    .ent-tk-listpane {
+        max-height: calc(100dvh - 250px);
+    }
+
+    .ent-tk-detail {
+        min-height: 60vh;
+        overflow: visible;
+    }
+
+    .ent-tk-detail .ent-tk-viewbody {
+        flex: 0 0 auto;
+    }
+
+    .ent-tk-viewhead {
+        position: static;
+        padding: 10px 12px;
+    }
+
+    .ent-tk-detail-body {
+        flex: 0 0 auto;
+        max-height: none;
+        overflow: visible;
+        padding: 12px;
+    }
+
+    .ent-tk-tools {
+        padding: 10px;
+    }
+
+    .ent-tk-chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+    }
+
+    .ent-tk-chip {
+        flex: 0 0 auto;
+        min-height: 40px;
+    }
+
+    .ent-ticket {
+        min-height: 64px;
+    }
+
+    .ent-admin-main {
+        padding: 14px 12px 32px;
+    }
+
+    .ent-admin-panel > .ent-admin-toolbar {
+        align-items: stretch;
+    }
+
+    .ent-admin-panel > .ent-admin-toolbar > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .settings-nav {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media screen and (max-width: 340px) {
+    .report-header .header-btn-group button {
+        gap: 4px;
+        padding-inline: 5px;
+        font-size: 0.68rem;
+    }
+
+    .ent-dash-main {
+        padding-inline: 9px;
+    }
+
+    .ent-quick-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ent-dash-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ent-tile-label {
+        font-size: 0.58rem;
+    }
+
+    .ent-cca-stats {
+        gap: 5px;
+    }
+
+    .ent-cca-stat {
+        padding-inline: 5px;
+    }
+}
+
+@media screen and (max-width: 820px) and (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .ent-dash-page .header {
+        padding: 14px 16px 13px;
+        margin-bottom: 12px;
+        border-radius: 0 0 18px 18px;
+        box-shadow: 0 8px 22px rgba(3, 105, 161, 0.2);
+    }
+
+    .ent-dash-page .header-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .ent-dash-page .header-brand-center {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        width: 100%;
+    }
+
+    .ent-dash-page .header-brand-center .header-titles {
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+    }
+
+    .ent-dash-page .header-brand-center .header-logo {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.16);
+    }
+
+    .ent-dash-page .header-brand-center .header-logo svg {
+        width: 21px;
+        height: 21px;
+    }
+
+    .ent-dash-page .header-brand-center .header-titles h1 {
+        min-width: 0;
+        font-size: 1.02rem;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+    }
+
+    .ent-dash-page .header-title-sub {
+        opacity: 0.82;
+        font-size: 0.76em;
+    }
+
+    .ent-dash-page .header-scopes {
+        gap: 6px;
+        margin: 9px 0 0;
+        padding: 0 0 2px;
+    }
+
+    .ent-dash-page .ent-scope-chip {
+        min-height: 26px;
+        padding: 4px 9px;
+        border-color: rgba(255, 255, 255, 0.24);
+        background: rgba(255, 255, 255, 0.13);
+        font-size: 0.65rem;
+    }
+
+    .ent-dash-page .header-meta {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        margin: 0;
+        padding-top: 9px;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .ent-dash-page .header-meta #connectionStatus {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        gap: 7px;
+        box-sizing: border-box;
+        width: auto;
+        height: 36px;
+        min-height: 36px;
+        margin: 0;
+        padding: 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: none;
+        color: #fff;
+        cursor: default;
+        transform: none;
+    }
+
+    .ent-dash-page .header-meta #connectionStatus::before {
+        width: 7px;
+        height: 7px;
+        flex: 0 0 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        content: "";
+    }
+
+    .ent-dash-page .header-meta #connectionStatus::after {
+        font-size: 0.7rem;
+        font-weight: 650;
+        line-height: 1;
+        content: "Online";
+    }
+
+    .ent-dash-page .header-meta #connectionStatus.offline::before {
+        background: #fca5a5;
+    }
+
+    .ent-dash-page .header-meta #connectionStatus.offline::after {
+        content: "Offline";
+    }
+
+    .ent-dash-page .header-meta #connectionStatus.syncing::before {
+        background: #7dd3fc;
+    }
+
+    .ent-dash-page .header-meta #connectionStatus.syncing::after {
+        content: "Syncing";
+    }
+
+    .ent-dash-page .header-meta #installAppBtn {
+        grid-column: 2;
+        min-height: 40px;
+        margin: 0;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.38);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 2px 6px rgba(3, 60, 95, 0.16);
+        font-size: 0.74rem;
+    }
+
+    .ent-dash-page .header-meta .theme-switch-wrapper {
+        grid-column: 3;
+        box-sizing: border-box;
+        min-width: 44px;
+        min-height: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .ent-dash-page .header-meta .header-user-slot {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    body.ent-dash-page:not(.has-colored-header) .header-user-slot #entUserChip {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #fff;
+    }
+
+    .header-user-slot #entUserChip {
+        box-sizing: border-box;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        min-height: 50px;
+        margin: 0;
+        padding: 5px 7px;
+        border-radius: 13px;
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    body:not(.has-colored-header) .header-user-slot #entUserChip,
+    .ent-chip-on-light .header-user-slot #entUserChip {
+        background: var(--panel-bg-color);
+        border-color: var(--border-color);
+    }
+
+    .header-user-slot #entUserChip .ent-user-meta {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+    }
+
+    .header-user-slot #entUserChip .ent-user-meta strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .header-user-slot #entUserChip .ent-user-meta small {
+        display: block;
+        font-size: 0.62rem;
+    }
+
+    .header-user-slot #entUserChip .ent-user-admin,
+    .header-user-slot #entUserChip .ent-user-settings,
+    .header-user-slot #entUserChip .ent-user-switch,
+    .header-user-slot #entUserChip .ent-user-logout {
+        display: inline-grid;
+        place-items: center;
+        box-sizing: border-box;
+        width: 38px;
+        height: 38px;
+        min-width: 0;
+        min-height: 38px;
+        flex: 0 0 38px;
+        margin: 0;
+        padding: 0;
+        border-radius: 10px;
+        font-size: 0;
+        line-height: 1;
+    }
+
+    .header-user-slot #entUserChip .ent-user-admin,
+    .header-user-slot #entUserChip .ent-user-settings {
+        border-radius: 10px;
+    }
+
+    .header-user-slot #entUserChip .ent-user-switch span[aria-hidden="true"],
+    .header-user-slot #entUserChip .ent-user-logout .ent-user-logout-icon {
+        font-size: 1rem;
+    }
+
+    .report-header .header-bar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 9px;
+        padding: 10px 12px;
+    }
+
+    .report-header .header-brand {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) 34px;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .report-header .logo {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        border-radius: 9px;
+    }
+
+    .report-header .header-titles {
+        min-width: 0;
+        text-align: center;
+    }
+
+    .report-header .header-hospital {
+        font-size: 0.52rem;
+        line-height: 1.25;
+        letter-spacing: 0.025em;
+    }
+
+    .report-header h1 {
+        font-size: 0.9rem;
+        line-height: 1.2;
+    }
+
+    .report-header .header-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .report-header .header-meta .header-user-slot {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .report-header .header-user-slot #entUserChip {
+        background: var(--panel-bg-color);
+        border-color: var(--border-color);
+        color: var(--text-color);
+    }
+
+    .report-header .header-user-slot #entUserChip .ent-user-meta {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .report-header .header-user-slot #entUserChip .ent-user-meta small {
+        display: none;
+    }
+
+    .report-header .header-user-slot #entUserChip .ent-user-switch,
+    .report-header .header-user-slot #entUserChip .ent-user-logout,
+    .report-header .header-user-slot #entUserChip .ent-user-admin,
+    .report-header .header-user-slot #entUserChip .ent-user-settings {
+        border-color: var(--border-color);
+        background: var(--bg-color);
+        color: var(--text-color);
+    }
+
+    .report-header .header-actions {
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: flex-start;
+        gap: 8px;
+        margin-top: 0;
+        padding: 9px 12px 11px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .report-header .header-actions::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .report-header .header-actions::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(100, 116, 139, 0.45);
+    }
+
+    .report-header .header-actions > .back-button {
+        flex: 0 0 144px;
+        width: auto;
+        min-height: 42px;
+        scroll-snap-align: start;
+    }
+
+    .report-header .header-btn-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-content: start;
+        flex: 0 0 256px;
+        width: 256px;
+        min-width: 0;
+        gap: 6px;
+        padding: 7px;
+        scroll-snap-align: start;
+    }
+
+    .report-header .header-btn-group .group-label {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding: 2px 0 6px;
+        text-align: left;
+    }
+
+    .report-header .header-btn-group button {
+        min-width: 0;
+        min-height: 42px;
+        padding: 6px;
+        font-size: 0.72rem;
+    }
+
+    .report-header .header-btn-group .btn-sub {
+        display: none;
+    }
+
+    .report-header .header-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 8px;
+        overflow: visible;
+        overscroll-behavior-x: auto;
+        scroll-snap-type: none;
+        padding: 10px 12px 12px;
+        scrollbar-width: none;
+    }
+
+    .report-header .header-actions::-webkit-scrollbar {
+        display: none;
+    }
+
+    .report-header .header-actions > .back-button {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        flex: initial;
+    }
+
+    .report-header .header-btn-group {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        align-items: stretch;
+        gap: 6px;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        flex: initial;
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--panel-bg-color);
+        scroll-snap-align: none;
+    }
+
+    .report-header .header-btn-group.group-tools {
+        grid-column: auto;
+    }
+
+    .report-header .header-btn-group .group-label {
+        grid-column: 1 / -1;
+        min-width: 0;
+        padding: 2px 2px 5px;
+        font-size: 0.58rem;
+        line-height: 1.2;
+    }
+
+    .report-header .header-btn-group button {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 7px;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        min-height: 42px;
+        padding: 7px 9px;
+        border-radius: 9px;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font-size: 0.72rem;
+        line-height: 1.2;
+    }
+
+    .report-header .header-btn-group .btn-icon {
+        flex: 0 0 auto;
+        font-size: 1rem;
+        line-height: 1;
+    }
+
+    .report-header .header-btn-group .btn-label,
+    .report-header .header-btn-group .btn-main {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        text-align: left;
+    }
+
+    .report-header .header-btn-group .btn-sub {
+        display: none;
+    }
+
+    .report-header .header-btn-group button:last-of-type:nth-of-type(odd) {
+        grid-column: auto;
+    }
+
+    .report-header .header-btn-group .btn-group-divider {
+        display: none;
+    }
+
+    .report-header .header-btn-group.group-tools {
+        grid-column: auto;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .ent-admin-header {
+        padding: 10px 0;
+        border-radius: 0 0 16px 16px;
+    }
+
+    .ent-admin-header .header-content {
+        gap: 8px 10px;
+        padding-inline: 12px;
+    }
+
+    .ent-admin-brand {
+        flex: 1 1 calc(100% - 52px);
+    }
+
+    .ent-admin-brand-icon {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+    }
+
+    .ent-admin-brand-text h1 {
+        font-size: 1rem;
+    }
+
+    .ent-admin-actions {
+        flex: 1 1 100%;
+        justify-content: space-between;
+        gap: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .ent-admin-actions .header-user-slot {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .ent-admin-actions .ent-admin-back {
+        margin-left: auto;
+    }
+
+    .ent-cca-header {
+        border-radius: 0 0 16px 16px;
+    }
+
+    .ent-cca-header .header-content {
+        align-items: center;
+        gap: 9px;
+        padding: 10px 12px;
+    }
+
+    .ent-cca-header-brand {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .ent-cca-header-brand .ent-cca-brand-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        border-radius: 10px;
+    }
+
+    .ent-cca-header-brand .ent-cca-brand-text h1 {
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+
+    .ent-cca-header-brand .ent-cca-brand-text small {
+        display: none;
+    }
+
+    .ent-cca-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .ent-cca-actions .header-user-slot {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .ent-cca-actions .header-user-slot #entUserChip {
+        min-height: 42px;
+    }
+
+    .ent-tk-header {
+        padding: 10px 0;
+        border-radius: 0 0 16px 16px;
+    }
+
+    .ent-tk-header .header-content {
+        gap: 8px;
+        padding: 0 12px;
+    }
+
+    .ent-tk-back {
+        min-height: 40px;
+        padding: 8px 11px;
+        font-size: 0.74rem;
+    }
+
+    .ent-tk-headtools {
+        min-width: 0;
+        gap: 7px;
+    }
+
+    .ent-tk-headtools .header-user-slot {
+        min-width: 0;
+        max-width: min(58vw, 245px);
+    }
+
+    .settings-page .header {
+        border-radius: 0 0 16px 16px;
+    }
+
+    .settings-page .header-content {
+        gap: 8px;
+    }
+
+    .settings-page .header-brand-center {
+        flex: 1 1 100%;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .settings-page .header-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .settings-page .header-meta .header-user-slot {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .ent-dash-page .header {
+        padding-inline: 12px;
+    }
+
+    .ent-dash-page .header-scopes {
+        margin-left: 0;
+    }
+
+    .ent-dash-page .header-meta {
+        gap: 6px;
+    }
+
+    .ent-dash-page .header-meta #installAppBtn {
+        padding-inline: 8px;
+        font-size: 0.68rem;
+    }
+
+    .ent-dash-page .header-meta #connectionStatus {
+        padding-inline: 8px;
+    }
+
+    .header-user-slot #entUserChip {
+        gap: 6px;
+        padding-inline: 5px;
+    }
+
+    .header-user-slot #entUserChip .ent-user-admin,
+    .header-user-slot #entUserChip .ent-user-settings,
+    .header-user-slot #entUserChip .ent-user-switch,
+    .header-user-slot #entUserChip .ent-user-logout {
+        width: 34px;
+        height: 34px;
+        min-height: 34px;
+        flex-basis: 34px;
+    }
+}
+
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+    .main-content,
+    .ent-admin-main,
+    .ent-dash-main,
+    .ent-tk-main,
+    .ent-cca-main {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding-right: clamp(16px, 3vw, 28px);
+        padding-left: clamp(16px, 3vw, 28px);
+    }
+
+    .report-header {
+        padding: 10px 0;
+    }
+
+    .report-header .header-bar {
+        gap: 12px;
+        padding: 10px clamp(14px, 2vw, 24px);
+    }
+
+    .report-header .header-brand {
+        min-width: 0;
+        flex: 1 1 360px;
+    }
+
+    .report-header .header-meta {
+        min-width: 0;
+        flex: 0 1 auto;
+        gap: 8px;
+    }
+
+    .report-header .header-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 9px;
+        padding: 10px clamp(14px, 2vw, 24px) 12px;
+    }
+
+    .report-header .header-actions > .back-button {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+    }
+
+    .report-header .header-btn-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-content: start;
+        align-items: stretch;
+        gap: 7px;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--panel-bg-color);
+    }
+
+    .report-header .header-btn-group .group-label {
+        grid-column: 1 / -1;
+        padding: 2px 2px 6px;
+        text-align: left;
+    }
+
+    .report-header .header-btn-group button {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 7px;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        padding: 7px 9px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
+        font-size: 0.74rem;
+        line-height: 1.2;
+    }
+
+    .report-header .header-btn-group .btn-icon {
+        flex: 0 0 auto;
+        font-size: 1rem;
+    }
+
+    .report-header .header-btn-group .btn-label,
+    .report-header .header-btn-group .btn-main {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .report-header .header-btn-group .btn-sub,
+    .report-header .header-btn-group .btn-group-divider {
+        display: none;
+    }
+
+    .report-header .header-btn-group.group-work button:last-of-type:nth-of-type(3) {
+        grid-column: 1 / -1;
+    }
+
+    .report-header .header-btn-group.group-tools {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .report-header .header-btn-group.group-tools button {
+        min-height: 44px;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .report-layout {
+        gap: clamp(16px, 2.5vw, 26px);
+    }
+
+    .form-panel,
+    .image-panel {
+        min-width: 0;
+    }
+
+    .image-panel {
+        width: clamp(220px, 26vw, 280px);
+        flex: 0 0 clamp(220px, 26vw, 280px);
+        padding: 16px;
+    }
+
+    .ent-dash-main {
+        padding-top: 18px;
+    }
+
+    .ent-dash-hero {
+        padding: clamp(18px, 2.4vw, 28px);
+    }
+
+    .ent-card,
+    .ent-tk-pane,
+    .ent-cca-card,
+    .settings-card {
+        min-width: 0;
+    }
+}
+
+@media screen and (min-width: 641px) and (max-width: 820px) {
+    .report-layout {
+        flex-direction: column;
+    }
+
+    .form-panel,
+    .image-panel {
+        width: 100%;
+        flex-basis: auto;
+    }
+
+    .image-preview {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+    }
+
+    .report-header .header-brand {
+        flex-basis: 100%;
+    }
+
+    .report-header .header-meta {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .ent-tk-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ent-tk-pane {
+        max-height: min(62vh, 680px);
+    }
+}
+
+@media screen and (min-width: 901px) and (max-width: 1024px) {
+    .report-header .header-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .report-header .header-actions > .back-button,
+    .report-header .header-btn-group.group-tools {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (min-width: 641px) and (max-width: 900px) {
+    .report-header .header-btn-group.group-tools {
+        grid-column: auto;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (min-width: 1025px) and (max-width: 1366px) {
+    .main-content {
+        width: 100%;
+        padding-right: clamp(20px, 2.4vw, 32px);
+        padding-left: clamp(20px, 2.4vw, 32px);
+    }
+
+    .report-header .header-actions {
+        gap: 7px;
+        padding-right: clamp(14px, 2vw, 26px);
+        padding-left: clamp(14px, 2vw, 26px);
+    }
+
+    .report-header .header-btn-group {
+        gap: 5px;
+        padding: 6px 8px;
+    }
+
+    .report-header .header-btn-group button {
+        min-height: 40px;
+        padding: 6px 9px;
+        font-size: 0.72rem;
+    }
+}

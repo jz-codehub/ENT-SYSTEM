@@ -1,0 +1,7 @@
+# Real keys never go in git. Copy .env.example to .env.local.
+.env.local
+.env
+.env.old-backup
+
+# Tooling deps (acorn, for parse_check.mjs).
+node_modules/

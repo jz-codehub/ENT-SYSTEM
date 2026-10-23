@@ -1,0 +1,3552 @@
+/* =====================================================================
+   ADMIN CONSOLE - compact section nav bar + grouped stat tiles.
+   Loaded after auth.css, so these rules replace the old flat tab bar.
+   The bar never clips: it wraps instead of hiding buttons.
+   ===================================================================== */
+
+.ent-admin-main { max-width: 1320px; }
+
+/* ------------------------------ Nav bar ---------------------------- */
+.ent-admin-nav {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    /* ONE ROW, always. The tab strip is a single line by request, so it must
+       never wrap; instead it scrolls sideways when the viewport is too
+       narrow to hold every label. flex-wrap:nowrap is the whole fix - the
+       old `wrap` silently produced a second row on a laptop, which looked
+       like a mistake rather than a decision. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    margin-bottom: 14px;
+    padding: 7px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    box-shadow: var(--input-shadow);
+}
+.ent-nav-cluster {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+.ent-nav-sep {
+    width: 1px;
+    height: 24px;
+    margin: 0 5px;
+    border-radius: 2px;
+    background: var(--border-color);
+}
+.ent-admin-nav button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 6px 11px 6px 6px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-admin-nav button:hover {
+    background: var(--bg-color);
+    border-color: var(--border-color);
+    transform: translateY(-2px);
+}
+.ent-admin-nav button.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color, #0284c7));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+}
+.ent-admin-nav button:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+.ent-nav-icon {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: var(--primary-light);
+}
+.ent-admin-nav button.active .ent-nav-icon { background: rgba(255, 255, 255, 0.22); }
+.ent-nav-text { font-size: 0.8rem; font-weight: 600; line-height: 1.2; }
+
+/* --------------------------- Section bar --------------------------- */
+.ent-admin-bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 2px 2px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.ent-admin-bar-title { margin: 0; font-size: 1.12rem; color: var(--text-color); }
+
+/* ------------------------- Grouped stat tiles ---------------------- */
+.ent-stat-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(252px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.ent-stat-group {
+    padding: 12px 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    background: var(--panel-bg-color);
+}
+.ent-stat-group-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-group-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border-color);
+}
+.ent-group-dot.live {
+    background: var(--success-color);
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.22);
+}
+.ent-stat-group .ent-stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 10px;
+    margin-bottom: 0;
+}
+.ent-stat-group .ent-stat { padding: 10px 11px 11px; border-radius: 11px; }
+.ent-stat-group .ent-stat .ent-stat-value { font-size: 1.5rem; }
+.ent-stat-group .ent-stat .ent-stat-label { font-size: 0.62rem; letter-spacing: 0.02em; }
+
+/* ---------------------------- Responsive --------------------------- */
+@media (max-width: 900px) {
+    .ent-admin-nav { padding: 6px 8px; }
+    .ent-admin-nav button { padding: 5px 9px 5px 5px; font-size: 0.78rem; }
+    .ent-nav-icon { width: 22px; height: 22px; font-size: 0.76rem; border-radius: 7px; }
+    .ent-nav-text { font-size: 0.78rem; }
+    .ent-nav-sep { height: 20px; margin: 0 3px; }
+}
+@media (max-width: 620px) {
+    .ent-admin-main { padding: 12px 10px 50px; }
+    .ent-admin-nav { border-radius: 12px; justify-content: center; }
+    .ent-nav-sep { display: none; }          /* no dividers once it wraps */
+    .ent-stat-groups { grid-template-columns: 1fr; }
+    .ent-admin-bar-title { font-size: 1rem; }
+}
+
+/* --------------------- Table row action buttons ------------------- */
+.ent-actions { text-align: right; }
+.ent-action-row { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ent-rowbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+}
+.ent-rowbtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(2, 6, 23, 0.12);
+}
+.ent-rowbtn:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+.ent-rowbtn-icon { font-size: 0.85rem; line-height: 1; }
+.ent-rowbtn.edit {
+    color: var(--primary-hover-color, #0284c7);
+    background: var(--primary-light);
+    border-color: rgba(2, 132, 199, 0.3);
+}
+.ent-rowbtn.key {
+    color: #475569;
+    background: rgba(100, 116, 139, 0.1);
+    border-color: rgba(100, 116, 139, 0.3);
+}
+.ent-rowbtn.off {
+    color: var(--danger-color);
+    background: rgba(231, 76, 60, 0.09);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+.ent-rowbtn.off:hover { background: rgba(231, 76, 60, 0.17); }
+.ent-rowbtn.on {
+    color: var(--success-color);
+    background: rgba(39, 174, 96, 0.1);
+    border-color: rgba(39, 174, 96, 0.32);
+}
+.ent-rowbtn.on:hover { background: rgba(39, 174, 96, 0.19); }
+body.dark-mode .ent-rowbtn.key { color: #cbd5e1; }
+
+@media (max-width: 620px) {
+    .ent-rowbtn { padding: 5px 9px; font-size: 0.72rem; }
+    .ent-rowbtn-icon { font-size: 0.8rem; }
+    .ent-action-row { gap: 4px; }
+}
+/* Three card buttons need ~300px; below that they wrap to a second line
+   instead of spilling over the card edge. */
+@media (max-width: 660px) {
+    .ent-user-actions button { flex: 1 1 auto; }
+}
+
+/* ------------------ Clinic directory (clinics.html) ---------------- */
+
+.ent-clinic-directory { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+.ent-clinic-block {
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent, var(--primary-color));
+    border-radius: 15px;
+    background: var(--panel-bg-color);
+    overflow: hidden;
+}
+.ent-clinic-block.is-warn { border-left-color: var(--warning-color); }
+.ent-clinic-block-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-color);
+}
+.ent-clinic-dot {
+    flex: 0 0 auto;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--accent, var(--primary-color));
+}
+.ent-clinic-block-title { display: flex; flex-direction: column; min-width: 0; }
+.ent-clinic-block-title h3 { margin: 0; font-size: 1rem; color: var(--text-color); }
+.ent-clinic-block-title code { font-size: 0.68rem; color: var(--secondary-text-color); }
+.ent-clinic-block-stats {
+    display: flex;
+    gap: 14px;
+    margin-left: auto;
+    flex-wrap: wrap;
+    font-size: 0.7rem;
+    color: var(--secondary-text-color);
+}
+.ent-clinic-block-stats b { font-size: 0.95rem; color: var(--text-color); margin-right: 3px; }
+.ent-clinic-block-body { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ent-doc-group {
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    background: var(--bg-color);
+}
+.ent-person { display: flex; align-items: center; gap: 10px; padding: 6px 2px; }
+.ent-person-av {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+}
+.ent-person-doc .ent-person-av { background: rgba(2, 132, 199, 0.16); }
+.ent-person-sec .ent-person-av { background: rgba(243, 156, 18, 0.18); color: #b9770e; }
+.ent-person-main { display: flex; flex-direction: column; min-width: 0; }
+.ent-person-main b { font-size: 0.88rem; color: var(--text-color); }
+.ent-person-main small { font-size: 0.68rem; color: var(--secondary-text-color); }
+.ent-person .ent-pill { margin-left: auto; }
+.ent-person.is-off { opacity: 0.72; }
+.ent-sec-list {
+    margin: 6px 0 0 20px;
+    padding-left: 14px;
+    border-left: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+.ent-sec-none { margin: 8px 0 0 20px; font-size: 0.68rem; color: var(--secondary-text-color); }
+@media (max-width: 760px) {
+    .ent-clinic-block-stats { margin-left: 0; width: 100%; }
+    .ent-sec-list { margin-left: 8px; }
+}
+
+/* ------------------ Staff scoreboard (cards, not a wide table) ------- */
+/* Text gets the FULL card width on top, the four numbers sit in one
+   tidy row underneath - nothing gets squeezed into a narrow column. */
+.ent-staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+    gap: 12px;
+}
+.ent-staff-card {
+    position: relative;
+    padding: 12px 14px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--bg-color);
+}
+.ent-staff-card.is-off { opacity: 0.72; }
+.ent-staff-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.ent-staff-top .ent-person-av { width: 38px; height: 38px; flex: 0 0 auto; }
+.ent-staff-top .ent-pill { margin-left: auto; flex: 0 0 auto; }
+.ent-staff-rank {
+    flex: 0 0 auto;
+    min-width: 20px;
+    padding: 1px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 7px;
+    background: var(--panel-bg-color);
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--secondary-text-color);
+}
+.ent-staff-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.ent-staff-main b {
+    font-size: 0.93rem;
+    line-height: 1.25;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-staff-main small {
+    font-size: 0.68rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-staff-where { margin-top: 1px; }
+.ent-staff-nums {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 10px;
+}
+.ent-staff-nums span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: var(--panel-bg-color);
+}
+.ent-staff-nums em {
+    font-style: normal;
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-staff-nums b { font-size: 1rem; color: var(--text-color); font-variant-numeric: tabular-nums; }
+.ent-staff-nums .is-total {
+    background: var(--primary-light);
+    border-color: rgba(2, 132, 199, 0.3);
+}
+.ent-staff-nums .is-total b { color: var(--primary-hover-color, #0284c7); }
+@media (max-width: 560px) {
+    .ent-staff-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------------- Users: one card per person ------------------ */
+/* Grouped in three tidy rows - doctors, secretaries, admins. */
+.ent-user-group { margin-bottom: 20px; }
+.ent-user-group:last-child { margin-bottom: 4px; }
+.ent-user-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-user-group-head em {
+    font-style: normal;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: var(--text-color);
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 0 8px;
+}
+.ent-user-group-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+/* New group icon chip. The dot above stays so a cached admin.js emitting
+   .ent-user-group-dot still draws a sane header. */
+.ent-user-group-ic {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: var(--primary-light);
+}
+.ent-user-group-head.role-doctor .ent-user-group-ic { background: #e6f4ef; }
+.ent-user-group-head.role-secretary .ent-user-group-ic { background: #fef3e2; }
+.ent-user-group-head.role-admin .ent-user-group-ic { background: #fdeceb; }
+.ent-user-group-hint {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--secondary-text-color);
+    opacity: 0.85;
+    margin-left: 2px;
+}
+.ent-user-group-head.role-secretary .ent-user-group-dot { background: var(--warning-color); }
+.ent-user-group-head.role-admin .ent-user-group-dot { background: var(--danger-color); }
+/* auto-fill + a small minimum keeps 2-4 cards per row instead of one
+   lonely card stretched across the whole page. */
+.ent-user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr));
+    gap: 12px;
+}
+.ent-user-card {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-areas: "av main tags" "meta meta meta" "actions actions actions";
+    align-items: center;
+    gap: 9px 12px;
+    padding: 13px 14px 12px;
+    /* grid items default to min-width:auto, which pushes the track wider
+       than its column - that is what made the buttons overflow. */
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 14px;
+    background: var(--bg-color);
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-user-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(2, 6, 23, 0.1); }
+.ent-user-card.role-secretary { border-left-color: var(--warning-color); }
+.ent-user-card.role-admin { border-left-color: var(--danger-color); }
+.ent-user-card.is-off { opacity: 0.74; }
+.ent-user-av {
+    grid-area: av;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    font-weight: 800;
+    background: var(--primary-light);
+    color: var(--primary-hover-color, #0284c7);
+}
+.ent-user-card.role-secretary .ent-user-av { background: rgba(243, 156, 18, 0.18); color: #b9770e; }
+.ent-user-card.role-admin .ent-user-av { background: rgba(231, 76, 60, 0.14); color: var(--danger-color); }
+/* Role badge pinned on the avatar corner. position:absolute needs the
+   avatar as the offset parent, hence relative here. */
+.ent-user-av { position: relative; }
+.ent-user-avic {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.62rem;
+    font-style: normal;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(2, 6, 23, 0.15);
+}
+.ent-user-main { grid-area: main; min-width: 0; display: flex; flex-direction: column; }
+.ent-user-main b {
+    font-size: 0.95rem;
+    line-height: 1.25;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ent-user-main small { font-size: 0.72rem; color: var(--secondary-text-color); }
+.ent-user-tags { grid-area: tags; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.ent-user-meta { grid-area: meta; display: flex; gap: 18px; flex-wrap: wrap; padding-top: 2px; }
+.ent-user-meta span { display: flex; align-items: baseline; gap: 6px; }
+.ent-user-meta em {
+    font-style: normal;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-user-meta b {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* Card buttons are a touch tighter so Edit / Password / Deactivate all fit
+   on one line inside a card. */
+.ent-user-actions .ent-rowbtn { padding: 6px 9px; font-size: 0.74rem; }
+.ent-user-actions {
+    grid-area: actions;
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;          /* never let a button stick out of the card */
+    padding-top: 9px;
+    border-top: 1px dashed var(--border-color);
+}
+/* toolbar buttons keep their icon on the same line as the label */
+.ent-admin-toolbar .ent-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+
+/* ---------------------- Users hero + stats (v33w) ------------------ */
+.ent-users-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background:
+        radial-gradient(420px 120px at 10% -20%, rgba(2, 132, 199, 0.14), transparent 70%),
+        radial-gradient(360px 110px at 95% 130%, rgba(185, 119, 14, 0.10), transparent 70%),
+        var(--panel-bg-color);
+}
+.ent-users-hero-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+.ent-users-hero-text { min-width: 0; flex: 1 1 auto; }
+.ent-users-kicker {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #14508f;
+    background: #e8f1fd;
+    border: 1px solid #c3d9f7;
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+.ent-users-hero-text h2 { margin: 0 0 4px; font-size: 1.22rem; color: var(--text-color); }
+.ent-users-hero-text p { margin: 0; max-width: 64ch; font-size: 0.85rem; line-height: 1.5; color: var(--secondary-text-color); }
+.ent-users-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; align-self: center; flex-shrink: 0; }
+
+.ent-users-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.ent-user-stat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 12px 14px 11px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    overflow: hidden;
+}
+.ent-user-stat::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 4px;
+    border-radius: 999px;
+    background: var(--border-color);
+}
+.ent-user-stat.is-doctor::before    { background: #0284c7; }
+.ent-user-stat.is-secretary::before { background: #b9770e; }
+.ent-user-stat.is-admin::before     { background: #dc2626; }
+.ent-user-stat.is-off::before       { background: #94a3b8; }
+.ent-user-stat-n {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-user-stat-l {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-user-stat.is-doctor .ent-user-stat-n    { color: #0369a1; }
+.ent-user-stat.is-secretary .ent-user-stat-n { color: #8a5a00; }
+.ent-user-stat.is-admin .ent-user-stat-n     { color: #b3261e; }
+.ent-user-stat.is-off .ent-user-stat-n       { color: #64748b; }
+
+.ent-users-toolbar { align-items: center; }
+.ent-users-searchwrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 240px;
+    max-width: 420px;
+}
+.ent-users-searchwrap input[type="search"] { width: 100%; padding-left: 34px; }
+.ent-users-searchic {
+    position: absolute;
+    left: 11px;
+    font-size: 0.85rem;
+    opacity: 0.55;
+    pointer-events: none;
+}
+@media (max-width: 560px) {
+    .ent-user-actions button { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 430px) {
+    .ent-user-grid { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   TICKETS + the nav links (admin.html)
+
+   Settings and "My tickets" are links to real pages rather than panels, so
+   they need the same button styling to sit in the nav without looking like
+   an accident.
+   ===================================================================== */
+.ent-admin-nav .ent-nav-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 11px; border-radius: 9px;
+    border: 1px solid transparent; background: none;
+    color: var(--secondary-text-color); text-decoration: none;
+    font: inherit; font-size: 0.82rem; cursor: pointer;
+    transition: color 0.16s ease, border-color 0.16s ease;
+}
+.ent-admin-nav .ent-nav-link:hover { color: var(--primary-color); border-color: var(--border-color); }
+
+/* How many tickets still need a human. */
+.ent-nav-count {
+    min-width: 18px; height: 18px; padding: 0 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; background: var(--danger-color); color: #fff;
+    font-size: 0.68rem; font-weight: 700; line-height: 1;
+}
+.ent-nav-count[hidden] { display: none; }
+/* Zero still gets a badge: "nothing waiting" and "not counted yet" are different
+   states, and hiding the number makes them look the same. Neutral while empty so
+   it never draws the eye for nothing; it becomes red the moment work arrives. */
+.ent-nav-count.is-zero {
+    background: var(--border-color);
+    color: var(--secondary-text-color);
+}
+
+/* ---------------------------- the queue ---------------------------- */
+.ent-admin-tickets {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    gap: 14px;
+    align-items: start;
+}
+@media (max-width: 860px) {
+    .ent-admin-tickets { grid-template-columns: 1fr; }
+}
+
+/* Status is a WORD first, colour second, so it survives a colour-blind
+   reader and a printed page. Same rule as tickets.html. */
+.ent-badge {
+    flex: 0 0 auto; padding: 2px 8px; border-radius: 999px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em;
+    text-transform: uppercase; white-space: nowrap; border: 1px solid currentColor;
+}
+.ent-badge.is-open     { color: #c0392b; }
+.ent-badge.is-progress { color: #b9770e; }
+.ent-badge.is-resolved { color: #1e8449; }
+.ent-badge.is-closed   { color: var(--secondary-text-color); }
+
+/* ---------------------------- the thread --------------------------- */
+.ent-ticket-detail {
+    border: 1px solid var(--border-color); border-radius: 12px;
+    background: var(--bg-color); padding: 14px;
+    min-height: 260px; max-height: 62vh; overflow-y: auto;
+}
+.ent-admin-ticket-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ent-admin-ticket-head h3 { margin: 0; font-size: 1rem; color: var(--primary-color); }
+.ent-admin-ticket-sub { margin: 5px 0 12px; font-size: 0.78rem; color: var(--secondary-text-color); }
+
+.ent-msg-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 12px; }
+.ent-msg { border: 1px solid var(--border-color); border-radius: 10px; padding: 9px 11px; background: var(--panel-bg-color); }
+.ent-msg.is-mine { border-color: var(--primary-color); }
+.ent-msg header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; font-size: 0.74rem; }
+.ent-msg header time { color: var(--secondary-text-color); margin-left: auto; }
+.ent-msg p { margin: 0; font-size: 0.88rem; line-height: 1.5; word-break: break-word; }
+
+.ent-admin-reply textarea {
+    width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg-color); color: var(--text-color);
+    font-family: inherit; font-size: 0.88rem; resize: vertical;
+}
+.ent-admin-reply-actions { margin-top: 8px; display: flex; gap: 9px; }
+
+.ent-admin-status {
+    display: flex; align-items: center; gap: 9px; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+.ent-admin-status label { font-size: 0.78rem; font-weight: 600; }
+.ent-admin-status select {
+    padding: 6px 9px; border-radius: 8px; border: 1px solid var(--border-color);
+    background: var(--panel-bg-color); color: var(--text-color); font: inherit; font-size: 0.84rem;
+}
+
+.ent-ticket-notice {
+    display: none; margin: 0 0 11px; padding: 9px 11px; border-radius: 9px;
+    border-left: 4px solid var(--border-color); background: var(--panel-bg-color);
+    font-size: 0.85rem;
+}
+.ent-ticket-notice.show { display: block; }
+.ent-ticket-notice.is-bad { border-left-color: var(--danger-color); color: var(--danger-color); }
+.ent-ticket-notice.is-ok  { border-left-color: var(--success-color, #2ecc71); }
+
+/* =====================================================================
+   MY TICKETS + SETTINGS panels
+   ===================================================================== */
+
+.ent-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+.ent-admin-subcard {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    padding: 14px;
+}
+.ent-admin-subcard h3 {
+    margin: 0 0 4px; font-size: 0.95rem; color: var(--primary-color);
+}
+.ent-admin-subcard .ent-hint { margin: 0 0 12px; display: block; }
+.ent-admin-subcard .ent-field { margin-bottom: 11px; }
+.ent-admin-subcard .ent-btn { text-decoration: none; }
+
+.ent-admin-subcard input[type="text"] {
+    width: 100%; box-sizing: border-box;
+    padding: 9px 10px; border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color); color: var(--text-color);
+    font-family: inherit; font-size: 0.9rem;
+}
+.ent-admin-subcard input[type="text"]:focus {
+    outline: none; border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.18);
+}
+
+/* ---------------------------- capability switches ------------------- */
+.ent-flag-list { display: flex; flex-direction: column; gap: 8px; }
+
+.ent-flag-row {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 9px 10px; border-radius: 9px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    cursor: pointer;
+    transition: border-color 0.16s ease;
+}
+.ent-flag-row:hover { border-color: var(--primary-color); }
+.ent-flag-row.is-on { border-color: var(--success-color, #2ecc71); }
+/* The checkbox stays visible at full size: a switch you cannot see the
+   state of is a switch staff get wrong. */
+.ent-flag-row input[type="checkbox"] {
+    width: 18px; height: 18px; flex: 0 0 auto; margin: 1px 0 0;
+    accent-color: var(--primary-color);
+}
+.ent-flag-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ent-flag-text b { font-size: 0.86rem; }
+.ent-flag-text small { font-size: 0.74rem; color: var(--secondary-text-color); }
+
+
+/* =====================================================================
+   SIDEBAR LAYOUT
+   ---------------------------------------------------------------------
+   The tab strip used to sit across the top and WRAP onto a second row,
+   which read as a bug rather than a design. A rail down the left edge has
+   room for every label at every width, never reflows, and is what an
+   admin console is expected to look like.
+
+   The grid is on .ent-admin-main, which already existed as the page
+   container, so no extra wrapper element was needed in the markup. The
+   nav is the first child and .ent-admin-body the second.
+
+   BELOW 860px this grid collapses to one column and the nav becomes an
+   off-canvas drawer - see the MOBILE section at the foot of this file,
+   which owns the nav's small-screen behaviour. The old rule that turned
+   the nav back into a horizontal scrolling strip here was removed: it hid
+   sections behind a swipe nothing advertised. Only the single-column
+   collapse is kept, because that part is still right.
+   ===================================================================== */
+.ent-admin-main {
+    max-width: 1400px;
+    display: grid;
+    grid-template-columns: 218px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.ent-admin-nav {
+    position: sticky;
+    top: 12px;
+    z-index: 40;
+    /* A RAIL, so it stacks instead of laying out in a line. */
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 3px;
+    margin-bottom: 0;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--panel-bg-color);
+    box-shadow: var(--input-shadow);
+    /* The rail scrolls only if someone stacks far more tabs than exist
+       today; today it never has to, which is the point. */
+    max-height: calc(100vh - 28px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.ent-admin-nav .ent-nav-cluster {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    width: 100%;
+}
+
+.ent-admin-nav button {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* The divider now runs horizontally between groups of tabs. */
+.ent-nav-sep {
+    width: auto;
+    height: 1px;
+    margin: 6px 4px;
+    flex: 0 0 auto;
+    background: var(--border-color);
+}
+
+.ent-admin-body { min-width: 0; }
+
+/* Below the rail width the console goes back to a single column and the
+   nav becomes a horizontal strip again. A 218px rail on a phone would eat
+   a third of the screen, so the rail is a desktop idea, not a mobile one. */
+@media (max-width: 860px) {
+    .ent-admin-main {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+/* The nav below 860px is an off-canvas drawer, styled in the MOBILE
+   section at the foot of this file. Two rules used to live here that
+   turned it back into a scrolling strip and hid the text labels below
+   620px; both were removed. In a drawer the full label is the point -
+   that is the whole reason a rail was chosen over a strip. */
+
+/* ====================================================================
+   TICKET REVIEW - who filed it, and everything they filled in.
+
+   The detail previously showed a bare full name, one line of metadata,
+   and the message thread. The staff list already styles `username` as
+   code font, so this panel does the same: @jess, not "Jess Smith". An
+   admin matching a complaint to a login is looking for the handle.
+   ==================================================================== */
+
+.ent-admin-ticket-headmain {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.ent-admin-ticket-headmain h3 {
+    margin: 0;
+    font-size: 1.06rem;
+    line-height: 1.35;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.ent-admin-ticket-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Urgency. Neutral grey -> amber -> red, and the red one is deliberately
+   the only saturated colour in the header so it is impossible to miss. */
+.ent-badge.is-low    { background: #eef2f7; color: #5b6b7f; border-color: #d5dde8; }
+.ent-badge.is-normal { background: #e8f1fd; color: #1c4e9c; border-color: #c3d9f7; }
+.ent-badge.is-high   { background: #fdeceb; color: #b3261e; border-color: #f5c6c2; }
+
+/* Reporter role. */
+.ent-badge.is-role.is-doctor    { background: #e6f4ef; color: #10614a; border-color: #c2e3d7; }
+.ent-badge.is-role.is-secretary { background: #f3ecfb; color: #5b2d91; border-color: #ddd0f2; }
+.ent-badge.is-role.is-admin     { background: #eef2f7; color: #47566b; border-color: #d5dde8; }
+
+/* ---- WHO FILED IT ------------------------------------------------ */
+.ent-admin-ticket-who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin: 0 0 14px;
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+.ent-admin-ticket-avatar {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #2f6fb3;
+    color: #fff;
+    font-weight: 700;
+    font-size: .82rem;
+    letter-spacing: .02em;
+}
+.ent-admin-ticket-who-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.ent-admin-ticket-who-meta strong {
+    font-size: .95rem;
+    color: #1c2430;
+    overflow-wrap: anywhere;
+}
+.ent-admin-ticket-who-meta small {
+    font-size: .78rem;
+    color: #5b6b7f;
+}
+.ent-admin-ticket-who-meta small b {
+    color: #33455c;
+    font-weight: 600;
+}
+.ent-admin-ticket-handle {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .84em;
+    font-weight: 600;
+    color: #2f6fb3;
+}
+.ent-admin-ticket-clinic {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding-left: 12px;
+    border-left: 1px solid #e2e8f0;
+    text-align: right;
+}
+.ent-admin-ticket-clinic small {
+    font-size: .62rem;
+    letter-spacing: .09em;
+    color: #8b99ab;
+    font-weight: 700;
+}
+.ent-admin-ticket-clinic code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .76rem;
+    color: #47566b;
+}
+
+/* ---- EVERY FIELD THEY FILLED IN --------------------------------- */
+.ent-admin-ticket-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+    margin: 0 0 14px;
+}
+.ent-admin-ticket-fact {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #cdd8e4;
+    border-radius: 8px;
+    padding: 7px 10px;
+    min-width: 0;
+}
+.ent-admin-ticket-fact dt {
+    font-size: .64rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: #8b99ab;
+    font-weight: 700;
+    margin: 0 0 3px;
+}
+.ent-admin-ticket-fact dd {
+    margin: 0;
+    font-size: .87rem;
+    font-weight: 600;
+    color: #1c2430;
+    overflow-wrap: anywhere;
+}
+.ent-admin-ticket-fact.is-scope { border-left-color: #2f6fb3; }
+.ent-admin-ticket-fact.is-pri.is-low    { border-left-color: #8b99ab; }
+.ent-admin-ticket-fact.is-pri.is-normal { border-left-color: #2f6fb3; }
+.ent-admin-ticket-fact.is-pri.is-high   { border-left-color: #d93025; }
+
+.ent-admin-ticket-closed {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #e6f4ef;
+    color: #10614a;
+    font-size: .82rem;
+    font-weight: 600;
+}
+
+/* ---- MESSAGE CARDS ----------------------------------------------- */
+.ent-msg header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+.ent-msg-who {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+.ent-msg-role {
+    font-size: .64rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #8b99ab;
+    background: #f1f4f8;
+    border-radius: 4px;
+    padding: 1px 5px;
+}
+.ent-msg.is-mine .ent-msg-role {
+    color: #1c4e9c;
+    background: #e8f1fd;
+}
+/* The first message IS the description the reporter typed into the form,
+   so it is labelled rather than left looking like the first chat line. */
+.ent-msg-tag {
+    display: inline-block;
+    margin: 6px 0 2px;
+    font-size: .64rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #5b2d91;
+    background: #f3ecfb;
+    border: 1px solid #ddd0f2;
+    border-radius: 5px;
+    padding: 1px 6px;
+}
+.ent-msg.is-first {
+    border-left: 3px solid #8b5cf6;
+}
+
+@media (max-width: 640px) {
+    .ent-admin-ticket-who { flex-wrap: wrap; }
+    .ent-admin-ticket-clinic {
+        border-left: 0;
+        padding-left: 0;
+        align-items: flex-start;
+        text-align: left;
+        width: 100%;
+    }
+}
+
+/* ====================================================================
+   ADMIN SETTINGS - rebuilt.
+
+   The panel used to be three bare cards: a name box, a list of raw
+   camelCase flag keys with internal dev notes underneath, and a link.
+   Nothing said which clinic you were configuring, and the flags were
+   printed as photo_storage / cloud_reports_read - names meant for the
+   database, not for the person reading the screen.
+   ==================================================================== */
+
+.ent-settings-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background:
+        radial-gradient(420px 120px at 10% -20%, rgba(2, 132, 199, 0.14), transparent 70%),
+        radial-gradient(360px 110px at 95% 130%, rgba(30, 132, 73, 0.10), transparent 70%),
+        #fff;
+}
+.ent-settings-hero h2 {
+    margin: 0 0 4px;
+    font-size: 1.22rem;
+    color: #1c2430;
+}
+.ent-settings-hero p {
+    margin: 0;
+    max-width: 62ch;
+    font-size: .86rem;
+    line-height: 1.5;
+    color: #5b6b7f;
+}
+.ent-settings-hero p b { color: #33455c; }
+.ent-settings-hero-text { min-width: 0; flex: 1 1 auto; }
+.ent-settings-kicker {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-size: .64rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: #14508f;
+    background: #e8f1fd;
+    border: 1px solid #c3d9f7;
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+.ent-settings-hero .ent-btn { flex-shrink: 0; align-self: center; }
+.ent-settings-hero-icon {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+
+/* Identity strip: one banner, clinic left, headcounts right. */
+.ent-settings-identity {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f4f9ff 0%, #fff 60%);
+}
+.ent-identity-main {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+.ent-identity-icon {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    font-size: 1.3rem;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.30);
+}
+.ent-identity-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ent-identity-kicker {
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: #8b99ab;
+}
+.ent-identity-name {
+    font-size: 1.14rem;
+    font-weight: 800;
+    color: #1c2430;
+    overflow-wrap: anywhere;
+}
+.ent-identity-id { font-size: .74rem; color: #8b99ab; }
+.ent-identity-id code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .74rem;
+    color: #47566b;
+    background: #eef2f7;
+    border-radius: 5px;
+    padding: 1px 6px;
+}
+.ent-settings-identity .ent-settings-facts {
+    flex: 1 1 280px;
+    max-width: 520px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ent-settings-identity .ent-settings-facts > div {
+    text-align: center;
+    background: #fff;
+}
+.ent-settings-identity .ent-settings-facts dd { font-size: 1.4rem; }
+
+/* Numbered cards, one accent each. */
+.ent-settings-card { position: relative; overflow: hidden; }
+.ent-settings-step {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #e6ebf2;
+    user-select: none;
+    pointer-events: none;
+}
+.ent-settings-card.is-name { border-top: 3px solid #0284c7; }
+.ent-settings-card.is-flags { border-top: 3px solid #b9770e; }
+.ent-settings-card.is-roles { border-top: 3px solid #1e8449; }
+.ent-settings-card.is-link { border-top: 3px solid #8b5cf6; }
+
+/* Name + Save on one row. */
+.ent-name-row { display: flex; gap: 8px; align-items: stretch; }
+.ent-name-row input { flex: 1 1 auto; min-width: 0; }
+.ent-name-row .ent-btn { flex: 0 0 auto; }
+
+.ent-settings-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+}
+.ent-settings-ic {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: #eef3fa;
+    font-size: .85rem;
+    flex: 0 0 auto;
+}
+
+/* The fixed facts about your clinic. */
+.ent-settings-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+.ent-settings-facts > div {
+    background: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 9px 11px;
+}
+.ent-settings-facts dt {
+    font-size: .64rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: #8b99ab;
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+.ent-settings-facts dd {
+    margin: 0;
+    font-size: 1.06rem;
+    font-weight: 700;
+    color: #1c2430;
+}
+.ent-settings-facts dd code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .8rem;
+    color: #47566b;
+}
+
+/* Switches: friendly label, one sentence about the consequence, and an
+   On/Off pill that moves the instant the box is clicked. */
+.ent-flag-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #fff;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+}
+.ent-flag-row:hover { border-color: #c3d4e8; }
+.ent-flag-row.is-on { background: #f4f9ff; border-color: #b9d3f2; }
+.ent-flag-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.ent-flag-text b { font-size: .9rem; color: #1c2430; }
+.ent-flag-text small { font-size: .78rem; line-height: 1.45; color: #5b6b7f; }
+.ent-flag-state {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #5b6b7f;
+}
+.ent-flag-row.is-on .ent-flag-state { background: #d9ecff; color: #14508f; }
+
+/* Who can see what: rows, not a table. The test reads the copy
+   ("Who can see what") and the class names (.ent-settings-roles,
+   .ent-role-pill) - both intact. A list renders the same three rows on
+   desktop and needs no sideways scroll on a phone, which is why the
+   <table> became a <ul>. */
+.ent-settings-roles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ent-settings-roles li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    border: 1px solid #e6ebf2;
+    border-radius: 9px;
+    background: #f7f9fc;
+    font-size: .84rem;
+    color: #33455c;
+}
+.ent-settings-roles li span:last-child { min-width: 0; }
+.ent-role-pill {
+    display: inline-block;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.ent-role-pill.is-admin     { background: #fdeceb; color: #b3261e; }
+.ent-role-pill.is-doctor    { background: #e6f4ef; color: #10614a; }
+.ent-role-pill.is-secretary { background: #f3ecfb; color: #5b2d91; }
+
+@media (max-width: 640px) {
+    .ent-settings-hero { flex-direction: column; align-items: stretch; }
+}
+
+/* ====================================================================
+   ADMIN / CLINICS - made legible.
+
+   The tab opened straight onto a list of cards. It was not wrong, but an
+   admin landing here could not answer the three questions they actually
+   came with:
+
+     - how many clinics, doctors and secretaries are there in total?
+     - who is working where?
+     - which clinic is the busiest this month?
+
+   So: the totals now sit above the list instead of having to be counted,
+   every record number says which period it covers, and each doctor
+   carries their own figure.
+   ==================================================================== */
+
+.ent-clinic-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e6ebf2;
+}
+.ent-clinic-hero h2 {
+    margin: 0 0 4px;
+    font-size: 1.22rem;
+    color: #1c2430;
+}
+.ent-clinic-hero p {
+    margin: 0;
+    max-width: 66ch;
+    font-size: .86rem;
+    line-height: 1.5;
+    color: #5b6b7f;
+}
+.ent-clinic-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Search, with an in-field clear button. */
+.ent-clinic-searchwrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 280px;
+    max-width: 460px;
+}
+.ent-clinic-searchwrap input[type="search"] {
+    width: 100%;
+    padding: 8px 34px 8px 12px;
+    border: 1px solid #d5dde8;
+    border-radius: 9px;
+    font-size: .88rem;
+    background: #fff;
+    color: #1c2430;
+}
+.ent-clinic-searchwrap input[type="search"]:focus {
+    outline: none;
+    border-color: #2f6fb3;
+    box-shadow: 0 0 0 3px rgba(47, 111, 179, .14);
+}
+/* Chrome and Safari draw their OWN clear button inside
+   input[type="search"]. Left alone, the clinic search showed two x buttons
+   side by side - the browser's and ours - which is why it looked broken.
+   Hidden only inside .ent-clinic-searchwrap, where a real one replaces it.
+   The other three search boxes keep the native control, which works. */
+.ent-clinic-searchwrap input[type="search"]::-webkit-search-cancel-button,
+.ent-clinic-searchwrap input[type="search"]::-webkit-search-decoration,
+.ent-clinic-searchwrap input[type="search"]::-webkit-search-results-button,
+.ent-clinic-searchwrap input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.ent-clinic-searchclear {
+    position: absolute;
+    right: 7px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: #e3e9f2;
+    color: #46566b;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.ent-clinic-searchclear:hover {
+    background: #cfd9e6;
+    color: #1c2430;
+}
+.ent-clinic-searchclear:active { transform: scale(0.92); }
+
+/* The bug this had: `display: grid` on the class BEATS the [hidden]
+   attribute. The HTML ships the button hidden so it only appears once
+   there is something to clear, but an author `display` rule always wins
+   over the browser's own [hidden] { display: none } - so the x sat in an
+   empty search box, permanently. Restated with the attribute so it hides. */
+.ent-clinic-searchclear[hidden] { display: none; }
+
+/* Keyboard users must be able to see where they are. */
+.ent-clinic-searchclear:focus-visible {
+    outline: 2px solid #2f6fb3;
+    outline-offset: 2px;
+}
+
+/* Account-wide totals. Always the full numbers, never the filtered ones,
+   so a search can be read as "1 of 9" rather than hiding the rest. */
+.ent-clinic-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.ent-clinic-sum {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 11px 13px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+.ent-clinic-sum-n {
+    font-size: 1.32rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1c2430;
+    font-variant-numeric: tabular-nums;
+}
+.ent-clinic-sum-l {
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #8b99ab;
+}
+.ent-clinic-sum-s { font-size: .7rem; color: #b3261e; }
+
+/* Search result line. */
+.ent-clinic-found {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #eef3fa;
+    color: #33455c;
+    font-size: .84rem;
+}
+.ent-clinic-found b { color: #1c2430; }
+
+/* Who is busiest here. */
+.ent-clinic-block-top {
+    margin: 0 0 10px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: #f7f9fc;
+    border-left: 3px solid var(--accent, #2f6fb3);
+    font-size: .82rem;
+    color: #5b6b7f;
+}
+.ent-clinic-block-top b { color: #1c2430; }
+
+/* The full clinic UUID used to be printed in the card header. Now only the
+   first eight characters show, with the whole value on hover. */
+.ent-clinic-block-title code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .72rem;
+    color: #8b99ab;
+    cursor: help;
+}
+
+/* A person's own record count, period stated. */
+.ent-person-count {
+    margin-left: auto;
+    padding-left: 10px;
+    flex: 0 0 auto;
+    font-size: .7rem;
+    color: #8b99ab;
+    text-align: right;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+.ent-person-count b {
+    display: block;
+    font-size: .95rem;
+    color: #1c2430;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+    .ent-clinic-hero { flex-direction: column; align-items: stretch; }
+    .ent-clinic-hero-actions { justify-content: flex-start; }
+}
+
+/* Records made by someone who is not one of the clinic's doctors (an
+   administrator creating one). Without this the per-doctor figures and
+   the clinic total silently disagree. */
+.ent-clinic-block-stats .ent-clinic-unattr {
+    color: #8a5a00;
+    background: #fff4dc;
+    border: 1px solid #f0dcae;
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+.ent-clinic-block-stats .ent-clinic-unattr b { color: #6b4300; }
+
+/* A ticket whose reporter is no longer in the staff list.
+   Not an error state - the ticket is still valid and still belongs to a
+   clinic - so it is greyed rather than flagged red. What it lost is the
+   name, and the panel says so instead of pretending the person is unknown
+   in every sense. */
+.ent-admin-ticket-who.is-gone {
+    background: #f6f7f9;
+    border-style: dashed;
+    border-color: #d5dbe4;
+}
+.ent-admin-ticket-who.is-gone .ent-admin-ticket-avatar {
+    background: #8b99ab;
+    box-shadow: none;
+}
+.ent-admin-ticket-who.is-gone .ent-admin-ticket-who-meta strong {
+    color: #4a586b;
+}
+.ent-admin-ticket-who.is-gone .ent-admin-ticket-handle {
+    color: #6b7a8d;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* The clinic is a NAME here, not an id.
+   It was printing 00000000-0000-4000-8000-00000000c11c - how the database
+   stores it, and useless to anyone trying to tell two clinics apart. The
+   full id stays on the tooltip. */
+.ent-admin-ticket-clinic b {
+    font-size: .88rem;
+    font-weight: 700;
+    color: #1c2430;
+    max-width: 16ch;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+/* Not yet known. Distinct from `is-gone`, because an empty staff list means
+   "still fetching", not "this person does not exist". Showing "Removed
+   account" during a fetch told the admin a colleague had been deleted. */
+.ent-admin-ticket-who.is-loading {
+    background: #f7f9fc;
+    border-style: dotted;
+    border-color: #dde4ee;
+}
+.ent-admin-ticket-who.is-loading .ent-admin-ticket-avatar {
+    background: #b8c4d4;
+    box-shadow: none;
+}
+.ent-admin-ticket-who.is-loading .ent-admin-ticket-who-meta strong {
+    color: #6b7a8d;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* ====================================================================
+   ADMIN / TICKET QUEUE - redesigned.
+
+   A queue row used to be two lines: a subject with a status badge, then
+   one run-on line reading
+
+       Tara · CF4 · Something is broken · 2 hours ago
+
+   Three problems. The four facts were welded together with dots, so the
+   eye had to separate them again. Urgency was not there at all, so
+   triage meant opening every ticket to discover it. And the reporter line
+   said "someone" whenever the person was not in the staff list.
+
+   The row now answers, in order: how urgent, who is waiting, what it is
+   about, when. Each on its own line, so it can be skimmed.
+   ==================================================================== */
+
+.ent-ticket-queue {
+    display: flex;
+    flex-direction: column;
+    /* 6px, not 8. At eight the cards drifted apart into a column of
+       unrelated objects instead of reading as one queue. */
+    gap: 8px;
+    max-height: 78vh;
+    overflow-y: auto;
+    padding: 2px;
+    /* Fades the cut-off row at the bottom edge, so a list that continues
+       looks like it continues rather than like it stopped. */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent 100%);
+}
+
+.ent-admin-ticket {
+    position: relative;
+    display: flex;
+    /* row, stated explicitly. A stale rule earlier in this file still set
+       flex-direction: column on .ent-admin-ticket, and because the cascade
+       keeps any property the later rule does not mention, that stacked the
+       urgency rail ABOVE the text instead of standing it up the left edge.
+       It rendered as a stray coloured line across every card. */
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 15px 17px 15px 13px;
+    border: 1px solid var(--border-color);
+    border-radius: 13px;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    font: inherit;
+    overflow: hidden;
+    /* Every row the same comfortable size. A queue of ragged heights is
+       harder to skim than a queue of ragged CONTENT. */
+    min-height: 132px;
+    box-shadow: 0 1px 2px rgba(15, 40, 80, 0.05);
+    transition: transform 0.16s ease, border-color 0.16s ease,
+                background 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-admin-ticket:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 6px 18px rgba(15, 40, 80, 0.12);
+    transform: translateY(-1px);
+}
+.ent-admin-ticket:active { transform: translateY(0); }
+
+/* The urgency rail. Reading a queue is largely reading colour down this
+   edge, so it is the one place colour is allowed to carry meaning on its
+   own - and each colour is still named in text by the badge beside it. */
+.ent-tk-bar {
+    flex: 0 0 auto;
+    width: 4px;
+    border-radius: 999px;
+    background: #c9d4e2;
+    /* Inset from the top and bottom so the rail reads as a deliberate edge
+       rather than a smear of colour against the border. */
+    margin: 2px 0;
+}
+.ent-admin-ticket.is-high   .ent-tk-bar { background: #d93025; }
+.ent-admin-ticket.is-normal .ent-tk-bar { background: #2f6fb3; }
+.ent-admin-ticket.is-low    .ent-tk-bar { background: #c9d4e2; }
+
+/* Resolved and closed recede. They are still readable, just not shouting. */
+.ent-admin-ticket.status-resolved { background: #f7fbf9; }
+.ent-admin-ticket.status-resolved .ent-tk-subject { color: #5b6b7f; }
+.ent-admin-ticket.status-closed { opacity: 0.72; }
+
+/* The selected row. A 1px border change is far too quiet when you are
+   looking at a list of identical white cards. */
+.ent-admin-ticket.is-selected {
+    border-color: var(--primary-color);
+    background: #eef4fd;
+    box-shadow: 0 0 0 1px var(--primary-color), 0 2px 10px rgba(47, 111, 179, 0.16);
+}
+.ent-admin-ticket:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* One column. One question per line, so the eye can take the row in four
+   short hops instead of hunting across a single crowded band. */
+.ent-tk-body {
+    display: flex;
+    flex-direction: column;
+    /* 6px between lines, not 4. Four was tight enough that the four
+       questions on a row ran together into one grey block. */
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+/* Line 1 - how urgent, and since when. The only row with two items, and
+   they cannot collide: the badges sit left, the time is pushed right. */
+/* COMPAT. .ent-tk-top is what this row was called before v31z and it no
+   longer exists in the markup. A browser still holding a cached admin.js
+   from before that bump will emit it anyway, and with no rule it collapses
+   to an inline box: the badges, the timestamp and the subject each fall onto
+   a line of their own. That is exactly what a half-updated page looks like,
+   and it is indistinguishable from the layout being broken. Kept so a stale
+   script still draws one sane row. */
+.ent-tk-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ent-tk-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    /* nowrap is the whole point: this row must stay ONE line. Letting
+       the badges and the timestamp wrap is what turned a single readable
+       strip into four stacked lines. The timestamp is the only thing
+       allowed to give up its space, and only on a very narrow queue. */
+    flex-wrap: nowrap;
+}
+.ent-tk-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+.ent-tk-when {
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 0.71rem;
+    color: #8b99ab;
+    white-space: nowrap;
+    /* Digits that do not shuffle sideways as the list ticks over. */
+    font-variant-numeric: tabular-nums;
+}
+
+/* Line 2 - what it is about. It now owns its whole line instead of sharing
+   one with two badges, so it can clamp at two lines and still be read
+   without the eye jumping back to the start of the row. */
+.ent-tk-subject {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    font-size: 0.99rem;
+    font-weight: 600;
+    line-height: 1.36;
+    letter-spacing: -0.005em;
+    color: var(--text-color);
+    min-width: 0;
+}
+
+/* Line 3 - who is waiting. */
+.ent-tk-who {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+.ent-tk-av {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #dfe6ef;
+    color: #46566b;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+.ent-tk-av.is-doctor    { background: #d8ece3; color: #10614a; }
+.ent-tk-av.is-secretary { background: #e7ddf5; color: #5b2d91; }
+.ent-tk-av.is-admin     { background: #fadcd9; color: #b3261e; }
+
+.ent-tk-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #33455c;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+/* Was monospace at the same weight as the name, so it read as a second
+   identity competing with the first. It is metadata about the person, so it
+   now inherits the row font and recedes. */
+.ent-tk-handle {
+    font-family: inherit;
+    font-size: 0.72rem;
+    color: #93a1b3;
+    background: none;
+    padding: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+.ent-tk-role {
+    flex: 0 0 auto;
+    font-size: 0.66rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #6b7b8f;
+}
+.ent-tk-role.is-doctor    { background: #e6f4ef; color: #10614a; }
+.ent-tk-role.is-secretary { background: #f3ecfb; color: #5b2d91; }
+.ent-tk-role.is-admin     { background: #fdeceb; color: #b3261e; }
+
+
+/* "Needs you" - the admin's half of the notification.
+   Says it in words, not with a bare coloured dot: an admin triaging a queue
+   at the end of a clinic day needs to know which three rows are actually
+   theirs to move, and a small red circle is not a word. */
+.ent-tk-waiting {
+    margin-left: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: #d93025;
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+/* When both are present the replies pill no longer needs to shove right. */
+.ent-tk-who:has(.ent-tk-waiting) .ent-tk-replies { margin-left: 6px; }
+.ent-tk-replies {
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #5b6b7f;
+    background: #eef2f7;
+    border-radius: 999px;
+    padding: 1px 7px;
+}
+
+/* Line 4 - which part of the app. Deliberately the quietest line on the
+   card: this is context for the triage decision above, not the decision. */
+.ent-tk-tags {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 1px;
+}
+.ent-tk-tag {
+    font-size: 0.69rem;
+    color: #6b7b8f;
+    background: #f2f5f9;
+    border: 1px solid #e7ecf3;
+    border-radius: 5px;
+    padding: 1px 7px;
+}
+.ent-tk-tag.is-scope {
+    background: #eef4fd;
+    color: #1c4e9c;
+    font-weight: 600;
+    border-color: #dbe7f8;
+}
+
+@media (max-width: 860px) {
+    .ent-ticket-queue {
+        max-height: none;
+        mask-image: none;
+        -webkit-mask-image: none;
+    }
+    .ent-tk-handle { display: none; }
+}
+
+/* ====================================================================
+   SUPPORT INBOX shell (v33s). Stats on top, queue left, thread right.
+   Queue row classes (.ent-tk-bar ...) and thread classes
+   (.ent-admin-ticket-who, .ent-msg ...) are untouched - this dresses
+   only the new shell around them.
+   ==================================================================== */
+.ent-tickets-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background:
+        radial-gradient(420px 120px at 12% -20%, rgba(2, 132, 199, 0.14), transparent 70%),
+        radial-gradient(360px 110px at 95% 130%, rgba(139, 92, 246, 0.12), transparent 70%),
+        var(--panel-bg-color);
+}
+.ent-tickets-hero-text h2 {
+    margin: 0 0 4px;
+    font-size: 1.22rem;
+    color: var(--text-color);
+}
+.ent-tickets-hero-text p {
+    margin: 0;
+    max-width: 64ch;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--secondary-text-color);
+}
+.ent-tickets-hero .ent-btn { flex-shrink: 0; }
+
+.ent-tickets-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.ent-ticket-stat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 12px 14px 11px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    overflow: hidden;
+}
+.ent-ticket-stat::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 10px; bottom: 10px;
+    width: 4px;
+    border-radius: 999px;
+    background: var(--border-color);
+}
+.ent-ticket-stat.is-open::before     { background: #d93025; }
+.ent-ticket-stat.is-progress::before { background: #b9770e; }
+.ent-ticket-stat.is-urgent::before   { background: #8b5cf6; }
+.ent-ticket-stat.is-resolved::before { background: #1e8449; }
+.ent-ticket-stat-n {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-ticket-stat-l {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+
+/* Shown beside a name while the staff list is still unavailable. Small and
+   quiet on purpose: this is a waiting state, not an error. */
+.ent-ticket-stat.is-open .ent-ticket-stat-n     { color: #b3261e; }
+.ent-ticket-stat.is-progress .ent-ticket-stat-n { color: #8a5a00; }
+.ent-ticket-stat.is-urgent .ent-ticket-stat-n   { color: #5b2d91; }
+.ent-ticket-stat.is-resolved .ent-ticket-stat-n { color: #10614a; }
+
+.ent-tickets-toolbar { align-items: center; }
+.ent-tickets-searchwrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 240px;
+    max-width: 420px;
+}
+.ent-tickets-searchwrap input[type="search"] {
+    width: 100%;
+    padding-left: 34px;
+}
+.ent-tickets-searchic {
+    position: absolute;
+    left: 11px;
+    font-size: 0.85rem;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.ent-ticket-queuewrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    overflow: hidden;
+}
+.ent-ticket-queuehead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-color);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+}
+.ent-ticket-queuecount {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--primary-hover-color, #0284c7);
+    background: var(--primary-light);
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+.ent-ticket-queuewrap .ent-ticket-queue {
+    border: 0;
+    background: transparent;
+    padding: 10px;
+    max-height: 66vh;
+}
+
+/* The thread as one conversation card; messages read as chat. */
+.ent-ticket-thread {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    padding: 16px 16px 14px;
+    min-height: 260px;
+}
+.ent-thread-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border-color);
+}
+.ent-thread-no {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--primary-hover-color, #0284c7);
+    background: var(--primary-light);
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+.ent-thread-time {
+    font-size: 0.74rem;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+}
+.ent-ticket-thread .ent-admin-ticket-head { margin-bottom: 12px; }
+.ent-ticket-thread .ent-admin-ticket-headmain h3 {
+    font-size: 1.2rem;
+    color: var(--text-color);
+}
+.ent-ticket-thread.status-open .ent-thread-no { background: #fdeceb; color: #b3261e; }
+.ent-ticket-thread.status-in_progress .ent-thread-no { background: #fef3e2; color: #8a5a00; }
+.ent-ticket-thread.status-resolved .ent-thread-no,
+.ent-ticket-thread.status-closed .ent-thread-no { background: #e6f4ef; color: #10614a; }
+.ent-ticket-thread .ent-msg-list { gap: 10px; margin: 4px 0 14px; }
+.ent-ticket-thread .ent-msg {
+    max-width: 92%;
+    border-radius: 4px 12px 12px 12px;
+    box-shadow: 0 1px 2px rgba(15, 40, 80, 0.06);
+}
+.ent-ticket-thread .ent-msg.is-mine {
+    align-self: flex-end;
+    border-radius: 12px 4px 12px 12px;
+    border-color: rgba(2, 132, 199, 0.4);
+    background: #f0f7ff;
+}
+.ent-admin-reply {
+    /* Not sticky. It was pinned with position:sticky + a gradient fade in
+       v33s, which covered the last message and looked like the thread was
+       cut off. The reply is the end of the thread - it scrolls with it. */
+}
+.ent-admin-reply textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16);
+}
+
+@media (max-width: 860px) {
+    .ent-tickets-hero { padding: 14px; }
+    .ent-ticket-queuewrap .ent-ticket-queue { max-height: none; }
+    .ent-ticket-thread .ent-msg { max-width: 100%; }
+}
+
+@keyframes entSpin { to { transform: rotate(360deg); } }
+.ent-tk-spin {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #c3d0e0;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    vertical-align: -1px;
+    margin-left: 4px;
+    animation: entSpin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-tk-spin { animation: none; border-top-color: #c3d0e0; }
+}
+
+/* ====================================================================
+   MOBILE / TOUCH · the console on a phone
+   --------------------------------------------------------------------
+   Written last so it overrides everything above it. The desktop console
+   is a RAIL plus wide DATA TABLES, and both are desktop ideas:
+
+     - a 218px rail would eat a third of a phone screen
+     - `table.ent-table` carries `min-width: 640px` (auth.css), so on a
+       390px phone every table forced a sideways scroll, and the columns
+       you needed were always the ones off-screen
+
+   So below 640px the tables stop being tables and become CARDS: one card
+   per row, each cell labelled by its own `data-label`. That is the whole
+   trick, and it is why every renderer in admin.js now carries a
+   data-label on every cell. A cell with no label simply renders without
+   one, rather than losing its value.
+   ==================================================================== */
+
+/* ================ Latest patients records (Overview card) ============== */
+/* Newest record rows, one block per clinic. Every line answers a question
+   an admin is asked out loud: WHICH patient, WHICH hospital (RMCI / CUMC),
+   filed by WHICH secretary or doctor, and HOW LONG AGO. */
+.ent-latest { display: flex; flex-direction: column; gap: 14px; }
+.ent-latest-clinic {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    overflow: hidden;
+}
+.ent-latest-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--panel-bg-color) 100%);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.76rem;
+}
+.ent-latest-head b { color: var(--primary-hover-color, #0284c7); font-weight: 700; }
+.ent-latest-n,
+.ent-latest-when {
+    font-size: 0.62rem;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 1px 7px;
+    white-space: nowrap;
+}
+.ent-latest-when { margin-left: auto; }
+.ent-latest-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-color);
+    min-width: 0;
+}
+.ent-latest-head + .ent-latest-row { border-top: 0; }
+.ent-latest-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.ent-latest-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-latest-meta { font-size: 0.66rem; color: var(--secondary-text-color); }
+.ent-latest-by { font-size: 0.64rem; color: var(--secondary-text-color); white-space: nowrap; }
+.ent-latest-by b { color: var(--text-color); font-weight: 700; }
+.ent-latest-time { font-size: 0.64rem; color: var(--secondary-text-color); white-space: nowrap; }
+/* Same sky-blue / indigo the drafts and DB Records hospital badges use, so
+   the tag means the same thing on every screen. */
+.ent-latest-site {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+.ent-latest-site.is-rmci { background: rgba(14, 165, 233, 0.16); border-color: rgba(2, 132, 199, 0.30); color: #0369a1; }
+.ent-latest-site.is-cumc { background: rgba(124, 58, 237, 0.16); border-color: rgba(109, 40, 217, 0.30); color: #6d28d9; }
+body.dark-mode .ent-latest-site.is-rmci { color: #7dd3fc; background: rgba(14, 165, 233, 0.26); border-color: rgba(125, 211, 252, 0.34); }
+body.dark-mode .ent-latest-site.is-cumc { color: #c4b5fd; background: rgba(124, 58, 237, 0.26); border-color: rgba(196, 181, 253, 0.34); }
+.ent-latest-more {
+    padding: 6px 12px;
+    font-size: 0.64rem;
+    color: var(--secondary-text-color);
+    background: var(--panel-bg-color);
+    border-top: 1px dashed var(--border-color);
+}
+@media (max-width: 720px) {
+    .ent-latest-row { flex-wrap: wrap; row-gap: 4px; }
+    .ent-latest-by, .ent-latest-time { font-size: 0.62rem; }
+    .ent-latest-when { margin-left: 0; }
+}
+
+/* ==================================================================== *
+ *  ACTIVITY LOG — a timeline, not a spreadsheet                        *
+ * -------------------------------------------------------------------- *
+ *  The admin log was six flat columns of text: readable, but "when did
+ *  this happen" meant scanning timestamps, and day changes blurred
+ *  together. These three moves give it shape without touching the table
+ *  semantics (still <tr>/<td>, so the mobile card layout, the CSV export
+ *  and the 6-column empty rows all keep working):
+ *
+ *    1. DAY SEPARATORS - a full-width row per calendar day.
+ *    2. A TIMELINE DOT on each event's When cell.
+ *    3. HOVER + detail CLAMP so rows read as scannable cards.
+ * ==================================================================== */
+tr.ent-daysep td {
+    /* Not a data row: no side-padding rhythm, no border. Two rules in
+       auth.css would paint a background on it - the nth-child(even)
+       zebra and the hover tint, both plain (no !important) but both
+       matching a separator row just as happily as a data row - so the
+       background is forced off. The !important outranks them by
+       importance, and `none` beats `rgba(...)` by value: without it a
+       separator landing on an even index goes grey for no reason. */
+    padding: 16px 12px 6px;
+    border-bottom: none;
+    background: none !important;
+    position: sticky;
+    /* The day you are reading stays at the top while its events scroll
+       under it - the section header of the group in view. */
+    top: 0;
+    z-index: 2;
+    font-weight: 400;   /* td:first-child is bold in auth.css; a label
+                           that shouts is a label you stop seeing. */
+}
+tr.ent-daysep:first-child td { padding-top: 4px; }
+.ent-daysep-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--secondary-text-color);
+    max-width: 100%;
+}
+.ent-daysep-label::after {
+    /* The rule that runs to the end of the row: the section line under
+       a heading. The pseudo-element eats the rest of the cell, so no
+       extra markup and no fixed width. */
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(to right, var(--border-color), transparent);
+    min-width: 40px;
+}
+
+/* --- 2. the timeline dot in the When cell --------------------------- */
+.ent-act-when {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.ent-act-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    /* Primary hue, ringed in the PAGE colour (not the row colour) so it
+       reads as a bead on a thread whether the row is striped or not. */
+    background: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--bg-color), 0 0 0 4.5px var(--primary-light);
+    flex: 0 0 auto;
+}
+
+/* --- 3. rows read as cards: a soft hover + one-line detail ---------- */
+table.ent-table tbody tr:hover td { transition: background 0.15s ease; }
+.ent-act-detail {
+    /* One line, ellipsis at the end; the full text lives in the title
+       attribute the renderer sets. A 300-char detail string used to
+       wrap the row onto two lines and break the table's rhythm. */
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 46ch;
+    color: var(--secondary-text-color);
+    font-size: 0.84rem;
+}
+
+/* ====================================================================
+   MOBILE / TOUCH · the dashboard on a phone (doctor & secretary)
+ * --------------------------------------------------------------------
+/* ---------- 1. the header: brand, then actions, on their own rows --- */
+@media (max-width: 640px) {
+    .ent-admin-header .header-content {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+    .ent-admin-brand { flex: 1 1 100%; min-width: 0; }
+    .ent-admin-brand-text h1 { font-size: 1.02rem; }
+    /* The greeting is a subtitle; on a phone it costs a whole line for
+       no information, so it is the first thing to go. */
+    .ent-admin-brand-text small { display: none; }
+
+    .ent-admin-actions {
+        flex: 1 1 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    /* Every control in this row is a tap target, not decoration. */
+    .ent-admin-actions .ent-btn,
+    .ent-admin-actions .ent-conn {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .ent-admin-actions .ent-admin-back { margin-left: auto; }
+}
+
+/* ---------- 2. the nav: a real sidebar DRAWER on a phone ------------
+   A horizontally scrolling strip was the wrong answer. It hid half the
+   sections behind a swipe that nothing advertised, it gave every button
+   a ~40px target in a row meant for reading, and it pushed the content
+   down the page on every visit.
+
+   Instead the whole rail becomes an off-canvas drawer: a button top-left
+   opens it, the dimmed backdrop or Escape closes it, and choosing a
+   section closes it. Same markup, no extra page, no framework.
+
+   It is a fixed-position element on a phone, not a grid column, so the
+   content underneath is NOT reflowed when it opens - the page does not
+   jump sideways under the admin's thumb. */
+.ent-nav-toggle,
+.ent-drawer-scrim { display: none; }
+
+@media (max-width: 860px) {
+    /* The opener. 44px is the smallest target a thumb hits reliably, so
+       the button itself is 44px and the icon inside it is decorative. */
+    .ent-nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        margin-right: 2px;
+        padding: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 11px;
+        background: var(--bg-color);
+        cursor: pointer;
+    }
+    .ent-nav-toggle:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 2px; }
+
+    /* Three bars from one element, so there is no extra markup to keep
+       in sync. `transform` animates only the middle and bottom bars into
+       an X when the drawer is open. */
+    .ent-burger,
+    .ent-burger::before,
+    .ent-burger::after {
+        display: block;
+        width: 19px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--text-color);
+        transition: transform 0.22s ease, opacity 0.18s ease;
+    }
+    .ent-burger { position: relative; }
+    .ent-burger::before,
+    .ent-burger::after { content: ''; position: absolute; left: 0; }
+    .ent-burger::before { top: -6px; }
+    .ent-burger::after  { top: 6px; }
+    body.ent-nav-open .ent-burger { background: transparent; }
+    body.ent-nav-open .ent-burger::before { transform: translateY(6px) rotate(45deg); }
+    body.ent-nav-open .ent-burger::after  { transform: translateY(-6px) rotate(-45deg); }
+
+    /* The backdrop. It sits under the drawer and over the page, and it is
+       the largest tap target on the screen on purpose: closing a drawer
+       should never require aiming. */
+    .ent-drawer-scrim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        padding: 0;
+        border: none;
+        background: rgba(15, 23, 42, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.24s ease, visibility 0.24s ease;
+    }
+    body.ent-nav-open .ent-drawer-scrim { opacity: 1; visibility: visible; }
+
+    /* The drawer itself. */
+    .ent-admin-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 70;
+        /* Slide from the left edge. translateX(-100%) is the closed state,
+           and it is off-screen rather than display:none, so the slide is
+           animatable. */
+        transform: translateX(-100%);
+        transition: transform 0.26s ease;
+        width: min(280px, 82vw);
+        max-height: none;
+        height: 100%;
+        height: 100dvh;
+        margin-bottom: 0;
+        padding: calc(14px + env(safe-area-inset-top)) 12px
+                 calc(14px + env(safe-area-inset-bottom));
+        border: none;
+        border-right: 1px solid var(--border-color);
+        border-radius: 0 16px 16px 0;
+        box-shadow: 0 0 40px rgba(2, 6, 23, 0.28);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        /* The scroll strip is gone: this is a vertical list now. */
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        scrollbar-width: thin;
+    }
+    body.ent-nav-open .ent-admin-nav { transform: translateX(0); }
+
+    /* Inside the drawer every label is visible again - that was the whole
+       reason the rail exists. The old rule that hid .ent-nav-text below
+       620px is deliberately overridden here. */
+    .ent-admin-nav button,
+    .ent-admin-nav button .ent-nav-text { display: flex; }
+    .ent-admin-nav button {
+        width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+        white-space: normal;
+        min-height: 46px;
+        padding: 10px 12px;
+        font-size: 0.92rem;
+    }
+    .ent-admin-nav button .ent-nav-icon {
+        width: 26px;
+        height: 26px;
+        font-size: 0.9rem;
+    }
+    /* No hover-lift on a touch device: there is no hover, and the nudge
+       makes a tapped row appear to shift under the finger. */
+    .ent-admin-nav button:hover { transform: none; }
+
+    /* Dividers run horizontally between the groups again, as in the rail. */
+    .ent-admin-nav .ent-nav-sep {
+        display: block;
+        width: auto;
+        height: 1px;
+        margin: 7px 6px;
+        flex: 0 0 auto;
+    }
+    .ent-admin-nav .ent-nav-cluster {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+        width: 100%;
+    }
+
+    /* The content must not sit under the drawer, so the page gets a body
+       scroll lock only while it is open. Written as a class rather than
+       inline style so it is removed on close even if the toggle is
+       pressed twice. */
+    body.ent-nav-open { overflow: hidden; }
+}
+
+/* A phone in landscape is short, not narrow - the drawer is fine, but the
+   page under it needs its padding back. */
+@media (max-width: 860px) and (orientation: landscape) {
+    .ent-admin-nav button { min-height: 42px; padding: 8px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ent-admin-nav,
+    .ent-drawer-scrim,
+    .ent-burger,
+    .ent-burger::before,
+    .ent-burger::after { transition: none; }
+}
+
+/* ---------- 3. tables become cards ---------------------------------- */
+@media (max-width: 640px) {
+    /* The wrapper stops being a sideways scroll box. A phone cannot
+       scroll a table horizontally and read it at the same time. */
+    .ent-table-wrap {
+        overflow: visible;
+        border: none;
+        background: none;
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    table.ent-table,
+    table.ent-table thead,
+    table.ent-table tbody,
+    table.ent-table tr,
+    table.ent-table td {
+        display: block;
+        width: 100%;
+    }
+
+    /* `min-width: 640px` in auth.css is what forces the sideways scroll.
+       It has to be undone here or nothing else in this block matters. */
+    table.ent-table { min-width: 0; font-size: 0.88rem; }
+
+    /* The header row is now meaningless: the label does that job. */
+    table.ent-table thead { display: none; }
+
+    table.ent-table tbody tr {
+        margin-bottom: 10px;
+        padding: 4px 2px;
+        border: 1px solid var(--border-color);
+        border-radius: 13px;
+        background: var(--bg-color);
+    }
+    table.ent-table tbody tr:last-child { margin-bottom: 0; }
+
+    table.ent-table td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 13px;
+        border-bottom: 1px solid var(--border-color);
+        text-align: right;
+        /* A long patient name or device string must wrap, not push the
+           row wider than the screen. */
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+    table.ent-table tbody tr td:last-child { border-bottom: none; }
+
+    /* The label, from the attribute the renderers now carry. */
+    table.ent-table td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        text-align: left;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+    }
+
+    /* Numbers stay right-aligned and readable; the label sits left. */
+    table.ent-table td.ent-num {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+    }
+
+    /* The action cell is buttons, not a value. Full width, thumb-sized
+       and centred - a button at the end of a long row is easy to miss. */
+    table.ent-table td.ent-actions {
+        text-align: center;
+        justify-content: center;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    table.ent-table td.ent-actions::before { display: none; }
+    table.ent-table td.ent-actions .ent-action-row {
+        justify-content: center;
+        width: 100%;
+    }
+    table.ent-table td.ent-actions .ent-rowbtn {
+        flex: 1 1 auto;
+        min-height: 40px;
+        font-size: 0.8rem;
+    }
+
+    /* An empty-state row must not be split into a stack of blank cells. */
+    table.ent-table td.ent-empty {
+        display: block;
+        text-align: center;
+        border-bottom: none;
+        padding: 22px 16px;
+    }
+    table.ent-table td.ent-empty::before { display: none; }
+
+    /* ACTIVITY: the day separator is a chip between cards, not a table
+       row. Un-stick it (cards flow; there is no header to scroll under),
+       drop the border-box the generic tr rule gives it, and let the
+       gradient rule fill the space to the right of the label. */
+    tr.ent-daysep {
+        border: none !important;
+        background: none !important;
+        margin-bottom: 0;
+        padding: 0;
+    }
+    tr.ent-daysep td {
+        position: static;
+        display: block;
+        padding: 16px 4px 6px;
+        border: none;
+        text-align: left;
+    }
+    /* No ::before label here: unlike data cells, the separator carries
+       its own text and a "When: Today" prefix would read as nonsense. */
+    tr.ent-daysep td::before { display: none; }
+    .ent-act-detail { max-width: none; }
+}
+/* ---------- 4. toolbars stack, and their controls go full width ------ */
+@media (max-width: 640px) {
+    .ent-admin-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .ent-admin-toolbar .spacer { display: none; }
+    .ent-admin-toolbar input,
+    .ent-admin-toolbar select,
+    .ent-admin-toolbar .ent-btn {
+        width: 100%;
+        min-height: 42px;
+    }
+    .ent-admin-toolbar .ent-btn { justify-content: center; }
+}
+
+/* ---------- 5. the ticket queue, and the detail beside it ---------- */
+@media (max-width: 860px) {
+    /* The queue and the detail are two columns on a desktop. Stacked, the
+       detail lands BELOW the queue, so on a phone the admin scrolls past
+       every ticket to read the one they just tapped. The queue gets a
+       bounded height instead, which keeps the detail reachable. */
+    .ent-ticket-queue {
+        max-height: 58vh;
+        overflow-y: auto;
+    }
+    .ent-admin-ticket { min-height: 0; padding: 13px 14px 13px 11px; }
+}
+@media (max-width: 640px) {
+    /* 44px is the smallest target a thumb can hit reliably, and every row
+       in this queue is the only way to open a ticket. */
+    .ent-admin-ticket { min-height: 44px; }
+    .ent-tk-subject { -webkit-line-clamp: 2; font-size: 0.95rem; }
+    .ent-tk-av { width: 20px; height: 20px; }
+    .ent-tk-tag,
+    .ent-tk-role { font-size: 0.64rem; }
+}
+
+/* ---------- 6. modals fill a phone properly ------------------------- */
+@media (max-width: 640px) {
+    .ent-modal { padding: 0; align-items: stretch; }
+    .ent-modal-card {
+        max-width: none;
+        /* A bottom sheet, not a floating card: it takes the height it
+           needs and scrolls internally, so Save is always reachable.
+           dvh matters on a phone, where the toolbar resizes the viewport
+           after the page has already loaded. */
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 16px 16px 0 0;
+        padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .ent-modal-card .ent-btn,
+    .ent-modal-card input,
+    .ent-modal-card select { min-height: 44px; width: 100%; }
+}
+
+/* ---------- 7. cards and grids stop being multi-column -------------- */
+@media (max-width: 640px) {
+    .ent-card-grid,
+    .ent-quota-grid,
+    .ent-stat-groups,
+    .ent-staff-grid,
+    .ent-user-grid { grid-template-columns: 1fr; }
+
+    /* Give a card's header room to stack instead of squeezing its title
+       and its hint onto one 320px line. */
+    .ent-card-head { flex-wrap: wrap; row-gap: 4px; }
+    .ent-clinic-hero-actions { width: 100%; }
+    .ent-clinic-hero-actions .ent-btn { flex: 1 1 auto; justify-content: center; }
+    /* A clinic block: the numbers row goes under the title rather than
+       fighting it for width. */
+    .ent-clinic-block-stats { width: 100%; margin-left: 0; }
+}
+
+/* ---------- 8. a user card: actions on their own full-width row ----- */
+@media (max-width: 480px) {
+    .ent-user-card { grid-template-columns: 40px minmax(0, 1fr); }
+    .ent-user-tags { grid-area: tags; justify-self: start; }
+    .ent-user-actions button,
+    .ent-user-actions .ent-btn { min-height: 42px; }
+}
+
+/* ---------- 9. long identifiers never break the layout ------------- */
+@media (max-width: 640px) {
+    .ent-hint,
+    .ent-card-head h3,
+    .ent-admin-bar-title { overflow-wrap: anywhere; }
+
+    /* A raw uuid under a clinic name is noise on a narrow screen, and it
+       is the longest string in the table - it is part of what forces the
+       row wide in the first place. */
+    .ent-table-wrap .ent-hint { display: none; }
+}
+
+/* ====================================================================
+   RECYCLE BIN · "Deleted records"
+   ---------------------------------------------------------------------
+   One row per deleted record: WHO removed it and WHEN on the left, the
+   restore action on the right. The patient name leads, because the whole
+   question an admin opens this panel with is "is this the one somebody
+   meant to delete".
+
+   The row is NOT dimmed to the point of being unreadable - a record that is
+   still restorable is still live information, and greyed-out text is exactly
+   what gets missed when somebody is scanning for a name they recognise.
+   ==================================================================== */
+.ent-trash-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+.ent-trash-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    /* A dashed edge, matching the "this is a removed thing" reading. A solid
+       card in a list of live records would be the one thing that should not
+       be mistaken for a live record. */
+    border-left: 4px dashed var(--warning-color);
+    border-radius: 13px;
+    background: var(--panel-bg-color);
+}
+.ent-trash-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 240px;
+}
+.ent-trash-main b {
+    font-size: 0.93rem;
+    font-weight: 650;
+    color: var(--text-color);
+    /* A patient name must wrap rather than push the Restore button off the
+       edge of a narrow screen. */
+    overflow-wrap: anywhere;
+}
+.ent-trash-main small {
+    font-size: 0.72rem;
+    color: var(--secondary-text-color);
+    overflow-wrap: anywhere;
+}
+.ent-trash-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex: 0 0 auto;
+}
+.ent-trash-by {
+    font-size: 0.68rem;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+}
+.ent-trash-why {
+    font-size: 0.66rem;
+    color: var(--secondary-text-color);
+    font-style: italic;
+    text-align: right;
+    max-width: 260px;
+    overflow-wrap: anywhere;
+}
+/* Restore is the one action this panel exists for, so it is the one button
+   here that carries weight - not a ghost outline next to a red danger
+   button. There is no destructive action in this panel to protect against. */
+.ent-trash-side .ent-rowbtn {
+    min-height: 36px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+    .ent-trash-row { flex-direction: column; align-items: stretch; gap: 10px; }
+    /* Stacked, the side column is left-aligned and full width: a right-aligned
+       button under a left-aligned name reads as belonging to something else. */
+    .ent-trash-side { align-items: flex-start; }
+    .ent-trash-why { text-align: left; max-width: none; }
+    .ent-trash-side .ent-rowbtn { width: 100%; min-height: 44px; justify-content: center; }
+}
+
+/* ====================================================================
+   DELETE ACCOUNT · the destructive one
+   ---------------------------------------------------------------------
+   Red, and the only row button on a user card that is red. The three safe
+   actions (Edit / Password / Activate) stay neutral so that under pressure
+   the eye does not land on destruction first.
+   ==================================================================== */
+.ent-rowbtn.del {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+.ent-rowbtn.del:hover {
+    background: var(--danger-color);
+    color: #fff;
+}
+
+/* The dialog is a full-screen scrim rather than a modal card in the flow,
+   because the one thing being asked for here - a password - must not be
+   typeable while the page behind it is still clickable. */
+.ent-delmask {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 20, 28, 0.55);
+}
+.ent-delbox {
+    width: 100%;
+    max-width: 430px;
+    background: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    /* The red edge is the whole message: this dialog only ever asks one thing. */
+    border-top: 4px solid var(--danger-color);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+}
+.ent-delbox h3 { margin: 0 0 8px; font-size: 1.02rem; color: var(--text-color); }
+.ent-delbox p { margin: 0 0 14px; font-size: 0.82rem; color: var(--secondary-text-color); }
+.ent-delbox label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+.ent-delbox input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    background: var(--bg-color, #fff);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+/* A wrong password is a typo, not a refusal, so the field keeps focus and the
+   message sits right under it rather than in a corner toast. */
+.ent-delerr {
+    margin: 9px 0 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger-color);
+    font-size: 0.78rem;
+}
+.ent-delrow {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 18px;
+}
+.ent-btn.danger {
+    background: var(--danger-color);
+    border-color: var(--danger-color);
+    color: #fff;
+}
+.ent-btn.danger:disabled { opacity: 0.6; cursor: progress; }
+@media (max-width: 480px) {
+    /* Stacked and full width: the two buttons are the last thing read before
+       pressing one, so they are made impossible to miss or mis-tap. */
+    .ent-delrow { flex-direction: column-reverse; }
+    .ent-delrow .ent-btn { width: 100%; min-height: 44px; justify-content: center; }
+}
+
+/* ====================================================================
+   ADMIN CONSOLE · layout and page hierarchy
+   ==================================================================== */
+body.ent-admin-page {
+    --admin-surface: var(--panel-bg-color);
+    --admin-line: var(--border-color);
+    --admin-muted: var(--secondary-text-color);
+    background: var(--bg-color);
+}
+
+.ent-admin-header {
+    margin-bottom: 0;
+    padding: 15px 0;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+}
+
+.ent-admin-header .header-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1560px;
+    margin-inline: auto;
+    padding-inline: 30px;
+}
+
+.ent-admin-brand-icon {
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.ent-admin-main {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1560px;
+    grid-template-columns: 228px minmax(0, 1fr);
+    gap: 24px;
+    padding: 26px 30px 60px;
+}
+
+.ent-admin-nav {
+    top: 18px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.ent-admin-nav .ent-nav-cluster {
+    gap: 3px;
+}
+
+.ent-nav-group-label {
+    display: block;
+    padding: 8px 10px 5px;
+    color: var(--admin-muted);
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.ent-admin-nav button {
+    min-height: 42px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--admin-muted);
+    transition: color .15s ease, background .15s ease;
+}
+
+.ent-admin-nav button:hover {
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.ent-admin-nav button.active {
+    background: var(--primary-color);
+    box-shadow: none;
+    color: #fff;
+}
+
+.ent-nav-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 7px;
+    background: transparent;
+    filter: grayscale(1);
+    opacity: 0.8;
+}
+
+.ent-admin-nav button.active .ent-nav-icon {
+    background: transparent;
+    filter: grayscale(1) brightness(0) invert(1);
+    opacity: 1;
+}
+
+.ent-admin-nav .ent-nav-sep {
+    margin: 8px 6px 5px;
+    background: var(--admin-line);
+}
+
+.ent-admin-body {
+    min-width: 0;
+}
+
+.ent-admin-bar {
+    min-height: 55px;
+    align-items: center;
+    margin: 0 0 20px;
+    padding: 0 0 13px;
+    border-bottom: 1px solid var(--admin-line);
+}
+
+.ent-admin-bar-title {
+    margin: 0;
+    color: var(--text-color);
+    font-size: clamp(1.35rem, 2vw, 1.7rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+}
+
+.ent-live-refresh {
+    padding: 5px 9px;
+    border: 1px solid var(--admin-line);
+    border-radius: 7px;
+    background: var(--admin-surface);
+    color: var(--admin-muted);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ent-admin-panel {
+    min-width: 0;
+}
+
+.ent-admin-panel > .ent-admin-toolbar {
+    gap: 9px;
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-line);
+    border-radius: 10px;
+    background: var(--admin-surface);
+}
+
+.ent-admin-page .ent-admin-toolbar input[type="search"],
+.ent-admin-page .ent-admin-toolbar select {
+    min-height: 38px;
+    padding: 8px 11px;
+    border: 1px solid var(--admin-line);
+    border-radius: 7px;
+    background: var(--bg-color);
+}
+
+.ent-admin-page .ent-btn {
+    min-height: 36px;
+    padding: 7px 11px;
+    border-radius: 7px;
+    font-weight: 600;
+}
+
+.ent-admin-page .ent-btn:focus-visible,
+.ent-admin-page .ent-admin-nav button:focus-visible,
+.ent-admin-page input:focus-visible,
+.ent-admin-page select:focus-visible,
+.ent-admin-page textarea:focus-visible {
+    outline: 3px solid rgba(14, 165, 233, 0.28);
+    outline-offset: 2px;
+}
+
+.ent-stat-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ent-stat-group {
+    padding: 13px;
+    border: 1px solid var(--admin-line);
+    border-radius: 11px;
+    background: var(--admin-surface);
+}
+
+.ent-stat-group-head {
+    margin-bottom: 9px;
+    font-size: 0.65rem;
+    letter-spacing: 0.075em;
+}
+
+.ent-stat-group .ent-stat-grid {
+    gap: 8px;
+}
+
+.ent-stat-group .ent-stat {
+    min-width: 0;
+    padding: 10px 11px;
+    border: 1px solid var(--admin-line);
+    border-left: 3px solid var(--primary-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    box-shadow: none;
+}
+
+.ent-stat-group .ent-stat .ent-stat-value {
+    font-size: 1.35rem;
+    line-height: 1.2;
+}
+
+.ent-stat-group .ent-stat .ent-stat-label {
+    font-size: 0.62rem;
+}
+
+.ent-card {
+    min-width: 0;
+    margin-bottom: 14px;
+    padding: 16px;
+    border: 1px solid var(--admin-line);
+    border-radius: 11px;
+    background: var(--admin-surface);
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.035);
+}
+
+.ent-card-head {
+    min-width: 0;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--admin-line);
+}
+
+.ent-card-head h3 {
+    color: var(--text-color);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.ent-card-head h3::before {
+    width: 3px;
+    height: 14px;
+}
+
+.ent-card-head .ent-hint {
+    color: var(--admin-muted);
+    font-size: 0.7rem;
+}
+
+.ent-table-wrap {
+    border: 1px solid var(--admin-line);
+    border-radius: 9px;
+    box-shadow: none;
+}
+
+table.ent-table th {
+    padding: 11px 12px;
+    background: var(--bg-color);
+    font-size: 0.65rem;
+    letter-spacing: 0.055em;
+}
+
+table.ent-table td {
+    padding: 10px 12px;
+}
+
+table.ent-table tbody tr:nth-child(even) td {
+    background: rgba(100, 116, 139, 0.035);
+}
+
+table.ent-table tbody tr:hover td {
+    background: var(--primary-light);
+}
+
+/* The active section title is the single source of page headings. */
+.ent-clinic-hero h2,
+.ent-users-hero-text h2,
+.ent-tickets-hero-text h2,
+.ent-settings-hero h2,
+.ent-users-kicker,
+.ent-settings-kicker {
+    display: none;
+}
+
+.ent-clinic-hero,
+.ent-users-hero,
+.ent-tickets-hero,
+.ent-settings-hero {
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 15px 17px;
+    border: 1px solid var(--admin-line);
+    border-radius: 10px;
+    background: var(--admin-surface);
+    box-shadow: none;
+}
+
+.ent-users-hero-icon,
+.ent-settings-hero-icon {
+    display: none;
+}
+
+.ent-clinic-hero p,
+.ent-users-hero-text p,
+.ent-tickets-hero-text p,
+.ent-settings-hero p {
+    margin: 0;
+    color: var(--admin-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.ent-users-hero-text,
+.ent-tickets-hero-text,
+.ent-settings-hero-text {
+    flex: 1 1 auto;
+}
+
+.ent-clinic-hero-actions,
+.ent-users-hero-actions {
+    flex: 0 0 auto;
+    align-self: center;
+}
+
+.ent-users-stats,
+.ent-tickets-stats {
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.ent-user-stat,
+.ent-ticket-stat {
+    border-radius: 9px;
+    background: var(--admin-surface);
+}
+
+.ent-settings-identity {
+    border-radius: 10px;
+    background: var(--admin-surface);
+}
+
+.ent-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ent-settings-card {
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.ent-settings-step {
+    color: rgba(100, 116, 139, 0.16);
+}
+
+.ent-user-card {
+    border-radius: 10px;
+    background: var(--admin-surface);
+}
+
+.ent-clinic-block,
+.ent-staff-card,
+.ent-quota-card,
+.ent-ticket-queuewrap,
+.ent-ticket-detail {
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.ent-trash-list {
+    gap: 9px;
+}
+
+.ent-trash-row {
+    border-radius: 9px;
+}
+
+.ent-admin-panel > .ent-table-wrap {
+    margin-bottom: 16px;
+    background: var(--admin-surface);
+}
+
+/* Dashboard: group related information into a predictable two-column grid
+   rather than a long, uneven stack of unrelated cards. */
+.ent-admin-panel.active#panel-overview {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+
+#panel-overview > .ent-stat-groups {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+#panel-overview > .ent-card {
+    min-width: 0;
+    margin: 0;
+}
+
+#panel-overview > .ent-card:nth-child(2),
+#panel-overview > .ent-card:nth-child(3),
+#panel-overview > .ent-card:nth-child(6),
+#panel-overview > .ent-card:nth-child(7) {
+    grid-column: span 6;
+}
+
+#panel-overview > .ent-card:nth-child(4),
+#panel-overview > .ent-card:nth-child(5),
+#panel-overview > .ent-card:nth-child(8) {
+    grid-column: 1 / -1;
+}
+
+#panel-overview .ent-card-grid {
+    min-width: 0;
+    margin: 0;
+    gap: 14px;
+}
+
+#panel-overview .ent-card-grid > .ent-card {
+    margin: 0;
+}
+
+.ent-modal-card,
+.ent-delbox {
+    border-radius: 12px;
+    box-shadow: 0 20px 56px rgba(15, 23, 42, 0.22);
+}
+
+@media (max-width: 1120px) {
+    .ent-admin-main {
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 18px;
+        padding-inline: 22px;
+    }
+
+    .ent-stat-groups {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ent-stat-group .ent-stat-grid {
+        grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    }
+}
+
+@media (max-width: 1000px) {
+    #panel-overview > .ent-card:nth-child(2),
+    #panel-overview > .ent-card:nth-child(3),
+    #panel-overview > .ent-card:nth-child(6),
+    #panel-overview > .ent-card:nth-child(7) {
+        grid-column: 1 / -1;
+    }
+
+    #panel-overview .ent-card-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ent-settings-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 860px) {
+    .ent-admin-header .header-content {
+        padding-inline: 18px;
+    }
+
+    .ent-admin-main {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+        padding: 18px 20px 44px;
+    }
+
+    .ent-admin-panel.active#panel-overview {
+        gap: 12px;
+    }
+
+    .ent-stat-groups {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ent-nav-group-label {
+        padding: 10px 12px 6px;
+    }
+}
+
+@media (max-width: 640px) {
+    .ent-admin-header .header-content {
+        padding-inline: 14px;
+    }
+
+    .ent-admin-main {
+        padding: 14px 14px 36px;
+    }
+
+    .ent-admin-bar {
+        min-height: 44px;
+        align-items: center;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+    }
+
+    .ent-admin-bar-title {
+        font-size: 1.28rem;
+    }
+
+    .ent-stat-groups,
+    .ent-settings-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ent-admin-panel.active#panel-overview {
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+    }
+
+    #panel-overview > .ent-stat-groups,
+    #panel-overview > .ent-card {
+        width: 100%;
+    }
+
+    #panel-overview .ent-card-grid {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ent-card,
+    #panel-overview > .ent-card {
+        padding: 13px;
+    }
+
+    .ent-admin-panel > .ent-admin-toolbar {
+        padding: 9px;
+    }
+
+    .ent-admin-page .ent-btn {
+        min-height: 40px;
+    }
+
+    .ent-clinic-hero,
+    .ent-users-hero,
+    .ent-tickets-hero,
+    .ent-settings-hero {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 13px;
+    }
+
+    .ent-clinic-hero-actions,
+    .ent-users-hero-actions {
+        width: 100%;
+    }
+
+    .ent-clinic-hero-actions .ent-btn,
+    .ent-users-hero-actions .ent-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ent-admin-nav button,
+    .ent-stat,
+    .ent-admin-page .ent-btn,
+    .ent-user-card {
+        transition: none;
+    }
+}

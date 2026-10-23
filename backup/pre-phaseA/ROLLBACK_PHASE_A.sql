@@ -1,0 +1,103 @@
+-- =====================================================================
+-- PHASE A ROLLBACK POINT - taken 2026-09-30 BEFORE any Phase A change
+-- =====================================================================
+-- WHAT THIS FILE RECORDS
+--   1. The exact schema before Phase A (so you can reverse every change).
+--   2. How to re-create the objects Phase A adds, in case you need them back.
+--   3. How to remove them, if you roll Phase A back.
+--
+-- NOTHING in Phase A DELETES DATA. patient_records and clinic_users only ever
+-- get extra columns, so rolling back is always "ignore the new columns" -
+-- your existing rows keep working either way.
+--
+-- ---------------------------------------------------------------------
+-- PART 1 - SCHEMA BEFORE PHASE A (verified against the live project)
+-- ---------------------------------------------------------------------
+-- patient_records (relevant columns)
+--   id UUID PK, clinic_id TEXT, doctor_id TEXT, created_by TEXT,
+--   record_key TEXT, report_type TEXT, patient_name TEXT, patient_id TEXT,
+--   case_number TEXT, procedure_date TEXT, file_name TEXT,
+--   metadata JSONB, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ
+--   UNIQUE (clinic_id, doctor_id, record_key)
+--
+-- clinic_users (full column list)
+--   id UUID PK, username TEXT UNIQUE, password_hash TEXT, salt TEXT,
+--   full_name TEXT, role TEXT CHECK IN ('admin','doctor','secretary'),
+--   assigned_doctor_id UUID, specialty TEXT, license_no TEXT,
+--   email TEXT, phone TEXT, is_active BOOLEAN,
+--   must_change_password BOOLEAN, created_at TIMESTAMPTZ,
+--   updated_at TIMESTAMPTZ, last_login_at TIMESTAMPTZ
+--   NOTE: there is NO clinic_id column before Phase A.
+--
+-- RLS on the app tables
+--   anon_all_<table>  FOR ALL TO anon, authenticated USING (true)
+--                     WITH CHECK (true)   on patient_records,
+--                     clinic_shared_data, clinic_users, user_sessions,
+--                     activity_logs
+--
+-- ---------------------------------------------------------------------
+-- PART 2 - DATA BACKUP (run this BEFORE applying Phase A SQL)
+-- ---------------------------------------------------------------------
+-- 2a. Save a CSV of every user (so a bad link can be undone by hand):
+INSERT INTO clinic_users_backup_20260930
+SELECT * FROM clinic_users;   -- or: pg_dump -t clinic_users
+--
+-- 2b. Row counts BEFORE Phase A, to compare afterwards:
+SELECT
+    (SELECT count(*) FROM patient_records)          AS patient_records,
+    (SELECT count(*) FROM clinic_users)             AS clinic_users,
+    (SELECT count(*) FROM user_sessions)            AS user_sessions,
+    (SELECT count(*) FROM activity_logs)            AS activity_logs;
+-- Write the numbers down. Phase A must not change any of them.
+--
+-- 2c. Full CSV export (Supabase Dashboard -> Table Editor -> clinic_users
+--     -> Export CSV) is the simplest safety net. Keep that file.
+--
+-- ---------------------------------------------------------------------
+-- PART 3 - WHAT PHASE A ADDS (all additive, all reversible)
+-- ---------------------------------------------------------------------
+-- patient_records:  photo_paths TEXT[], photos_uploaded BOOLEAN, photo_count INT
+-- clinic_users:     clinic_id TEXT, auth_user_id UUID, auth_linked_at TIMESTAMPTZ
+-- storage bucket:   patient-photos (private)
+-- edge functions:   clinic-bridge, patient-photos
+--
+-- ---------------------------------------------------------------------
+-- PART 4 - ROLLBACK PROCEDURE (if something is wrong)
+-- ---------------------------------------------------------------------
+-- 4a. Turn the feature OFF (takes effect immediately, no deploy needed):
+--     DevTools console -> localStorage.setItem('entFeaturePhotoStorage','off')
+--     Every Save to Database then uses the old base64-in-database path.
+--     Existing rows are never touched by this.
+--
+-- 4b. Remove the Edge Functions (Dashboard -> Edge Functions -> delete).
+--     Photos already uploaded stay in Storage, nothing is lost.
+--
+-- 4c. Make the app ignore the new columns again (the app checks for them,
+--     so this is usually not even necessary):
+--     UPDATE patient_records SET photos_uploaded = FALSE WHERE photos_uploaded;
+--     UPDATE patient_records SET photo_paths   = '{}' WHERE photo_paths <> '{}';
+--     UPDATE clinic_users      SET auth_user_id = NULL;   -- unlink only
+--     UPDATE clinic_users      SET clinic_id = 'main_clinic';
+--
+-- 4d. Remove the storage bucket (Dashboard -> Storage -> patient-photos ->
+--     Delete). ONLY do this if you also want the photo files gone.
+--     Prefer leaving it: an unused private bucket costs nothing.
+--
+-- 4e. Full column removal (only if you want the schema byte-identical):
+--     ALTER TABLE patient_records DROP COLUMN IF EXISTS photo_paths,
+--         DROP COLUMN IF EXISTS photos_uploaded,
+--         DROP COLUMN IF EXISTS photo_count;
+--     ALTER TABLE clinic_users DROP COLUMN IF EXISTS auth_user_id,
+--         DROP COLUMN IF EXISTS auth_linked_at,
+--         DROP COLUMN IF EXISTS clinic_id;
+--     Existing rows are unaffected by dropping these columns.
+--
+-- ---------------------------------------------------------------------
+-- PART 5 - INVARIANTS TO CHECK AFTER ROLLBACK
+-- ---------------------------------------------------------------------
+-- SELECT count(*) FROM patient_records;   -- must equal 2b's number
+-- SELECT count(*) FROM clinic_users;      -- must equal 2b's number
+-- SELECT count(*) FROM patient_records
+--   WHERE metadata->'formData'->'images' IS NOT NULL
+--     AND jsonb_array_length(metadata->'formData'->'images') > 0;
+--   -- old base64 records still intact

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View All Patients - ENT Endoscopy System</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../style/auth.css?v=v33al">
+    <link rel="stylesheet" href="../style/view-all.css?v=v39d">
+    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+</head>
+<body class="ent-cca-page">
+    <!-- ------------------------------------------------------------------
+         VIEW ALL PATIENTS
+
+         The first screen for the cross-clinic permission workflow. The
+         backend has been live and proven since 0024/0025; this is the part
+         that was missing.
+
+         What it shows is deliberately two different things, and the visual
+         difference between them is the whole design:
+
+           · every FINAL patient across every clinic, as METADATA only
+             (name, case number, clinic, doctor, date) - so a clinic can see
+             that a patient exists somewhere and ask for what it needs;
+
+           · the RECORD CONTENT, only for a patient the server has already
+             agreed this person may open. There is no path from a row to
+             its payload except ent_open_report, and that function refuses.
+
+         Nothing here decides who may see what. The Accessible / No access
+         column is copied verbatim from ent_view_all_index, which derives it
+         from the same predicate that guards ent_open_report - so the button
+         that appears is a button the database already permitted.
+
+         Drafts never appear at all: ent_view_all_index filters is_draft =
+         false server-side and no query parameter can undo that.
+    ------------------------------------------------------------------ -->
+    <!-- The page title leads the header; Back to Menu sits at the start
+         of the content, where the title used to be. -->
+    <div class="header ent-cca-header">
+        <div class="header-content">
+            <div class="ent-cca-brand ent-cca-header-brand">
+                <span class="ent-cca-brand-icon" aria-hidden="true">&#128101;</span>
+                <span class="ent-cca-brand-text">
+                    <h1>View All Patients</h1>
+                    <small>Every clinic&rsquo;s patients &mdash; <b>metadata only</b> until a permission says otherwise</small>
+                </span>
+            </div>
+            <div class="ent-cca-actions">
+                <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">connecting&hellip;</span></span>
+                <button type="button" class="ent-btn ent-cca-iconbtn" id="ccaRefresh" title="Reload the patient list">
+                    <span aria-hidden="true">&#10227;</span> Refresh
+                </button>
+                <div class="header-user-slot" id="headerUserSlot"></div>
+            </div>
+        </div>
+    </div>
+
+    <main class="ent-cca-main">
+        <p class="ent-cca-notice" id="ccaNotice" role="status" hidden></p>
+
+        <div class="ent-cca-page-nav">
+            <a class="ent-btn ent-cca-back" href="../index.html" title="Back to Menu">&larr; Back to Menu</a>
+        </div>
+        <span class="ent-cca-scope-line ent-cca-scope-body" id="ccaScope">Checking what you can see&hellip;</span>
+
+        <!-- THE TWO LISTS ARE POP-UPS now. These two buttons park where
+             the tabs used to be - at the top, impossible to miss - and
+             each opens the same <dialog> (below, next to the record
+             pop-up) on its own tab. The ids INSIDE the dialog are the
+             ones the JS already knows, so the tab switcher, the render
+             functions and the delegated Grant/Deny handler keep working
+             without a single change. -->
+        <section class="ent-cca-reqbar no-print" aria-label="Access requests">
+            <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenMy">
+                <span aria-hidden="true">&#128178;</span> My requests
+            </button>
+            <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenInbox">
+                <span aria-hidden="true">&#128229;</span> Inbox (pending to my clinic)
+                <span class="cca-badge" id="ccaInboxBadge" hidden></span>
+            </button>
+        </section>
+
+        <!-- What is actually on this page, in three numbers. Reading them off the
+ Access column of every row was the only way to answer "can I open
+ anything here?" - and the answer decides whether this page is useful to
+ you at all. They are counted from the rows the server returned: no new
+ query, and no client-side permission decision. -->
+        <section class="ent-cca-stats" aria-label="Summary">
+            <div class="ent-cca-stat">
+                <span class="ent-cca-stat-n" id="ccaStatTotal">&mdash;</span>
+                <span class="ent-cca-stat-l">Records listed</span>
+            </div>
+            <div class="ent-cca-stat is-ok">
+                <span class="ent-cca-stat-n" id="ccaStatOpen">&mdash;</span>
+                <span class="ent-cca-stat-l">Accessible now</span>
+            </div>
+            <div class="ent-cca-stat is-locked">
+                <span class="ent-cca-stat-n" id="ccaStatAsk">&mdash;</span>
+                <span class="ent-cca-stat-l">Needs permission</span>
+            </div>
+        </section>
+
+        <section class="ent-cca-toolbar">
+            <div class="ent-cca-searchrow">
+                <label class="ent-cca-search-label" for="ccaSearch">Search patients, case numbers or clinics</label>
+                <input type="search" id="ccaSearch" class="ent-cca-search"
+                       placeholder="e.g. Quipanes, CF-2024-001, or a clinic name" autocomplete="off">
+            </div>
+            <div class="ent-cca-filters">
+                <span class="ent-cca-filter">
+                    <label for="ccaClinic">Clinic</label>
+                    <select id="ccaClinic" class="ent-cca-select"><option value="">All clinics</option></select>
+                </span>
+                <span class="ent-cca-filter">
+                    <label for="ccaType">Report</label>
+                    <select id="ccaType" class="ent-cca-select">
+                        <option value="">All reports</option>
+                        <option value="cf4">CF4 Form</option>
+                        <option value="nasal">Nasal Endoscopy</option>
+                        <option value="laryngeal">Laryngeal Endoscopy</option>
+                    </select>
+                </span>
+                <label class="ent-cca-toggle" for="ccaOnlyOpen">
+                    <input type="checkbox" id="ccaOnlyOpen">
+                    <span>Only what I can open</span>
+                </label>
+                <span class="ent-cca-count" id="ccaCount" role="status"></span>
+            </div>
+        </section>
+
+        <div class="ent-cca-layout">
+            <section class="ent-cca-card">
+                <div class="ent-cca-list-head">
+                    <div>
+                        <h2>Patient directory</h2>
+                        <p>Review patient details and open records your account is allowed to access.</p>
+                    </div>
+                    <span class="ent-cca-list-mark" aria-hidden="true">&#128203;</span>
+                </div>
+                <table class="ent-cca-table">
+                    <caption class="ent-visually-hidden">
+                        Final patient records across every clinic. Records from other clinics show metadata only
+                        until permission is granted.
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="cca-th-pt">Patient</th>
+                            <th scope="col" class="cca-th-clinic">Clinic &amp; doctor</th>
+                            <th scope="col" class="cca-th-when">Date</th>
+                            <th scope="col" class="cca-th-access">Access</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ccaTableBody">
+                        <tr><td colspan="4" class="cca-empty">Loading patients&hellip;</td></tr>
+                    </tbody>
+                </table>
+                <div class="ent-cca-foot">
+                    <button type="button" class="ent-btn" id="ccaMore">Load more</button>
+                </div>
+            </section>
+
+            <!-- The list is now the whole page: the record opens in a POP-UP
+             (the <dialog> below) instead of a side pane. A pane beside
+             the table squeezed the columns on a laptop, sat blank most of
+             the time, and pushed the "Load more" button off the screen. -->
+            <aside class="ent-cca-detail" id="ccaDetail" aria-live="polite" hidden></aside>
+        </div>
+
+<!-- The request tabs and their two panels moved to the TOP of <main>,
+     right under the title: they used to sit after the whole patient
+     table, where nobody ever scrolled far enough to look. -->
+    </main>
+
+    <!-- THE RECORD POP-UP. Shown instead of a side pane, so the list keeps the
+         full width and the record is one clear, dismissible thing. It is a
+         real <dialog>, so the focus trap, Escape-to-close and the backdrop
+         come from the platform rather than from re-implemented JavaScript -
+         the same reason the ask/approve dialogs below are <dialog> too.
+         Whatever it shows is either the server's record or the server's
+         refusal; this page never assembles anything of its own. -->
+    <dialog class="cca-modal cca-record" id="ccaRecord" aria-labelledby="ccaRecordTitle">
+        <div class="cca-record-card">
+            <div class="cca-record-head">
+                <h2 id="ccaRecordTitle">Patient record</h2>
+                <button type="button" class="cca-btn cca-btn-close" id="ccaRecordClose"
+                        title="Close (Esc)" aria-label="Close record">&times;</button>
+            </div>
+            <div class="cca-record-body" id="ccaRecordBody"></div>
+        </div>
+    </dialog>
+
+    <!-- THE REQUEST LISTS, AS A POP-UP. The same tabs-over-panels
+         structure the page used to carry inline; only the container is a
+         <dialog> now, so Escape and the backdrop close it for free. The
+         cards inside keep their ids, so the delegated listener on
+         .ent-cca-views still sees every Grant / Deny click. -->
+    <dialog class="cca-modal cca-reqdlg" id="ccaRequests" aria-labelledby="ccaRequestsTitle">
+        <div class="cca-reqdlg-card">
+            <div class="cca-reqdlg-head">
+                <h2 id="ccaRequestsTitle">My requests</h2>
+                <button type="button" class="cca-btn cca-btn-close" id="ccaRequestsClose"
+                        title="Close (Esc)" aria-label="Close access requests">&times;</button>
+            </div>
+            <div class="cca-reqdlg-body">
+                <section class="ent-cca-tabs" role="tablist" aria-label="Access request state">
+                    <button type="button" class="ent-cca-tab active" id="ccaTabMy" data-tab="my">My requests</button>
+                    <button type="button" class="ent-cca-tab" id="ccaTabInbox" data-tab="inbox">Inbox (pending to my clinic)</button>
+                </section>
+                <div class="ent-cca-views">
+                    <div id="ccaViewMy" class="ent-cca-view" role="tabpanel" aria-label="My requests">
+                        <h2>My requests</h2>
+                        <p class="cca-hint">Letters you sent. A grant turns them into an Open button.</p>
+                        <div id="ccaMyRequestsList" class="cca-requests"></div>
+                    </div>
+                    <div id="ccaViewInbox" class="ent-cca-view" hidden role="tabpanel" aria-label="Inbox">
+                        <h2>Inbox</h2>
+                        <p class="cca-hint">Letters addressed to this clinic. Any active member of this clinic may approve them.</p>
+                        <div id="ccaInboxList" class="cca-requests"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Load order matters and matches every other page in this app:
+         supabase-js first (supabaseClient.js throws without it), then the
+         client, then auth, then the feature module. auth.js is not optional
+         here: it owns the guard that stops a signed-out visitor from
+         reaching a page that would otherwise render an empty table. -->
+    <!-- Request/approve/revoke used to be window.prompt and window.confirm,
+         which look like a 1998 browser dialog, cannot be styled, and on a
+         phone sit under the browser chrome. This <dialog> replaces all three:
+         showModal() gives focus trapping, Escape-to-cancel and the backdrop
+         for free, and it is styled with the app's own tokens. -->
+    <dialog class="cca-modal" id="ccaModal" aria-labelledby="ccaModalTitle">
+        <form method="dialog" class="cca-modal-card" id="ccaModalForm">
+            <div class="cca-modal-head">
+                <span class="cca-modal-icon" id="ccaModalIcon" aria-hidden="true">&#128172;</span>
+                <h2 id="ccaModalTitle">Title</h2>
+            </div>
+            <p class="cca-modal-msg" id="ccaModalMsg"></p>
+            <label class="cca-modal-field" id="ccaModalField" for="ccaModalInput" hidden>
+                <span class="cca-modal-label" id="ccaModalLabel">Reason</span>
+                <textarea id="ccaModalInput" rows="3" spellcheck="true"></textarea>
+                <small class="cca-hint" id="ccaModalHelp"></small>
+            </label>
+            <div class="cca-modal-foot">
+                <button type="button" class="cca-btn" id="ccaModalCancel">Cancel</button>
+                <button type="submit" class="cca-btn cca-btn-open" id="ccaModalOk">Confirm</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js" defer></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/offlineStore.js"></script>
+    <script src="../function/viewAllAccess.js?v=v39a" defer></script>
+</body>
+</html>

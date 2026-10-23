@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    
+    <title>Nasal Endoscopy Report</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../css/lib/cropper.min.css">
+    <link rel="stylesheet" href="../style/patient-records.css?v=v36c">
+    <link rel="stylesheet" href="../style/auth.css?v=v36e">
+    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+</head>
+<body>
+
+    <header class="report-header no-print">
+        <!-- ROW 1 - identity (left) and status/user tools (right). The theme switch
+             is a normal flex child now, so it can never cover the sign-out chip. -->
+        <div class="header-bar">
+            <div class="header-brand">
+                <img id="headerLeftLogo" src="../image/cumc-logo.png" alt="Left Logo" class="logo" onerror="this.style.display='none'; console.error('Header Logo failed to load:', this.src);">
+                <span class="header-titles">
+                    <span class="header-hospital">CAPITOL UNIVERSITY MEDICAL CENTER</span>
+                    <h1>Nasal Endoscopy Report</h1>
+                </span>
+                <img id="headerRightLogo" src="../image/ent-logo.webp" alt="Right Logo" class="logo" onerror="this.style.display='none'; console.error('Header Logo failed to load:', this.src);">
+            </div>
+            <div class="header-meta">
+                <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
+                        <input type="checkbox" id="theme-toggle" />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="header-user-slot" id="headerUserSlot"></div>
+            </div>
+        </div>
+        <!-- ROW 2 - the action toolbar, grouped, wraps on its own lines -->
+        <div class="header-actions">
+            <!-- The "Records / saved patients" quick-view button was removed:
+                 the cloud Database ▸ DB Records panel already lists saved reports. -->
+            <!-- The old quiet "← Menu" chip used to live here, which meant two
+                 back links on one page: that one plus the one below in the
+                 main area. Both went to the same place. The lower button was
+                 kept - it is the slate-gray .back-button - and moved up here
+                 into the header, so there is exactly one and it sits with the
+                 rest of the page's actions. -->
+            <a href="../index.html" class="back-button back-button-solid no-print" title="Back to Menu">← Back to Menu</a>
+
+            <!-- OFFLINE MODE: saves to the IndexedDB offline database first; the sync engine uploads it when there is signal -->
+            <div class="header-btn-group group-work no-print" role="group" aria-label="Offline mode: save and open your work">
+                <span class="group-label">Offline Mode</span>
+                <button type="button" id="saveDataBtn" class="btn-save-draft" title="Save your work to this device's offline database. Works with or without signal - it syncs to the cloud automatically when you are back online.">
+                    <span class="btn-icon">💾</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Save to Offline Mode</span>
+                        <span class="btn-sub">works without signal</span>
+                    </span>
+                    <span class="btn-flash" aria-hidden="true">✓ Saved</span>
+                </button>
+                <button type="button" id="localDraftsBtn" class="btn-local-drafts" title="Browse records saved in offline mode on this device (IndexedDB). Open one to continue editing. These sync to the cloud automatically when online.">
+                    <span class="btn-icon">🗂️</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Offline Records</span>
+                        <span class="btn-sub">saved on this device</span>
+                    </span>
+                </button>
+                <span class="btn-group-divider" aria-hidden="true"></span>
+                <button type="button" id="openDataBtn" class="btn-open-file" title="Open a saved draft .json file from this device to continue editing it.">
+                    <span class="btn-icon">📂</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Open Draft File</span>
+                        <span class="btn-sub">from a file</span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- DATABASE: Final save to the shared cloud database + record browsing -->
+            <div class="header-btn-group group-database no-print" role="group" aria-label="Cloud database">
+                <span class="group-label">Database</span>
+                <button type="button" id="saveToDbBtn" class="btn-save-db" title="Save this report as a final record to the shared cloud database.">
+                    <span class="btn-icon">☁️</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Save to Database</span>
+                        <span class="btn-sub">final save</span>
+                    </span>
+                </button>
+                <button type="button" id="dbRecordsBtn" class="btn-db-records" title="Browse records saved in the cloud database and open one for editing.">
+                    <span class="btn-icon">🗄️</span>
+                    <span class="btn-label">
+                        <span class="btn-main">DB Records</span>
+                        <span class="btn-sub">browse &amp; edit</span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- FINAL COPY: PDF / Print for submission -->
+            <div class="header-btn-group group-output no-print" role="group" aria-label="Create the final copy">
+                <span class="group-label">Final Copy</span>
+                <button type="button" id="savePdfBtn" title="Save the completed report as a PDF file.">
+                    <span class="btn-icon">📄</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Save PDF</span>
+                        <span class="btn-sub">final copy</span>
+                    </span>
+                </button>
+                <button type="button" id="printBtn" title="Open the print dialog to print the report.">
+                    <span class="btn-icon">🖨️</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Print</span>
+                        <span class="btn-sub">paper copy</span>
+                    </span>
+                </button>
+                <!-- NEW FORM: starts a fresh blank form of the same type for the next patient -->
+                <button type="button" id="newFormBtn" title="Start a new blank form for the next patient.">
+                    <span class="btn-icon">🆕</span>
+                    <span class="btn-label">
+                        <span class="btn-main">New Form</span>
+                        <span class="btn-sub">next patient</span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- TOOLS -->
+            <div class="header-btn-group group-tools no-print" role="group" aria-label="Tools" style="background: transparent; border: none; box-shadow: none;">
+                <button type="button" id="clearFormBtn" class="btn-danger-action" title="Clear all fields and images to start a new report.">
+                    <span class="btn-icon">🗑️</span>
+                    <span class="btn-label">
+                        <span class="btn-main">Clear Form</span>
+                    </span>
+                </button>
+                <button type="button" id="helpBtn" title="Show help for using this page.">❓ Help</button>
+                <button type="button" id="tutorialBtn" title="Take a quick tour of the buttons.">🎓 Tutorial</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- The "← Back to Menu" button that used to sit here was moved into the
+             header above, so the page now has exactly one back link instead of
+             two, and it is no longer floating in the middle of the form. -->
+
+        <div class="report-layout no-print">
+            <div class="form-panel">
+                <form id="report-form">
+                    <div class="form-group">
+                        <fieldset class="patient-info-fieldset">
+                            <legend>Patient Information</legend>
+                            
+                            <!-- FIRST ROW: Case Number, Room Number, Date, MRN -->
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="caseNumber" class="form-label">Case Number</label>
+                                    <input id="caseNumber" name="caseNumber" type="text" placeholder="e.g., 2024-001">
+                                </div>
+                                <div class="form-col">
+                                    <label for="roomNumber" class="form-label">Room Number</label>
+                                    <input id="roomNumber" name="roomNumber" type="text" placeholder="e.g., 501">
+                                </div>
+                                <div class="form-col">
+                                    <label for="mrn" class="form-label">MRN</label>
+                                    <input id="mrn" name="mrn" type="text" placeholder="e.g., 123456">
+                                </div>
+                                <div class="form-col">
+                                    <label for="procedureDate" class="form-label">Date</label>
+                                    <input type="date" id="procedureDate" name="procedureDate">
+                                </div>
+                            </div>
+
+                            <!-- SECOND ROW: Last Name, First Name, Middle Name, Age and Sex -->
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="patientLastName" class="form-label">Last Name</label>
+                                    <input id="patientLastName" name="patientLastName" type="text" placeholder="e.g., Dela Cruz">
+                                </div>
+                                <div class="form-col">
+                                    <label for="patientFirstName" class="form-label">First Name</label>
+                                    <input id="patientFirstName" name="patientFirstName" type="text" placeholder="e.g., Juan">
+                                </div>
+                                <div class="form-col">
+                                    <label for="patientMiddleName" class="form-label">Middle Name</label>
+                                    <input id="patientMiddleName" name="patientMiddleName" type="text" placeholder="e.g., Santos">
+                                </div>
+                                <div class="form-col-small">
+                                    <label for="suffix" class="form-label">Suffix</label>
+                                    <select id="suffix" name="suffix">
+                                        <option value="">None</option>
+                                        <option value="Jr.">Jr.</option>
+                                        <option value="Sr.">Sr.</option>
+                                        <option value="III">III</option>
+                                    </select>
+                                </div><div class="form-col-small">
+                                    <label for="patientAge" class="form-label">Age</label>
+                                    <input id="patientAge" name="patientAge" type="number" min="0" placeholder="e.g., 35">
+                                </div>
+                                <div class="form-col-small">
+                                    <label for="patientSex" class="form-label">Sex</label>
+                                    <input type="text" id="patientSex" name="patientSex">
+                                </div>
+                            </div>
+
+                        </fieldset>
+                    </div>
+
+                    <div class="form-group">
+                        <fieldset class="procedure-details-fieldset">
+                            <legend>Procedure Details</legend>
+                            
+                            <!-- New Row: Operation Times, Duration, Scrub Nurse -->
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="operationStarted" class="form-label">Operation Started</label>
+                                    <input type="time" id="operationStarted" name="operationStarted">
+                                </div>
+                                <div class="form-col">
+                                    <label for="operationEnded" class="form-label">Operation Ended</label>
+                                    <input type="time" id="operationEnded" name="operationEnded">
+                                </div>
+                                <div class="form-col">
+                                    <label for="durationOfOperation" class="form-label">Duration of Operation</label>
+                                    <input type="text" id="durationOfOperation" name="durationOfOperation" placeholder="e.g., 30 mins">
+                                </div>
+                                <div class="form-col">
+                                    <!-- Typable, with the saved nurses offered as suggestions.
+                                         This was a <select>: a nurse who was not already in
+                                         Settings could not be recorded at all, and a value
+                                         restored from a draft silently became blank because
+                                         a <select> drops any value outside its own options.
+                                         An input + <datalist> keeps both halves - the list is
+                                         still one click, and anything else can be typed. -->
+                                    <label for="scrubNurse" class="form-label">Scrub Nurse</label>
+                                    <input type="text" id="scrubNurse" name="scrubNurse"
+                                           list="scrubNurseList" placeholder="Select or type...">
+                                    <datalist id="scrubNurseList"></datalist>
+                                </div>
+                            </div>
+
+                            <!-- New Row: Classification, RVS Code, ICD 10 Code -->
+                            <div class="form-row">
+                                <div class="form-col">
+                                    <label for="classification" class="form-label">Classification</label>
+                                    <input type="text" id="classification" name="classification">
+                                </div>
+                                <div class="form-col">
+                                    <label for="rvsCode" class="form-label">RVS Code</label>
+                                    <input type="text" id="rvsCode" name="rvsCode" placeholder="e.g., 31290">
+                                </div>
+                                <div class="form-col">
+                                    <label for="icd10Code" class="form-label">ICD 10 Code</label>
+                                    <input type="text" id="icd10Code" name="icd10Code" placeholder="e.g., J32.9">
+                                </div>
+                            </div>
+
+                            <label for="preOpDiagnosis" class="form-label">PRE-OPERATIVE DIAGNOSIS</label>
+                            <!-- Textarea + custom suggest popup (datalist can't attach to a
+                                 textarea). Same id/name so save, drafts, database and the
+                                 printed PDF (data.preOpDiagnosis) keep working unchanged.
+                                 The datalist below is kept as the suggestion SOURCE. -->
+                            <textarea id="preOpDiagnosis" name="preOpDiagnosis" rows="3"
+                                placeholder="Select or Type..."></textarea>
+                            <datalist id="preOpDiagnosisOptions">
+                                <option value="Chronic Rhinosinusitis"></option>
+                                <option value="Chronic Rhinosinusitis with Nasal Polyps"></option>
+                                <option value="Deviated Nasal Septum"></option>
+                                <option value="Allergic Rhinitis"></option>
+                                <option value="Nasal Polyposis"></option>
+                                <option value="Turbinate Hypertrophy"></option>
+                                <option value="Septoplasty"></option>
+                                <option value="Functional Endoscopic Sinus Surgery (FESS)"></option>
+                                <option value="Nasal Septum Perforation"></option>
+                                <option value="Epistaxis"></option>
+                                <option value="Choanal Atresia"></option>
+                                <option value="Laryngopharyngeal Reflux"></option>
+                                <option value="Vocal Cord Nodule"></option>
+                                <option value="Vocal Cord Polyp"></option>
+                                <option value="Vocal Cord Paralysis"></option>
+                                <option value="Vocal Cord Leukoplakia"></option>
+                                <option value="Laryngeal Mass"></option>
+                                <option value="Laryngitis"></option>
+                                <option value="Benign Laryngeal Lesion"></option>
+                                <option value="Laryngeal Cancer"></option>
+                                <option value="Stridor"></option>
+                            </datalist>
+
+                            <label for="endoscopyType" class="form-label">TYPE OF ENDOSCOPY / OPERATION PERFORMED</label>
+                            <textarea id="endoscopyType" name="endoscopyType" rows="2">FLEXIBLE FIBEROPTIC ENDOSCOPY</textarea>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <label for="procedureDescription" class="form-label" style="margin-bottom: 0;">Procedure Description</label>
+                                <button type="button" id="resetProcedureDescBtn" style="background: transparent; border: none; color: var(--primary-color); cursor: pointer; font-size: 12px; padding: 0; min-width: auto; box-shadow: none; height: auto; text-transform: none; letter-spacing: normal;">↺ Reset to Default</button>
+                            </div>
+                            <textarea id="procedureDescription" name="procedureDescription" rows="12"></textarea>
+
+                            <label for="indication" class="form-label">Indication / Reason for Procedure</label>
+                            <input type="text" id="indication" name="indication" list="indication-list" placeholder="e.g., Chronic nasal obstruction, Sinusitis">
+                            <datalist id="indication-list">
+                                <!-- Options will be populated by JS -->
+                            </datalist>
+        
+                            <label for="anesthesiaUsed" class="form-label">Anesthesia Used</label>
+                            <input type="text" id="anesthesiaUsed" name="anesthesiaUsed">
+
+                        </fieldset>
+                    </div>
+        
+                    <div class="form-group">
+                        <fieldset class="findings-fieldset">
+                            <legend>Findings</legend>
+                            
+                            <label for="septum" class="form-label">Nasal Septum</label>
+                            <input type="text" id="septum" name="septum" value="Normal">
+
+                            <label for="discharge" class="form-label">Nasal Discharge</label>
+                            <input type="text" id="discharge" name="discharge" value="None">
+
+                            <label for="mucosa" class="form-label">Mucosa</label>
+                            <input type="text" id="mucosa" name="mucosa" value="Normal">
+
+                            <label for="it" class="form-label">Inferior Turbinate</label>
+                            <input type="text" id="it" name="it" value="Normal">
+
+                            <label for="mt" class="form-label">Middle Turbinate</label>
+                            <input type="text" id="mt" name="mt" value="Normal">
+
+                            <label for="mm" class="form-label">Middle Meatus</label>
+                            <input type="text" id="mm" name="mm" value="Clear">
+
+                            <label for="im" class="form-label">Inferior Meatus</label>
+                            <input type="text" id="im" name="im" value="Clear">
+
+                            <label for="omc" class="form-label">Ostiomeatal Complex</label>
+                            <input type="text" id="omc" name="omc" value="Normal">
+
+                            <label for="nasopharynx" class="form-label">Nasopharynx</label>
+                            <input type="text" id="nasopharynx" name="nasopharynx" value="Normal">
+                        </fieldset>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="impression" class="form-label">IMPRESSION / POST OPERATIVE DIAGNOSIS</label>
+                        <!-- Textarea + custom suggest popup. Same id/name so save,
+                             drafts, database and PDF (data.impression) are untouched.
+                             The datalist below is kept as the suggestion SOURCE. -->
+                        <textarea id="impression" name="impression" rows="3" placeholder="e.g., Chronic Rhinosinusitis, Deviated Septum..."></textarea>
+                        <datalist id="impression-list-nasal">
+                            <!-- Options will be populated by JS -->
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recommendation" class="form-label">Recommendation / Plan</label>
+                        <textarea id="recommendation" name="recommendation" rows="3" placeholder="e.g., Medical Management, Surgical Evaluation..."></textarea>
+                        <datalist id="recommendation-list-nasal">
+                            <!-- Options will be populated by JS -->
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="physician" class="form-label">Surgeon:</label>
+                        <select id="physician" name="physician" required>
+                        </select>
+                    </div>
+                    <!-- NEW: Assistant Surgeon Field -->
+                    <div class="form-group">
+                        <label for="assistantSurgeon" class="form-label">Assistant Surgeon:</label>
+                        <select id="assistantSurgeon" name="assistantSurgeon"></select>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="image-panel">
+                <div class="form-group">
+                    <label for="imageInput" class="form-label">Attach Endoscopy Images</label>
+                    <input type="file" id="imageInput" multiple accept="image/*">
+                    <button type="button" id="clearImagesBtn" class="btn-clear-images">🗑️ Clear Images</button>
+                    <div id="preview" class="image-preview"></div>
+                </div>
+            </div>
+            
+            </div>
+
+        <div id="printHeaderTemplate" style="display:none;">
+            <div class="print-header-container" style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+                <img src="../image/cumc-logo.png" alt="Left Logo" class="print-logo-side" style="width: 120px; height: 120px; object-fit: cover; border-radius: 0;" onerror="this.style.display='none'; console.error('Left Logo failed to load:', this.src);">
+                <div class="header-text-block" style="text-align: center; flex-grow: 1; min-width: 0; overflow: hidden;">
+                </div>
+                <img src="../image/ent-logo.webp" alt="Right Logo" class="print-logo-side" style="width: 120px; height: 120px; object-fit: cover; border-radius: 0;" onerror="this.style.display='none'; console.error('Right Logo failed to load:', this.src);">
+            </div>
+            <hr class="print-hr" style="border: 0; border-top: 1px solid #ccc; margin-top: 10px;">
+        </div>
+        <div id="printDiv" style="display:none;"></div>
+    </main>
+
+    <div id="loadingSpinner" class="modal-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <p style="color: white; margin-top: 20px; font-size: 1.2em;">Generating PDF...</p>
+    </div>
+
+    <div id="pdfPreviewModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="width: 90vw; height: 90vh; max-width: 1200px;">
+            <h2>PDF Preview</h2>
+            <iframe id="pdfPreviewFrame" style="width: 100%; height: 85%; border: 1px solid var(--border-color);"></iframe>
+            <div class="actions" style="border-top: none; padding-top: 10px;">
+                <button type="button" id="savePdfFromPreviewBtn">Save PDF</button>
+                <button type="button" id="closePdfPreviewBtn" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="helpModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 600px; text-align: left;">
+            <h2 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0;">Button Guide</h2>
+            <div style="margin-top: 15px; line-height: 1.6;">
+                <h3 style="font-size: 1em; color: var(--success-color); margin: 14px 0 6px;">💾 SAVE &amp; EDIT YOUR WORK (Draft Files)</h3>
+                <p style="margin: 4px 0;"><strong>💾 Save Draft:</strong> Saves your current work as a file on this computer/tablet. Open this file <em>later</em> to continue editing the report.</p>
+                <p style="margin: 4px 0;"><strong>📂 Open Draft:</strong> Restores a saved draft file so you can keep editing an existing report.</p>
+                <h3 style="font-size: 1em; color: var(--primary-color); margin: 14px 0 6px;">📄 FINAL COPY &amp; PRINTING</h3>
+                <p style="margin: 4px 0;"><strong>📄 Save PDF:</strong> Creates the <em>final</em> PDF copy of the completed report. Use this for printing, sending, or archiving.</p>
+                <p style="margin: 4px 0;"><strong>🖨️ Print:</strong> Opens the print dialog to print the report directly on paper.</p>
+                <h3 style="font-size: 1em; color: var(--danger-color); margin: 14px 0 6px;">OTHER BUTTONS</h3>
+                <p style="margin: 4px 0;"><strong>🆕 New Form:</strong> Starts a blank form of the same type for the next patient. Your current entries are cleared but you can undo this.</p>
+                <p style="margin: 4px 0;"><strong>🗑️ Clear Form:</strong> Removes all fields and images to start fresh (you can undo this).</p>
+                <p style="margin: 4px 0;"><strong>❓ Help:</strong> Shows this button guide.</p>
+                <p style="margin: 4px 0;"><strong>🎓 Tutorial:</strong> Walks you through the main buttons one by one.</p>
+                <p style="margin-top: 10px; padding: 8px 10px; background: var(--primary-light, #e0f2fe); border-radius: 6px;"><strong>💡 Tip:</strong> Always use <strong>Save Draft</strong> while you are still working on a report. Use <strong>Save PDF</strong> only when the report is finished.</p>
+            </div>
+            <div style="text-align: right; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <button id="closeHelpBtn" class="btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageModal" class="modal-overlay" style="display:none; z-index: 10001;">
+        <div class="modal-content" style="max-width: 400px; padding: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: var(--primary-color); color: white; padding: 15px; font-weight: bold; font-size: 1.1em; text-align: left;">
+                <span id="msgModalTitle">Notification</span>
+            </div>
+            <div class="modal-body" style="padding: 25px 20px; color: var(--text-color); font-size: 1.05em;">
+                <p id="msgModalText" style="margin: 0; line-height: 1.5; white-space: pre-line;"></p>
+            </div>
+            <div class="modal-footer" style="padding: 15px; background: var(--bg-color); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="msgModalCancelBtn" class="btn-secondary" style="display: none;">Cancel</button>
+                <button id="msgModalOkBtn" style="background: linear-gradient(135deg, var(--primary-color), var(--primary-hover-color));">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="signatureModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h2>Sign Here</h2>
+            <div class="signature-pad-container" style="border: 1px solid var(--border-color); border-radius: 4px; position: relative; height: 200px;">
+                <canvas id="signature-pad" style="width: 100%; height: 100%;"></canvas>
+            </div>
+            <div class="actions" style="border-top: none; padding-top: 10px;">
+                <button type="button" id="saveSignatureBtn">Save Signature</button>
+                <button type="button" id="clearSignatureBtn" class="btn-secondary">Clear</button>
+                <button type="button" id="cancelSignatureBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cropModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Crop Image</h2>
+            <div class="img-container" style="max-height: 60vh; margin-bottom: 15px;">
+                <img id="imageToCrop" src="" alt="Image to crop" style="max-width: 100%;">
+            </div>
+            <div class="actions" style="border-top: none; padding-top: 10px;">
+                <button type="button" id="cropButton">Crop & Add</button>
+                <button type="button" id="skipCropButton" class="btn-secondary">Skip & Add Original</button>
+                <button type="button" id="cancelCropButton" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/lib/cropper.min.js" defer></script>
+    <script src="../js/lib/html2canvas.min.js" defer></script>
+    <script src="../js/lib/jspdf.umd.min.js" defer></script>
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js" defer></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/auth.js?v=v36f" defer></script>
+    <script src="../function/syncEngine.js?v=v35c" defer></script>
+    <script src="../function/offlineStore.js?v=v35b" defer></script>
+    <script src="../function/patientRecords.js?v=v33ak" defer></script>
+    <script src="../function/dbRecords.js?v=v36c" defer></script>
+    <!-- draftsBrowser.js?v=v35d: DRAFT OWNER GATE build (plus Team Drafts) + OFFLINE MODE
+     mirror into the IndexedDB offline database. An un-stamped local
+     draft is now SHOWN but never SHARED: allowing it to be pushed is what
+     re-created the duplicates after a clean delete (38 -> 69 on every refresh). -->
+    <script src="../function/draftsBrowser.js?v=v35d" defer></script>
+    <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
+    <script src="../function/index.js?v=v35d" defer></script>
+    
+</body>
+</html>

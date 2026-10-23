@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in - ENT Endoscopy System</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v33y">
+    <link rel="stylesheet" href="../style/auth.css?v=v36g">
+    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+</head>
+<body class="ent-login-page">
+    <script>try { if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); } catch (e) {}</script>
+
+    <form class="ent-login-card" id="loginForm" autocomplete="on" novalidate>
+        <div class="ent-login-brand">
+            <img src="../image/ent-logo.webp" alt="ENT Clinic logo">
+            <h1>ENT Endoscopy System</h1>
+            <p>Sign in with your clinic account</p>
+        </div>
+
+        <div class="ent-login-error" id="loginError" role="alert"></div>
+
+        <div class="ent-field">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" autocomplete="username"
+                   autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        </div>
+
+        <div class="ent-field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <div class="ent-hint" id="capsHint" style="display:none;">&#9888; Caps Lock is on</div>
+        </div>
+
+        <div class="ent-remember-login">
+            <label class="ent-remember-control" for="rememberDevice">
+                <input type="checkbox" id="rememberDevice" checked>
+                <span class="ent-remember-check" aria-hidden="true"></span>
+                <span class="ent-remember-copy">
+                    <strong>Remember username</strong>
+                    <small id="passwordManagerHint">Only your username is saved on this device. Your password is never saved by ENT-SYSTEM.</small>
+                </span>
+                <span class="ent-remember-device" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+                        <path d="M8 10V7a4 4 0 1 1 8 0v3"></path>
+                        <path d="M12 14v3"></path>
+                    </svg>
+                </span>
+            </label>
+        </div>
+
+        <!-- Shown only when the account still uses its starter password. -->
+        <div class="ent-field" id="changePwSection" style="display:none;">
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" autocomplete="new-password">
+            <div class="ent-hint">At least 6 characters. This replaces the starter password the admin gave you.</div>
+        </div>
+
+        <div class="ent-field" id="confirmPwSection" style="display:none;">
+            <label for="confirmPassword">Repeat new password</label>
+            <input type="password" id="confirmPassword" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="ent-login-submit" id="loginBtn">Sign in</button>
+
+        <p class="ent-login-note">
+            Records are separated per doctor &mdash; secretaries only see the patients of
+            the doctor they are assigned to.<br>
+            Offline access is available for up to 180 days after you prepare this device with an online sign-in. Log out to lock the workspace; your reports remain on this device.<br>
+            Forgot your password? Ask the clinic administrator.
+        </p>
+    </form>
+
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/paths.js"></script>
+    <script src="../function/supabaseClient.js"></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/auth.js?v=v36f"></script>
+    <script src="../function/offlineStore.js"></script>
+    <!-- v36a: "Preparing offline access / Offline-ready" status + retry.
+         defer is fine: it registers with the service worker auth.js just
+         registered and only draws a small status pill. -->
+    <script src="../function/offlineReady.js?v=v36b" defer></script>
+    <script>
+    (function () {
+        'use strict';
+
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+        const box = document.getElementById('loginError');
+        const userEl = document.getElementById('username');
+        const passEl = document.getElementById('password');
+        const rememberDeviceEl = document.getElementById('rememberDevice');
+        const passwordManagerHint = document.getElementById('passwordManagerHint');
+        const capsEl = document.getElementById('capsHint');
+        const newPwSection = document.getElementById('changePwSection');
+        const confirmPwSection = document.getElementById('confirmPwSection');
+        const newPwEl = document.getElementById('newPassword');
+        const confirmPwEl = document.getElementById('confirmPassword');
+
+        let changingPassword = false;
+
+        // The password floor, owned by auth.js and enforced identically by
+        // auth-admin and by GoTrue itself. It used to be a literal 6 here,
+        // 8 in auth.js and 10 in the Edge Function, so each screen rejected
+        // a password the next one allowed.
+        const MIN_PASSWORD_LENGTH = (window.EntAuth && window.EntAuth.MIN_PASSWORD_LENGTH) || 6;
+
+        // Only allow a same-folder .html page as the post-login target.
+        function targetPage() {
+            const raw = new URLSearchParams(window.location.search).get('next') || '';
+            const name = decodeURIComponent(raw).split('?')[0].split('/').pop() || '';
+            return /^[a-z0-9_-]+\.html$/i.test(name) ? name : '';
+        }
+
+        /* Turn a page NAME into a URL that resolves from HERE.
+         *
+         * This file lives in pages/, next to every other page except
+         * index.html, which is at the app root. So "admin.html" is a
+         * sibling and resolves as-is, while "index.html" needs "../" or it
+         * resolves to pages/index.html and 404s - which reads as "the login
+         * is broken" rather than as a path mistake. EntPaths (loaded above)
+         * applies exactly that rule, so the names below stay plain.
+         */
+        function pageUrl(name) {
+            return (window.EntPaths && typeof window.EntPaths.page === 'function')
+                ? window.EntPaths.page(name)
+                : name;
+        }
+
+        function landingPage(user) {
+            const next = targetPage();
+            const isAdmin = !!(user && user.role === 'admin');
+            if (window.EntAuth && typeof window.EntAuth.isOfflineSession === 'function' &&
+                window.EntAuth.isOfflineSession()) {
+                return pageUrl('offlineWorkspace.html');
+            }
+            // An admin never belongs on the doctor dashboard. index.html is
+            // built for ONE doctor or secretary at a time, so putting an
+            // admin there just shows the "Administrator access" gate. This
+            // is reached in normal use: auth.js bounces a signed-out visitor
+            // to login.html?next=index.html, and the old code honoured that
+            // `next` BEFORE looking at the role, so every admin sent to the
+            // login screen from the home page landed back on index.html as
+            // if they were a doctor. An explicit admin.html still wins, and
+            // any other page the admin really asked for is still honoured.
+            if (isAdmin && (!next || next === 'index.html')) return pageUrl('admin.html');
+            if (next && next !== 'login.html') return pageUrl(next);
+            return isAdmin ? pageUrl('admin.html') : pageUrl('index.html');
+        }
+
+        function showError(message, kind) {
+            box.textContent = message;
+            // 'bad' is the default and the only kind that matters here: a
+            // wrong password has to be impossible to miss. 'ok' is reserved
+            // for the informational notes this box also carries.
+            box.className = 'ent-login-error show ' + (kind === 'ok' ? 'is-ok' : 'is-bad');
+            // Nudge the field so a wrong password is felt, not just read.
+            if (kind !== 'ok') {
+                box.classList.remove('shake');
+                // Force a reflow so the animation restarts on repeat failures
+                // rather than only playing the first time.
+                void box.offsetWidth;
+                box.classList.add('shake');
+            }
+        }
+
+        function clearError() { box.className = 'ent-login-error'; }
+
+        const REMEMBERED_USERNAME_KEY = 'entRememberedUsernameV1';
+        const REMEMBERED_PASSWORD_KEY = 'entRememberedPasswordV1';
+        rememberDeviceEl.checked = true;
+
+        function rememberCredentials(username, password) {
+            try {
+                if (rememberDeviceEl.checked) {
+                    localStorage.setItem(REMEMBERED_USERNAME_KEY, String(username || '').trim());
+                    localStorage.setItem(REMEMBERED_PASSWORD_KEY, String(password || ''));
+                } else {
+                    localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+                    localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
+                }
+            } catch (error) {
+                console.warn('Unable to remember credentials on this device.', error);
+            }
+        }
+
+        rememberDeviceEl.addEventListener('change', function () {
+            rememberDeviceEl.closest('.ent-remember-control').classList.toggle('is-remembering', rememberDeviceEl.checked);
+            if (rememberDeviceEl.checked) rememberCredentials(userEl.value, passEl.value);
+            else rememberCredentials('', '');
+            updatePasswordManagerHint();
+        });
+        rememberDeviceEl.closest('.ent-remember-control').classList.toggle('is-remembering', rememberDeviceEl.checked);
+
+        function updatePasswordManagerHint() {
+            if (!passwordManagerHint) return;
+            if (!rememberDeviceEl.checked) {
+                passwordManagerHint.textContent = 'Your credentials will not be saved on this device.';
+            } else {
+                passwordManagerHint.textContent = 'Your username and password are saved on this device. Anyone with access to this device can sign in.';
+            }
+        }
+
+        function continueToApplication(result) {
+            if (result.freedSpace) {
+                showError('Signed in. Old draft photos were removed from this device to make room.');
+            }
+            if (result.justLinked) {
+                setTimeout(function () {
+                    showError('Signed in. This account is now connected to secure cloud sign-in.');
+                }, 60);
+            }
+            window.location.href = landingPage(result.user);
+        }
+
+        function prefillSavedUsername() {
+            if (!rememberDeviceEl.checked) return;
+            try {
+                const username = localStorage.getItem(REMEMBERED_USERNAME_KEY) || '';
+                // Never fight the browser's own autofill or a user who already
+                // started typing: only fill an empty box.
+                if (username && !userEl.value) userEl.value = username;
+            } catch (error) {
+                console.warn('Unable to restore the remembered username.', error);
+            }
+        }
+
+        function prefillSavedPassword() {
+            if (!rememberDeviceEl.checked) return;
+            try {
+                const password = localStorage.getItem(REMEMBERED_PASSWORD_KEY) || '';
+                // Never fight the browser's own autofill or a user who already
+                // started typing: only fill an empty box.
+                if (password && !passEl.value) passEl.value = password;
+            } catch (error) {
+                console.warn('Unable to restore the remembered password.', error);
+            }
+        }
+
+        // A protected page sends you here when the session is missing. If the app
+        // could not save the sign-in (almost always a full device storage), say so
+        // here - otherwise the form just looks like it did nothing.
+        (function showWhyThereIsNoSession() {
+            let problem = null;
+            try {
+                const raw = JSON.parse(localStorage.getItem('entSessionProblemV1') || 'null');
+                problem = raw && raw.message ? raw : null;
+            } catch (e) { problem = null; }
+            if (!problem) return;
+            // Only nag when it happened recently (a day), not about ancient history.
+            if (problem.at && (Date.now() - problem.at) > 24 * 60 * 60 * 1000) return;
+            try { localStorage.removeItem('entSessionProblemV1'); } catch (e) { /* ignore */ }
+            showError('Sign-in did not finish last time:\n\n' + problem.message);
+        })();
+
+        // Already signed in? Skip the form entirely.
+        // This must wait for ready(): the session and the live profile load
+        // asynchronously, so a synchronous readSession() is null on a fresh
+        // page load. Reading it synchronously meant this branch never fired
+        // on the first pass, but fired on the second — which is what closed
+        // the loop with guard() and produced the repeated refresh.
+        window.EntAuth.ready().then(function (user) {
+            if (user) window.location.replace(landingPage(user));
+        });
+
+        function restoreIdleButton() {
+            btn.type = 'submit';
+            btn.onclick = null;
+            btn.disabled = false;
+            btn.textContent = 'Sign in';
+        }
+
+        // The account still uses the password the admin created it with:
+        // ask for a new one before letting the user in.
+        function enterChangePasswordMode(message) {
+            changingPassword = true;
+            passEl.readOnly = true;
+            newPwSection.style.display = 'block';
+            confirmPwSection.style.display = 'block';
+            btn.textContent = 'Save new password & sign in';
+            showError(message);
+            newPwEl.focus();
+        }
+
+        function exitChangePasswordMode() {
+            changingPassword = false;
+            passEl.readOnly = false;
+            newPwSection.style.display = 'none';
+            confirmPwSection.style.display = 'none';
+            newPwEl.value = '';
+            confirmPwEl.value = '';
+            restoreIdleButton();
+        }
+
+        /* A server that could not be REACHED is not a refusal. Only in that
+         * case may the local offline verifier be tried as a fallback (a
+         * flaky connection with the radio nominally on): a GoTrue "wrong
+         * username or password" answer means the server is alive and
+         * disagrees, and must never fall through to offline access. */
+        function looksLikeNetworkFailure(message) {
+            return /could not reach the server|did not answer|check your connection|failed to fetch|networkerror|load failed|timed? ?out|err_|is unavailable/i.test(String(message || ''));
+        }
+
+        async function finishSignIn(username, password) {
+            btn.disabled = true;
+            btn.textContent = 'Signing in\u2026';
+            try {
+                // OFFLINE (v36a): with the radio off no server round-trip is
+                // possible, so skip the doomed 15s attempt and verify the
+                // password against THIS DEVICE's offline grant instead
+                // (EntAuth.loginOffline). Online, the server is always asked
+                // first; only a genuine NETWORK failure falls back to the
+                // local verifier - a real refusal from GoTrue never does, so
+                // authentication is never bypassed while the server answers.
+                let result;
+                if (navigator.onLine === false) {
+                    result = await window.EntAuth.loginOffline(username, password);
+                } else {
+                    result = await window.EntAuth.login(username, password);
+                    if (!result.success && looksLikeNetworkFailure(result.error)) {
+                        const offlineResult = await window.EntAuth.loginOffline(username, password);
+                        if (offlineResult.success) result = offlineResult;
+                    }
+                }
+                if (!result.success) {
+                    if (result.mustChangePassword) {
+                        restoreIdleButton();
+                        enterChangePasswordMode(result.error);
+                        return;
+                    }
+                    showError(result.error || 'Sign in failed.');
+                    restoreIdleButton();
+                    passEl.focus();
+                    passEl.select();
+                    return;
+                }
+                rememberCredentials(username, passEl.value);
+                if (result.offline) {
+                    window.location.replace(landingPage(result.user));
+                    return;
+                }
+                continueToApplication(result);
+            } catch (error) {
+                showError(error.message || 'Sign in failed.');
+                restoreIdleButton();
+            }
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            clearError();
+            const username = userEl.value;
+
+            // Second step of a forced password change: store it, then sign in with it.
+            if (changingPassword) {
+                if (newPwEl.value.length < MIN_PASSWORD_LENGTH) {
+                    showError('The new password must be at least ' + MIN_PASSWORD_LENGTH + ' characters.');
+                    restoreIdleButton();
+                    newPwEl.focus();
+                    return;
+                }
+                if (newPwEl.value !== confirmPwEl.value) {
+                    showError('The two new passwords do not match.');
+                    restoreIdleButton();
+                    confirmPwEl.focus();
+                    return;
+                }
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                const change = await window.EntAuth.setPassword(username, newPwEl.value, passEl.value);
+                if (!change.success) {
+                    showError(change.error || 'The password could not be changed.');
+                    restoreIdleButton();
+                    newPwEl.focus();
+                    return;
+                }
+                passEl.value = newPwEl.value;
+                exitChangePasswordMode();
+                clearError();
+                showError('Password updated. Signing you in...');
+            }
+
+            await finishSignIn(username, passEl.value);
+        });
+
+        function checkCaps(event) {
+            const supported = typeof event.getModifierState === 'function';
+            capsEl.style.display = supported && event.getModifierState('CapsLock') ? 'block' : 'none';
+        }
+        passEl.addEventListener('keyup', checkCaps);
+        passEl.addEventListener('keydown', checkCaps);
+
+        /* Clear the refusal the moment they start correcting it. A red
+         * "Wrong username or password" left sitting under a field someone
+         * is actively typing into reads as the app still failing, not as
+         * feedback they have already acted on. Kept out of the way of the
+         * informational notes, which describe a completed action. */
+        [userEl, passEl].forEach(function (el) {
+            el.addEventListener('input', function () {
+                if (box.classList.contains('is-bad')) clearError();
+            });
+        });
+        passEl.addEventListener('blur', function () { capsEl.style.display = 'none'; });
+
+        // If Supabase was never configured, say so up front instead of
+        // showing "unknown username" for every attempt.
+        if (window.EntSupabase && !window.EntSupabase.isConfigured()) {
+            showError('Supabase is not configured yet. Open settings on the clinic machine \u2014 or, on a device already prepared for offline access, sign in offline with your own password.');
+        }
+
+        // Signed in here before? Come back with the boxes already filled,
+        // so it is just "Sign in". Harmless when there is nothing saved.
+        prefillSavedUsername();
+        prefillSavedPassword();
+        updatePasswordManagerHint();
+
+        /* OFFLINE ACCESS EXPLAINED (v36a)
+         * The old flow auto-filled a PLAINTEXT password kept in
+         * localStorage and swapped the button for "Sign in (Offline)",
+         * which navigated to the dashboard with a fabricated role 'offline'
+         * and no verification of anything - possession of the device WAS
+         * the credential, and the session carried no real identity, so the
+         * guard bounced it straight back to this page in a loop. That whole
+         * path is gone.
+         *
+         * Now: when this device is offline AND was prepared by a successful
+         * online sign-in (auth.js stored a salted PBKDF2 verifier plus the
+         * account's profile snapshot), the visitor signs in with their OWN
+         * password, checked locally. A wrong password gets the same refusal
+         * an online sign-in gives. No grant on this device gets an honest
+         * message that it must be prepared once while online - nothing is
+         * pretended. Cloud sync stays paused until a real sign-in.
+         * ---------------------------------------------------------- */
+        function tryOfflineSignIn() {
+            if (navigator.onLine !== false) return false;
+            const A = window.EntAuth;
+            if (!A || typeof A.getOfflineGrant !== 'function') return false;
+            const grant = A.getOfflineGrant();
+            if (!grant) {
+                showError('You are offline and this device is not prepared for offline access yet. Connect to the internet once and sign in normally \u2014 that is what prepares it.', 'ok');
+                return false;
+            }
+            if (!userEl.value) userEl.value = grant.username;
+            showError('You are offline. Sign in with the password of \u201c' + grant.username + '\u201d \u2014 this device verifies it locally and never stores it. Cloud sync pauses until you are back online.', 'ok');
+            return true;
+        }
+
+        // Explain the offline flow on load when the device is offline.
+        if (navigator.onLine === false) {
+            tryOfflineSignIn();
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', function() {
+            // Reload to attempt real sign-in
+            location.reload();
+        });
+
+        window.addEventListener('offline', function() {
+            if (!changingPassword) {
+                tryOfflineSignIn();
+            }
+        });
+
+        userEl.focus();
+    })();
+    </script>
+
+    <footer class="ent-copy no-print">
+        <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>
+        <p>This website, including its original design, layout, graphics, and code, was created and developed by Johnzynd.</p>
+        <p>Unauthorized copying, reproduction, modification, or redistribution of this website or its original content is prohibited without prior permission.</p>
+    </footer>
+</body>
+</html>
