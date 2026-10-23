@@ -1107,7 +1107,11 @@ async function matchCachedNavigation(req) {
     const scopePath = scopeUrl.pathname.replace(/\/+$/, '');
     const requestedPath = requestedUrl.pathname.replace(/\/+$/, '');
     const hasTrailingSlash = requestedUrl.pathname.endsWith('/');
-    if (requestedPath !== scopePath && !requestedPath.startsWith(scopePath + '/')) return null;
+    // At root scope '/' the old `scopePath + '/'` produced '//', which never
+    // matches a real path, so every sub-page navigation (e.g. /pages/*) was
+    // wrongly treated as out-of-scope and sent to the login fallback.
+    const scopePrefix = scopePath === '/' ? '/' : scopePath + '/';
+    if (requestedPath !== scopePath && !requestedPath.startsWith(scopePrefix)) return null;
 
     const candidates = [];
     if (requestedPath === scopePath || requestedPath === scopePath + '/index.html') {
