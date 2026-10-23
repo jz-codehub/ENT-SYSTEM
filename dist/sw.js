@@ -859,7 +859,7 @@
 //      retaining their primary doctor scope; no other role gets local access.
 // v45: cached pages/resources now survive slow-network timeouts, HTTP error
 //      responses, and Cloudflare clean-URL navigation.
-const CACHE_NAME = 'ent-report-system-v46-offline-workspace-switch';
+const CACHE_NAME = 'ent-report-system-v45-offline-navigation';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
