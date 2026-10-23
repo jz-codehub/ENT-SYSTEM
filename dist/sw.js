@@ -861,7 +861,8 @@
 //      responses, and Cloudflare clean-URL navigation.
 // v47: report-page requests keep their .html URL; Wrangler disables Cloudflare's
 //      automatic .html -> clean-URL redirect for stable hard refreshes.
-const CACHE_NAME = 'ent-report-system-v47-exact-page-urls';
+// v50: shared modal visual refresh across nasal, laryngeal and CF4 forms.
+const CACHE_NAME = 'ent-report-system-v50-offline-workspace';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

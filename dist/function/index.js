@@ -6224,15 +6224,24 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             setOfflineStatus(`This is a ${record.reportType} record. Open it from the ${record.reportType} page.`, true);
             return;
         }
-        const confirmed = confirm(`Opening "${record.patientName}" will replace the current form contents. Continue?`);
-        if (!confirmed) return;
+        const drafts = window.EntDrafts;
         try {
             bridge.restore(record.formData || record);
             if (window.PatientRecords && typeof window.PatientRecords.recordOpen === 'function') {
                 window.PatientRecords.recordOpen(record.reportType, record.formData || record, { format: 'Draft', fileName: record.fileName });
             }
             closeOfflineModal();
-            showAlert('✅ RECORD LOADED!\n\n' + (record.patientName || 'The record') + ' is now open in the form.\n\nNext steps:\n  ✓  Continue editing as usual\n  💾  Press "Save to Offline Mode" to store your changes again', 'SUCCESS');
+            if (drafts && typeof drafts.showFeedbackModal === 'function') {
+                await drafts.showFeedbackModal({
+                    eyebrow: 'READY TO CONTINUE',
+                    title: 'Record opened',
+                    description: `${record.patientName || 'The saved record'} is now loaded in the form.`,
+                    details: [record.reportType || 'Patient record', 'Continue editing, then save your changes.'],
+                    actions: [{ label: 'Continue editing', value: true, primary: true }]
+                });
+            } else {
+                showAlert('Record loaded. You can continue editing and save your changes.', 'SUCCESS');
+            }
         } catch (error) {
             setOfflineStatus('Could not open record: ' + error.message, true);
         }

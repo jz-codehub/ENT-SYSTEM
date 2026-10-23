@@ -1081,6 +1081,87 @@
         });
     }
 
+    function showFeedbackModal(options) {
+        const opts = options || {};
+        const overlay = document.createElement('div');
+        overlay.className = 'ent-feedback-overlay' + (opts.variant ? ' is-' + opts.variant : '');
+        overlay.setAttribute('role', opts.alert ? 'alertdialog' : 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', opts.title || 'Notification');
+
+        const card = document.createElement('section');
+        card.className = 'ent-feedback-card';
+        const icon = document.createElement('div');
+        icon.className = 'ent-feedback-icon' + (opts.tone ? ' is-' + opts.tone : '');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = opts.icon || '\u2713';
+        const eyebrow = document.createElement('p');
+        eyebrow.className = 'ent-feedback-eyebrow';
+        eyebrow.textContent = opts.eyebrow || 'ENT SYSTEM';
+        const title = document.createElement('h2');
+        title.className = 'ent-feedback-title';
+        title.textContent = opts.title || 'Done';
+        const description = document.createElement('p');
+        description.className = 'ent-feedback-description';
+        description.textContent = opts.description || '';
+        card.append(icon, eyebrow, title, description);
+
+        if (opts.details && opts.details.length) {
+            const details = document.createElement('div');
+            details.className = 'ent-feedback-details';
+            opts.details.forEach(function (text) {
+                const line = document.createElement('p');
+                line.textContent = text;
+                details.appendChild(line);
+            });
+            card.appendChild(details);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'ent-feedback-actions';
+        const buttons = Array.isArray(opts.actions) && opts.actions.length
+            ? opts.actions
+            : [{ label: 'Continue', value: true, primary: true }];
+        let settled = false;
+        let previousOverflow = '';
+        let resolveResult;
+        const promise = new Promise(function (resolve) { resolveResult = resolve; });
+        function close(value) {
+            if (settled) return;
+            settled = true;
+            document.removeEventListener('keydown', onKeydown);
+            overlay.remove();
+            document.body.style.overflow = previousOverflow;
+            resolveResult(value);
+        }
+        function onKeydown(event) {
+            if (event.key === 'Escape') close(null);
+        }
+        buttons.forEach(function (item) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'ent-feedback-button' +
+                (item.primary ? ' is-primary' : '') +
+                (item.danger ? ' is-danger' : '');
+            button.textContent = item.label || 'Continue';
+            button.addEventListener('click', function () { close(item.value); });
+            actions.appendChild(button);
+        });
+        card.appendChild(actions);
+        overlay.appendChild(card);
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) close(null);
+        });
+        previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', onKeydown);
+        overlay.classList.add('is-open');
+        const firstButton = actions.querySelector('button');
+        if (firstButton) firstButton.focus();
+        return promise;
+    }
+
     async function openDraft(draft) {
         const bridge = getBridge();
         if (!bridge) {
@@ -1114,10 +1195,18 @@
             );
             return;
         }
-        const confirmed = await showConfirm(
-            `Opening "${draft.patientName}" will replace the current form contents (including images). Continue?`,
-            'Open Saved Draft'
-        );
+        const confirmed = await showFeedbackModal({
+            icon: '\u21bb',
+            eyebrow: 'OPEN SAVED WORK',
+            title: 'Replace the current form?',
+            description: `Open ${draft.patientName || 'this saved draft'} in the form?`,
+            details: ['Current entries and attached images will be replaced.', draft.reportLabel || 'Saved draft'],
+            tone: 'warning',
+            actions: [
+                { label: 'Keep current form', value: false },
+                { label: 'Open saved draft', value: true, primary: true }
+            ]
+        });
         if (!confirmed) return;
         try {
             bridge.restore(draft.formData);
@@ -1125,15 +1214,13 @@
                 window.PatientRecords.recordOpen(draft.reportType, draft.formData, { format: 'Draft', fileName: draft.fileName });
             }
             closeModal();
-            showAlert(
-                '💾  DRAFT LOADED!\n\n' +
-                (draft.patientName || 'The draft') + ' is now open in the form.\n\n' +
-                'Next steps:\n' +
-                '  ✓  Continue editing as usual\n' +
-                '  💾  Press "Save Draft" to\n' +
-                '     store your changes again',
-                'SUCCESS'
-            );
+            await showFeedbackModal({
+                eyebrow: 'READY TO CONTINUE',
+                title: 'Draft opened',
+                description: `${draft.patientName || 'The saved draft'} is now loaded in the form.`,
+                details: [draft.reportLabel || 'Saved draft', 'Continue editing, then save your changes.'],
+                actions: [{ label: 'Continue editing', value: true, primary: true }]
+            });
         } catch (error) {
             console.error('Could not open local draft:', error);
             setStatus(`Could not open draft: ${error.message}`, true);
@@ -2172,50 +2259,37 @@
         }, offline ? 16000 : 12000);
     }
 
-    // OFFLINE MODE: the doctor gets a clear confirmation of local persistence
-    // and whether a sync job was queued, without claiming a cloud save.
-    // Reuses the app's existing ent-modal / ent-modal-card (backdrop + animation)
-    // and ent-btn.primary (OK button) so it looks like every other modal.
-    function showOfflineSaveModal(draft, queued) {
-        const existing = document.getElementById('entOfflineSaveModal');
-        if (existing) existing.remove();
-        const box = document.createElement('div');
-        box.id = 'entOfflineSaveModal';
-        box.className = 'ent-modal';
-        box.setAttribute('role', 'dialog');
-        box.setAttribute('aria-modal', 'true');
-        box.setAttribute('aria-label', queued ? 'Saved locally, pending sync' : 'Saved locally, sync unavailable');
-        const patient = escapeHtml(draft.patientName || 'Untitled patient');
-        const label = escapeHtml(draft.reportLabel || 'Draft');
-        const when = new Date(draft.savedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        box.innerHTML =
-            '<div class="ent-modal-card" style="max-width:470px;">' +
-            '<div style="display:flex;align-items:center;gap:14px;margin:0 0 12px 0;">' +
-            '<span style="font-size:48px;line-height:1;">&#9989;</span>' +
-            '<div>' +
-            '<div style="font-weight:800;font-size:1.16rem;color:var(--primary-color);">&#9989; Saved to Offline Mode</div>' +
-            '<div style="font-size:0.88rem;color:var(--secondary-text-color);margin-top:2px;">Record saved on this device &middot; ' + when + '</div>' +
-            '</div>' +
-            '</div>' +
-            '<p style="margin:0 0 18px;font-size:0.99rem;line-height:1.55;color:var(--text-color);">' +
-            '<strong>' + patient + '</strong> &middot; ' + label + '<br>' +
-            'Naka-save na ang record ng pasyenteng ito sa offline mode ng device na ito.<br>' +
-            (queued
-                ? '<strong>Pending Sync.</strong> Makukumpirma lang ang save sa Supabase kapag tinanggap na ito ng server.'
-                : '<strong>Sync Failed.</strong> Nananatili ang lokal na kopya, pero hindi ito naka-queue para sa Supabase.') +
-            '</p>' +
-            '<div class="ent-modal-actions">' +
-            '<button type="button" class="ent-btn primary" id="entOfflineSaveModalOk">OK</button>' +
-            '</div>' +
-            '</div>';
-        function closeModal() {
-            box.classList.remove('open');
-            setTimeout(function () { try { box.remove(); } catch (e) { /* ignore */ } }, 220);
-        }
-        box.querySelector('#entOfflineSaveModalOk').addEventListener('click', closeModal);
-        box.addEventListener('click', function (ev) { if (ev.target === box) closeModal(); });
-        document.body.appendChild(box);
-        box.classList.add('open');
+    // Confirm the local save and queue state without claiming a cloud save.
+    function showSaveFeedbackModal(draft, queued) {
+        const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+        const savedAt = new Date(draft.savedAt || Date.now()).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        const status = queued
+            ? (online ? 'Sync will continue automatically while online.' : 'Pending sync. It will upload when you reconnect and sign in online.')
+            : 'The local copy is safe, but the sync queue could not be created.';
+        showFeedbackModal({
+            variant: 'save',
+            icon: queued ? '\u2713' : '!',
+            eyebrow: queued ? 'SAVED ON THIS DEVICE' : 'SAVED LOCALLY',
+            title: queued ? 'Saved to Offline Mode' : 'Saved, but sync needs attention',
+            description: `${draft.patientName || 'This report'} is saved on this device.`,
+            details: [draft.reportLabel || 'Patient report', `Saved at ${savedAt}`, status],
+            tone: queued ? 'success' : 'warning',
+            actions: [
+                { label: 'Offline Records', value: 'offline-records' },
+                { label: 'My Drafts', value: 'my-drafts' },
+                { label: 'Continue editing', value: 'continue', primary: true }
+            ]
+        }).then(function (action) {
+            if (action === 'offline-records') {
+                if (window.EntOfflineViewer) window.EntOfflineViewer.open();
+                else openModal();
+            } else if (action === 'my-drafts') {
+                openModal();
+            }
+        });
     }
 
     // Brief "✓ Saved" pulse on the Save Draft button itself.
@@ -2254,28 +2328,21 @@
         if (!draft) return null;
         const offlineResult = await draft.offlinePersistPromise;
         if (!offlineResult || !offlineResult.saved) {
-            showAlert(
-                'This report could not be confirmed in offline storage. Do not close this page yet. '
-                + ((offlineResult && offlineResult.error) || ''),
-                'Offline save failed'
-            );
+            await showFeedbackModal({
+                icon: '!',
+                eyebrow: 'SAVE NOT CONFIRMED',
+                title: 'Could not save offline',
+                description: 'Keep this page open and retry before leaving.',
+                details: [(offlineResult && offlineResult.error) || 'Offline storage did not confirm this save.'],
+                tone: 'warning',
+                actions: [{ label: 'Continue editing', value: true, primary: true }]
+            });
             setStatus('Offline save failed. Keep this page open and retry.', true);
             return null;
         }
-        if (!offlineResult.queued) {
-            showAlert(
-                'The report was saved on this device, but it could not be queued for synchronization. '
-                + 'It will not be reported as synced.',
-                'Sync queue unavailable'
-            );
-        }
         document.dispatchEvent(new Event('formDataSaved'));
         flashSaveButton();
-        showSavedToast(draft, offlineResult);
-        // OFFLINE MODE: show local persistence and queue status clearly.
-        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-            showOfflineSaveModal(draft, offlineResult.queued);
-        }
+        showSaveFeedbackModal(draft, offlineResult.queued);
         return draft;
     }
 
@@ -2312,6 +2379,7 @@
         saveAndOpen,
         openModal,
         showSavedToast,
+        showFeedbackModal,
         readDrafts,
         downloadDraft,
         shareDraft,
