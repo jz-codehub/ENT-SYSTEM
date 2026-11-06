@@ -69,7 +69,7 @@
             icon: '\uD83D\uDCC4'
         }
     };
-    const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4'];
+    const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
 // Weekday names for the chart column labels - every activity chart (the
 // month grid and the three split charts) prints a three-letter day under
 // each bar, or "Today" on today's column.
