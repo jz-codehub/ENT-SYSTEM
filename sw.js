@@ -862,7 +862,12 @@
 // v47: report-page requests keep their .html URL; Wrangler disables Cloudflare's
 //      automatic .html -> clean-URL redirect for stable hard refreshes.
 // v54: replace corrupted report-toolbar emoji with crisp inline SVG icons.
-const CACHE_NAME = 'ent-report-system-v54-offline-workspace';
+// v55: add the searchable CF4-backed clinical abstract page.
+// v56: align the abstract form to its reference and add the medical certificate.
+// v57: polish the report-page headers, buttons and abstract field alignment.
+// v58: add shared document toolbar styles to the offline shell.
+// v59: center abstract labels and print on a standard A4 page.
+const CACHE_NAME = 'ent-report-system-v59-offline-workspace';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
@@ -879,6 +884,8 @@ const FILES_TO_CACHE = [
     'pages/nasalEndoscopy.html',
     'pages/laryngealEndoscopy.html',
     'pages/cf4Form.html',
+    'pages/abstract.html',
+    'pages/medicalCertificate.html',
     'pages/settings.html',
     'pages/viewAll.html',
     'pages/tickets.html',
@@ -905,6 +912,7 @@ const FILES_TO_CACHE = [
     'style/patient-records.css',
     'style/tickets.css',
     'style/mobile.css',
+    'style/medical-documents.css',
     'function/auth.js',
     'function/admin.js',
     // paths.js resolves every page/asset URL. If it is not pre-cached, an
@@ -916,6 +924,7 @@ const FILES_TO_CACHE = [
     'function/index.js',
     'function/dashboard.js',
     'function/cf4.js',
+    'function/abstract.js',
     'function/patientRecords.js',
     'function/dbRecords.js',
     'function/draftsBrowser.js',

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ENT Endoscopy System — Presentation</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;background:#f4f7f6;margin:0}
+  .slide{max-width:1100px;margin:30px auto;background:#fff;padding:50px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+  h1{color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px}
+  h2{color:#3498db;margin-top:30px}
+  ul,ol{line-height:1.8}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+<div style="background:#1f3864;color:#fff;padding:15px 30px;display:flex;align-items:center;justify-content:space-between">
+  <div><strong>Rever Medical Center, Inc.</strong><br><small>Clinic Information System</small></div>
+  <div>Clinic Admin / Super Admin</div>
+</div>
+
+  .card{background:#f8f9fa;padding:20px;border-radius:8px;border-left:4px solid #3498db}
+  table{width:100%;border-collapse:collapse;margin-top:15px}
+  th,td{border:1px solid #ddd;padding:10px;text-align:left}
+  th{background:#3498db;color:#fff}
+  .tag{display:inline-block;background:#e8f4fd;color:#2980b9;padding:4px 10px;border-radius:12px;margin:4px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="slide">
+<h1>ENT Endoscopy System</h1>
+<p><strong>Clinical Documentation, Reporting &amp; Offline-Ready Platform for ENT Specialists</strong></p>
+<p>Presented to: Medical Staff / Doctors &nbsp;|&nbsp; Platform: Web-based PWA &nbsp;|&nbsp; Backend: Supabase (PostgreSQL + Edge Functions)</p>
+<div>
+<span class="tag">Nasal Endoscopy</span><span class="tag">Laryngeal Endoscopy</span><span class="tag">CF4 Form</span><span class="tag">Offline Mode</span><span class="tag">Role-Based Access</span><span class="tag">Audit Trail</span>
+</div>
+</div>
+
+<div class="slide">
+<h1>1. System Purpose</h1>
+<ul>
+<li>Centralized digital record of ENT endoscopy procedures (nasal &amp; laryngeal) and CF4 forms.</li>
+<li>Replaces paper-based reporting with structured, searchable, auditable digital records.</li>
+<li>Supports multi-clinic, multi-doctor workflows with secretary/admin assistance.</li>
+<li>Works <strong>online and offline</strong> — doctors can document during travel/field work.</li>
+<li>Generates print/PDF-ready reports with embedded procedure images.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>2. Key Modules</h1>
+<div class="grid">
+<div class="card"><h3>Nasal Endoscopy Report</h3>Structured findings, diagnosis, images, print/PDF.</div>
+<div class="card"><h3>Laryngeal Endoscopy Report</h3>Vocal cord &amp; laryngeal findings with imaging.</div>
+<div class="card"><h3>CF4 Form</h3>Insurance/claim form generation (WAFO format).</div>
+<div class="card"><h3>View All Records</h3>Searchable patient record browser.</div>
+<div class="card"><h3>Admin Console</h3>User/clinic management, grants, recycle bin.</div>
+<div class="card"><h3>Settings</h3>Profile, clinic, preferences.</div>
+<div class="card"><h3>Tickets</h3>Support/issue tracking.</div>
+<div class="card"><h3>Offline Workspace</h3>Doctor-only local workspace for the 3 report forms.</div>
+</div>
+</div>
+
+<div class="slide">
+<h1>3. User Roles &amp; Access Control</h1>
+<table>
+<tr><th>Role</th><th>Capabilities</th></tr>
+<tr><td>Doctor</td><td>Create/edit own reports, drafts, offline workspace, view assigned patients.</td></tr>
+<tr><td>Secretary</td><td>Assist doctors, encode reports on behalf, ticket creation.</td></tr>
+<tr><td>Admin</td><td>User/clinic management, grants, cross-clinic access, recycle bin, audit.</td></tr>
+</table>
+<p>Security: Row-Level Security (RLS) in PostgreSQL, JWT-based sessions, Edge Functions for privileged ops, CORS origin allowlist.</p>
+</div>
+
+<div class="slide">
+<h1>4. Data &amp; Security Architecture</h1>
+<ul>
+<li><strong>Database:</strong> Supabase PostgreSQL with 41+ numbered migrations, RLS policies, audit triggers.</li>
+<li><strong>Auth:</strong> Supabase Auth + custom <code>auth-admin</code> Edge Function (sole account lifecycle manager).</li>
+<li><strong>Storage:</strong> Patient photos via <code>patient-photos</code> Edge Function (RLS-gated).</li>
+<li><strong>Offline Grant:</strong> PBKDF2-SHA256 (210k iterations), 180-day validity, no password stored.</li>
+<li><strong>Privacy:</strong> No service-role key in frontend; cross-clinic grants audited; soft-delete recycle bin.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>5. Offline Mode (Doctor-Only)</h1>
+<ul>
+<li>PWA with Service Worker precaching app shell + 3 report modules.</li>
+<li>Offline login via local grant (username + password), 12-hour tab session.</li>
+<li>Drafts &amp; photos saved in IndexedDB; survive logout/restart.</li>
+<li>Pending-report queue syncs automatically when connectivity returns.</li>
+<li>Conflict detection: remote edits never overwritten; surfaced as "Sync Failed".</li>
+<li>Photos remain local-only until online upload (clearly labeled).</li>
+</ul>
+<p><strong>Verified:</strong> All 16 offline-queue regression checks PASS.</p>
+</div>
+
+<div class="slide">
+<h1>6. Clinical Workflow</h1>
+<ol>
+<li>Doctor logs in (online or offline grant).</li>
+<li>Selects patient / creates new record.</li>
+<li>Fills structured endoscopy form + attaches photos.</li>
+<li>Saves draft (auto-save) or finalizes report.</li>
+<li>Prints / exports PDF with images.</li>
+<li>Offline: queued for sync; online: stored in Supabase immediately.</li>
+<li>Admin/secretary can view granted records; audit trail retained.</li>
+</ol>
+</div>
+
+<div class="slide">
+<h1>7. Reporting &amp; Print/PDF</h1>
+<ul>
+<li>Tight A4 layout: text fills page, images arranged in square grid (0/2/3 images).</li>
+<li>Print preview support (<code>printReport({showPreview:true})</code>).</li>
+<li>CF4 forms follow WAFO format (reference PDFs included).</li>
+<li>Images embedded base64 for offline-capable printing.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>8. Quality Assurance &amp; Testing</h1>
+<ul>
+<li>Automated regression suites: offline queue, draft identity, duplicate guard, photo invariants, photo validation, drafts team.</li>
+<li>Migration validation, grant/function grant checks, frontend contract tests.</li>
+<li>Deployment verification includes CORS preflight checks (catches browser-only failures).</li>
+<li>Offline-ready verification ensures all cached files present before travel.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>9. Deployment &amp; Operations</h1>
+<ul>
+<li>Hosted on GitHub Pages (HTTPS PWA) or any static host.</li>
+<li>Backend on Supabase (database + edge functions).</li>
+<li>Environment: <code>ENT_ALLOWED_ORIGIN</code>, <code>ENT_SUPABASE_URL</code>, <code>ENT_SUPABASE_ANON_KEY</code>.</li>
+<li>Pre-publish scan prevents service-role key leakage.</li>
+<li>No migration/RLS changes needed for offline scope.</li>
+</ul>
+</div>
+
+<div class="slide">
+<div class="slide">
+<h1>Laryngeal Endoscopy — Input Fields</h1>
+<ul>
+<li>Patient demographics, date, case/MRN</li>
+<li>Operation times, scrub nurse, classification, codes</li>
+<li>Pre-op diagnosis, type of endoscopy, procedure description</li>
+<li>Indication, anesthesia</li>
+<li>Laryngeal findings: epiglottis, arytenoids, vocal cords, glottis, subglottis, mobility</li>
+<li>Impression, recommendation, surgeon/assistant, images</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>CF4 Form — Input Fields</h1>
+<ul>
+<li>I. HCI info: name, accreditation no, address</li>
+<li>II. Patient data: name, PIN, age, sex, complaint, admitting/discharge dx, case rates, dates</li>
+<li>III. Reason for admission: HPI, PMH, OB/GYN, symptoms, referrals</li>
+<li>IV. Physical exam: general survey, vitals, HEENT</li>
+<li>V. Chest/lungs, CVS, abdomen, GU, skin, neuro</li>
+<li>VI–X. Course in ward, procedures, meds, discharge plan</li>
+</ul>
+</div>
+
+
+<div class="slide">
+<h1>Nasal Endoscopy — Input Fields</h1>
+<ul>
+<li>Case Number, Room Number, MRN, Date</li>
+<li>Patient: Last/First/Middle Name, Suffix, Age, Sex</li>
+<li>Operation Started/Ended, Duration, Scrub Nurse</li>
+<li>Classification, RVS Code, ICD-10 Code</li>
+<li>Pre-op Diagnosis, Type of Endoscopy/Operation</li>
+<li>Procedure Description, Indication/Reason, Anesthesia Used</li>
+<li>Nasal Findings: Septum, Discharge, Mucosa, Inferior/Middle Turbinate, Middle/Inferior Meatus, Ostiomeatal Complex, Nasopharynx</li>
+<li>Impression/Post-op Diagnosis, Recommendation/Plan</li>
+<li>Surgeon, Assistant Surgeon, Attach Images</li>
+</ul>
+</div>
+
+
+<div class="slide">
+<h1>Live View — Nasal Endoscopy Form</h1>
+<iframe src="../pages/nasalEndoscopy.html" style="width:100%;height:600px;border:1px solid #ddd;border-radius:8px"></iframe>
+<p style="color:#7f8c8d;font-size:13px">Embedded live form (may require login)</p>
+</div>
+
+<div class="slide">
+<h1>Live View — Laryngeal Endoscopy Form</h1>
+<iframe src="../pages/laryngealEndoscopy.html" style="width:100%;height:600px;border:1px solid #ddd;border-radius:8px"></iframe>
+<p style="color:#7f8c8d;font-size:13px">Embedded live form (may require login)</p>
+</div>
+
+<div class="slide">
+<h1>Live View — CF4 Form</h1>
+<iframe src="../pages/cf4Form.html" style="width:100%;height:600px;border:1px solid #ddd;border-radius:8px"></iframe>
+<p style="color:#7f8c8d;font-size:13px">Embedded live form (may require login)</p>
+</div>
+
+
+<div class="slide">
+<h1>Form A — Nasal Endoscopy</h1>
+<ul>
+<li>Patient demographics &amp; visit info (name, age, sex, date).</li>
+<li>Nasal cavity findings: septum, turbinates, mucosa, discharge, polyps.</li>
+<li>Endoscopic findings per side (left/right), obstruction, crusting, bleeding.</li>
+<li>Impression / diagnosis &amp; recommended management.</li>
+<li>Photo attachments (base64) + print/PDF export.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Form B — Laryngeal Endoscopy</h1>
+<ul>
+<li>Patient demographics &amp; clinical history.</li>
+<li>Laryngeal structures: epiglottis, arytenoids, vocal cords, glottis, subglottis.</li>
+<li>Mobility assessment, lesions, edema, reflux signs.</li>
+<li>Diagnosis &amp; management plan.</li>
+<li>Photo attachments + print/PDF export.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>Form C — CF4 (Claim Form)</h1>
+<ul>
+<li>I. HCI information (name, accreditation, address).</li>
+<li>II. Patient data (name, PIN, age, sex, complaints, diagnoses, admission/discharge).</li>
+<li>III. Reason for admission (history, symptoms, referrals).</li>
+<li>IV–VII. Physical exam (vitals, HEENT, chest, CVS, abdomen, GU, skin, neuro).</li>
+<li>VIII–X. Course in ward, procedures, medications, discharge plan.</li>
+<li>Generates WAFO-format output (reference PDFs included).</li>
+</ul>
+</div>
+
+
+<h1>10. Benefits for the Clinic</h1>
+<ul>
+<li>Faster, standardized ENT documentation.</li>
+<li>Reduced paper, searchable history, better continuity of care.</li>
+<li>Field-ready: works without internet during outreach.</li>
+<li>Auditability &amp; compliance (soft delete, recycle bin, grants).</li>
+<li>Scalable: multi-clinic, multi-doctor, secretary support.</li>
+</ul>
+</div>
+
+<div class="slide">
+<h1>11. Roadmap / Next Steps</h1>
+<ul>
+<li>Safe photo synchronization from offline to cloud.</li>
+<li>Broader browser/device acceptance testing (Chrome/Edge/Safari/iOS).</li>
+<li>Optional patient-record prefetch for authorized travel.</li>
+<li>Enhanced analytics dashboard.</li>
+</ul>
+<p style="margin-top:40px;color:#7f8c8d">Thank you. Questions?</p>
+</div>
+
+</body>
+</html>

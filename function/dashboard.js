@@ -60,7 +60,14 @@
     const TYPES = {
         nasal: { label: 'Nasal Endoscopy', short: 'Nasal', page: pageUrl('nasalEndoscopy.html'), icon: '\uD83D\uDD2C' },
         laryngeal: { label: 'Laryngeal Endoscopy', short: 'Laryngeal', page: pageUrl('laryngealEndoscopy.html'), icon: '\uD83D\uDD0D' },
-        cf4: { label: 'CF4 Claim Form', short: 'CF4', page: pageUrl('cf4Form.html'), icon: '\uD83D\uDCCB' }
+        cf4: { label: 'CF4 Claim Form', short: 'CF4', page: pageUrl('cf4Form.html'), icon: '\uD83D\uDCCB' },
+        abstract: { label: 'Clinical Abstract', short: 'Abstract', page: pageUrl('abstract.html'), icon: '\uD83D\uDCC4' },
+        medicalCertificate: {
+            label: 'Medical Certificate',
+            short: 'Medical Certificate',
+            page: pageUrl('medicalCertificate.html'),
+            icon: '\uD83D\uDCC4'
+        }
     };
     const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4'];
 // Weekday names for the chart column labels - every activity chart (the
@@ -2928,8 +2935,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     };
 
 })(window);
-
-
 
 
 

@@ -47,6 +47,8 @@ const PAGES = [
   'pages/nasalEndoscopy.html',
   'pages/laryngealEndoscopy.html',
   'pages/cf4Form.html',
+  'pages/abstract.html',
+  'pages/medicalCertificate.html',
   // The cross-clinic permission UI. Listed explicitly, like every other
   // page: this build copies an ALLOWLIST, so a new page that nobody adds
   // here is excluded by default rather than published by accident. It also

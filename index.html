@@ -190,6 +190,20 @@
                         <span class="ent-quick-sub">PhilHealth claim form</span>
                     </span>
                 </button>
+                <button type="button" class="ent-quick" data-report-type="abstract">
+                    <span class="ent-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h7"/></svg></span>
+                    <span class="ent-quick-text">
+                        <span class="ent-quick-label">Clinical Abstract</span>
+                        <span class="ent-quick-sub">CF4 record summary for printing</span>
+                    </span>
+                </button>
+                <button type="button" class="ent-quick" data-report-type="medicalCertificate">
+                    <span class="ent-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10v18H7z"/><path d="M10 8h4M12 6v4M9 14h6M9 17h6"/></svg></span>
+                    <span class="ent-quick-text">
+                        <span class="ent-quick-label">Medical Certificate</span>
+                        <span class="ent-quick-sub">Fill, edit and print a certificate</span>
+                    </span>
+                </button>
                 <!-- Reporting a problem now lives on its OWN page
                      (pages/tickets.html): the pop-up made reading an answer
                      mean scrolling past the form every time.
@@ -197,8 +211,8 @@
                      This card is a LINK, not a button - same as the View All
                      card below. A link works even if a script fails to load,
                      can be middle-clicked into a new tab, and can be
-                     bookmarked. It keeps its id so the grid still counts four
-                     cards. -->
+                     bookmarked. It keeps its id so the ticket wiring stays
+                     stable. -->
                 <a class="ent-quick ent-quick-ticket" id="tfOpen" href="pages/tickets.html">
                     <span class="ent-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
                     <span class="ent-quick-text">
@@ -418,7 +432,7 @@
         <!-- ================= REPORT A PROBLEM =================
              Reporting moved to its OWN page (pages/tickets.html): the
              dashboard pop-up made reading an answer mean scrolling past
-             the form every time. The fourth quick-action card above now
+             the form every time. The fifth quick-action card above now
              navigates there (dashboard.js); an ADMIN answers the queue
              from the admin console and never files. -->
         <div class="ent-tk-gone" id="tfGone" hidden>

@@ -173,7 +173,8 @@ if (!f6) ok('F6 no clinic filter written into a query string')
 // prefix. Keep every deployed page that needs Supabase in this check; this is
 // a subset of the build allowlist, not the full deployment page list.
 const PAGES = ['index.html', 'pages/login.html', 'pages/offlineWorkspace.html', 'pages/admin.html', 'pages/settings.html',
-               'pages/cf4Form.html', 'pages/nasalEndoscopy.html', 'pages/laryngealEndoscopy.html']
+               'pages/cf4Form.html', 'pages/abstract.html', 'pages/medicalCertificate.html',
+               'pages/nasalEndoscopy.html', 'pages/laryngealEndoscopy.html']
 const hasSupabaseJs = html =>
     /js\/lib\/supabase(\.min)?\.js/.test(html) || /@supabase\/supabase-js/.test(html)
 const missing = PAGES

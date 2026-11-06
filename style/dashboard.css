@@ -833,13 +833,12 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
 /* --------------------------- Quick actions ------------------------- */
 .ent-quick-grid {
     display: grid;
-    /* TWO columns, deliberately, not auto-fit. auto-fit fitted three cards on
-       a laptop and left a lonely fourth on its own row, which read as a
-       mistake. Two by two is balanced at every width that matters, and the
-       cards below are sized to be comfortable at half the row. */
+    /* TWO columns, deliberately, not auto-fit. The quick actions stay paired
+       at every width that matters, and the cards below are sized to be
+       comfortable at half the row. */
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    /* 8px, was 12px. Five cards in two columns means THREE rows, and the
-       original 12px gap multiplied into a lot of dead air between rows -
+    /* 8px, was 12px. Six action cards in two columns make three rows before
+       the full-width View All link, and the original 12px gap multiplied into dead air -
        the block read as loose cards floating apart rather than one action
        panel. 8px keeps the cards visually grouped (the 1px border + shadow
        already separate neighbours) while staying above the 6px minimum
@@ -2743,7 +2742,7 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
        640px everything is one column, so again nothing to span. The
        centring below is UNCHANGED and actually reads better wide: icon
        over words in a full-width strip is unmistakably "a link that goes
-       somewhere", not a fourth report form. */
+       somewhere", not another report form. */
     grid-column: 1 / -1;
 }
 .ent-quick-viewall .ent-quick-text { align-items: center; }

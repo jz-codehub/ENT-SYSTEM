@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinical Abstract - Rever Medical Center, Inc.</title>
+  <link rel="icon" href="../image/ent-logo.webp" />
+  <link rel="stylesheet" href="../style/index.css?v=v33y" />
+  <link rel="stylesheet" href="../style/auth.css?v=v36f" />
+  <link rel="stylesheet" href="../style/mobile.css?v=v8" />
+  <link rel="stylesheet" href="../style/medical-documents.css?v=v2" />
+  <link rel="stylesheet" href="../style/patient-records.css?v=v36g" />
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: #111;
+      background: #e5e7eb;
+      font-family: Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.25;
+    }
+
+    .print-button {
+      padding: 9px 18px;
+      border: 0;
+      border-radius: 5px;
+      color: #fff;
+      background: #0b5e9c;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .record-status {
+      width: min(900px, calc(100% - 24px));
+      margin: 0 auto 10px;
+      color: #334155;
+      font-size: 13px;
+    }
+    .record-status.error { color: #b91c1c; }
+    .write-line, .write-area, .recommendation-input, .diagnosis-input,
+    .vital input, .finding input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      border-radius: 0;
+      outline: 0;
+      padding: 0;
+      color: #111;
+      background: transparent;
+      font: inherit;
+      resize: none;
+    }
+    .sheet textarea { border-radius: 0 !important; }
+    .sheet input:focus, .sheet textarea:focus {
+      outline: 1px solid #2563eb;
+      outline-offset: 1px;
+      background: #eff6ff;
+    }
+    .write-line { height: 3mm; }
+    textarea.write-line { min-height: 3mm; }
+    .block textarea.write-area { display: block; min-height: 100%; }
+    .block .edit-field { display: block; width: 100%; }
+    .vital input { margin-top: 1mm; }
+    .finding input { border-bottom: 1px solid #888; }
+    .diagnosis-input { height: 100%; padding: 2mm; }
+    .write-area { min-height: 19mm; border-bottom: 1px solid #888; }
+    .recommendation-input { min-height: 9mm; }
+    .signature input { width: 100%; border: 0; background: transparent; font: inherit; }
+    .finding textarea, .edit-multiline {
+      width: 100%;
+      border: 0;
+      padding: 0;
+      color: #111;
+      background: transparent;
+      font: inherit;
+      resize: vertical;
+    }
+    [data-abstract-field="medications"],
+    [data-abstract-field="procedures"] { min-height: 19mm; }
+    .print-button { margin: 0; }
+
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 14px;
+      padding: 7mm;
+      border: 1px solid #222;
+      box-sizing: border-box;
+      background: #fff;
+    }
+
+    .document-header {
+      position: relative;
+      display: flex;
+      min-height: 22mm;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .document-header .logo { position: absolute; left: 23%; width: 20mm; height: 20mm; object-fit: contain; }
+    .organization { display: grid; gap: 1mm; }
+    .organization strong { font-size: 12pt; letter-spacing: .02em; }
+    .organization span { font-size: 7pt; }
+
+    h1 {
+      margin: 1mm 0 2mm;
+      text-align: center;
+      font-size: 13pt;
+      letter-spacing: .02em;
+    }
+
+    .section { margin-top: 1.5mm; border: 1px solid #222; }
+    .section-title {
+      padding: 1.2mm 2mm;
+      border-bottom: 1px solid #222;
+      background: #d6d6d6;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .patient-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr .8fr;
+      border-top: 1px solid #555;
+      border-left: 1px solid #555;
+    }
+    .cell {
+      display: flex;
+      min-width: 0;
+      min-height: 8mm;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1mm;
+      padding: 1mm 1.5mm;
+      border-right: 1px solid #555;
+      border-bottom: 1px solid #888;
+    }
+    .cell.address { grid-column: span 2; min-height: 9mm; }
+    .label {
+      display: block;
+      width: 100%;
+      color: #333;
+      font-size: 6.5pt;
+      font-weight: 700;
+      letter-spacing: .025em;
+      text-align: left !important;
+      text-transform: uppercase;
+    }
+    .patient-grid .cell > .label { align-self: flex-start; }
+    .write-line { min-height: 3mm; }
+    .patient-grid .write-line { border: 0; }
+
+    .block { min-height: 10mm; padding: 1.2mm 2mm; border-bottom: 1px solid #888; }
+    .block strong {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 7pt;
+      text-align: left !important;
+    }
+    .block.complaint { min-height: 9mm; }
+    .block.history { min-height: 34mm; }
+    .block.past-history { min-height: 27mm; border-bottom: 0; }
+
+    .physical { padding: 1.2mm 2mm; border-top: 1px solid #555; }
+    .physical-title { display: block; margin-bottom: 1mm; font-size: 7.5pt; }
+    .physical-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 5mm; }
+    .finding-column { min-width: 0; }
+    .finding { display: grid; min-height: 6mm; grid-template-columns: 30mm minmax(0, 1fr); align-items: center; gap: 1mm; }
+    .finding strong { font-size: 6.5pt; text-align: left !important; }
+    .finding input { border-bottom: 1px solid #999; }
+    .vital-line { display: grid; min-height: 10mm; grid-template-columns: 30mm 1fr; align-items: center; gap: 1mm; }
+    .vital-line strong { font-size: 6.5pt; text-align: left !important; }
+    .vital-line textarea { min-height: 8mm; }
+
+    .diagnosis { display: grid; min-height: 18mm; grid-template-columns: 25mm 1fr; margin-top: 1.5mm; border: 1px solid #222; }
+    .diagnosis strong { display: grid; place-items: center; padding: 2mm; border-right: 1px solid #222; font-size: 8pt; }
+    .diagnosis .write-line { align-self: stretch; }
+
+    .columns { display: grid; grid-template-columns: 1fr 1fr; }
+    .column + .column { border-left: 1px solid #222; }
+    .column .section-title { text-align: center; }
+    .write-area { min-height: 19mm; padding: 2mm; border-bottom: 1px solid #888; }
+    .recommendations { min-height: 15mm; padding: 1.5mm 2mm; }
+    .recommendations strong {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 7pt;
+      text-align: left !important;
+    }
+
+    .signature {
+      display: grid;
+      grid-template-columns: 31mm 1fr;
+      grid-template-rows: 10mm 8mm 9mm;
+      margin-top: 2mm;
+      border: 1px solid #222;
+    }
+    .signature > div { display: flex; align-items: center; padding: 1.5mm 2mm; }
+    .signature-label, .date-label {
+      justify-content: center;
+      border-right: 1px solid #222;
+      font-weight: 700;
+      text-align: center;
+    }
+    .signature-label { grid-row: 1 / 3; }
+    .physician-name { border-bottom: 1px solid #888; }
+    .credentials {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 0 !important;
+    }
+    .credentials span { display: flex; align-items: center; padding: 1mm 2mm; }
+    .credentials span + span { border-left: 1px solid #888; }
+    .date-label, .date-value { border-top: 1px solid #888; }
+    .date-value { justify-content: center; }
+
+    @media (max-width: 700px) {
+      .sheet { width: 100%; min-height: 0; }
+      .document-header .logo { left: 1%; }
+      .organization { padding-left: 17mm; }
+      .patient-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .finding { grid-template-columns: 28mm minmax(0, 1fr); }
+    }
+
+    @media print {
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff;
+      }
+      body > :not(.sheet) { display: none !important; }
+      .sheet {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: grid !important;
+        grid-template-rows: 16mm auto auto minmax(0, 1fr) 14mm minmax(0, .65fr) 20mm;
+        gap: .8mm;
+        width: 210mm;
+        height: 297mm;
+        min-height: 0;
+        margin: 0;
+        padding: 5mm;
+        border: 0;
+        overflow: hidden;
+      }
+      .sheet > * { min-height: 0; }
+      .document-header { height: 16mm; min-height: 0; }
+      .document-header .logo { width: 15mm; height: 15mm; }
+      .organization { gap: .5mm; }
+      .organization strong { font-size: 11pt; }
+      .sheet > h1 { margin: 0 0 1mm; font-size: 11pt; }
+      .section { min-height: 0; margin-top: 0; }
+      .section-title { padding: .6mm 1.2mm; font-size: 7pt; }
+      .patient-grid { grid-auto-rows: 7mm; }
+      .cell { min-height: 0; gap: 0; padding: .4mm 1mm; }
+      .cell.address { min-height: 0; }
+      .label { font-size: 6pt; }
+      .abstract-history {
+        display: grid;
+        grid-template-rows: auto 9mm minmax(0, 1.2fr) minmax(0, .8fr) auto;
+      }
+      .abstract-history > .block,
+      .abstract-history > .physical { min-height: 0; }
+      .block { padding: .6mm 1.2mm; }
+      .block strong { margin-bottom: .4mm; font-size: 6.5pt; }
+      .block.complaint { height: auto; }
+      .block.history,
+      .block.past-history { height: auto; }
+      .block > textarea { display: block; width: 100%; height: calc(100% - 3mm); }
+      .physical { padding: .6mm 1.2mm; }
+      .physical-title { margin-bottom: .4mm; font-size: 7pt; }
+      .finding { min-height: 4.2mm; grid-template-columns: 27mm minmax(0, 1fr); gap: .5mm; }
+      .finding strong, .vital-line strong { font-size: 6pt; }
+      .vital-line { min-height: 6mm; grid-template-columns: 27mm 1fr; gap: .5mm; }
+      .vital-line textarea { height: 5mm; min-height: 0; }
+      .diagnosis { height: 14mm; min-height: 0; margin-top: .8mm; grid-template-columns: 23mm 1fr; }
+      .diagnosis strong { padding: 1mm; font-size: 7pt; }
+      .diagnosis-input { height: 100%; padding: 1mm; }
+      .abstract-medications {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+      .columns { min-height: 0; }
+      .column { display: flex; min-width: 0; flex-direction: column; }
+      .columns .section-title { flex: 0 0 auto; padding: .6mm 1mm; }
+      .write-area,
+      [data-abstract-field="medications"],
+      [data-abstract-field="procedures"] {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        padding: 1mm;
+      }
+      .recommendations { min-height: 0; padding: .7mm 1.2mm; }
+      .recommendations strong { margin-bottom: .3mm; font-size: 6.5pt; }
+      .recommendation-input { height: 8mm; min-height: 0; }
+      .signature {
+        grid-template-rows: 7mm 6mm 7mm;
+        margin-top: 0;
+      }
+      .signature > div { padding: .6mm 1mm; }
+      .credentials span { padding: .4mm 1mm; }
+      .section-title { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .document-header .logo { left: 23%; }
+      .organization { padding-left: 0; }
+      input, textarea {
+        overflow: hidden;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 6.5pt !important;
+        line-height: 1.05 !important;
+      }
+      .sheet input, .sheet textarea {
+        outline: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+      }
+      .sheet input { height: 3mm; }
+      .sheet .patient-grid input {
+        height: 3.2mm;
+        padding: 0 1mm !important;
+        border: 0 !important;
+      }
+      .sheet .finding input { height: 3mm; }
+      .sheet .signature input { height: 3mm; }
+      .finding textarea, .edit-multiline { resize: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="report-header abstract-toolbar no-print">
+    <div class="header-bar">
+      <div class="header-brand">
+        <img class="logo" src="../image/rmci-logo.png" alt="Rever Medical Center logo" />
+        <span class="header-titles">
+          <span class="header-hospital">REVER MEDICAL CENTER, INC.</span>
+          <h1>Clinical Abstract</h1>
+          <small class="header-tagline">CF4 patient record summary</small>
+        </span>
+      </div>
+      <div class="header-meta">
+        <div id="connectionStatus" class="connection-status online" title="Connection status"></div>
+        <div class="header-user-slot" id="headerUserSlot"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="../index.html" class="back-button back-button-solid">← Back to Menu</a>
+      <button id="dbRecordsBtn" type="button">DB Records</button>
+      <button id="clearAbstractBtn" type="button">Clear Abstract</button>
+      <button class="print-button" type="button" onclick="window.print()">Print Abstract</button>
+    </div>
+  </header>
+  <p id="recordStatus" class="record-status no-print" role="status">Use DB Records to open a saved CF4, or enter the text manually.</p>
+  <main class="sheet">
+    <header class="document-header">
+      <img class="logo" src="../image/rmci-logo.png" alt="Rever Medical Center logo" />
+      <div class="organization">
+        <strong>REVER MEDICAL CENTER, INC.</strong>
+        <span>Zone 4 Capuyon Aplaya · 9003 Jasaan, Philippines</span>
+      </div>
+    </header>
+    <h1>CLINICAL ABSTRACT</h1>
+
+    <section class="section">
+      <div class="section-title">A. PATIENT'S INFORMATION</div>
+      <div class="patient-grid">
+        <div class="cell"><span class="label">Last Name</span><input class="write-line" data-abstract-field="lastName" aria-label="Last name" /></div>
+        <div class="cell"><span class="label">First Name</span><input class="write-line" data-abstract-field="firstName" aria-label="First name" /></div>
+        <div class="cell"><span class="label">Middle Name</span><input class="write-line" data-abstract-field="middleName" aria-label="Middle name" /></div>
+        <div class="cell address"><span class="label">Address</span><input class="write-line" data-abstract-field="address" aria-label="Address" /></div>
+        <div class="cell phone"><span class="label">Phone Number</span><input class="write-line" data-abstract-field="phone" aria-label="Phone number" /></div>
+        <div class="cell"><span class="label">Date of Birth</span><input class="write-line" data-abstract-field="birthDate" aria-label="Date of birth" /></div>
+        <div class="cell"><span class="label">Age</span><input class="write-line" data-abstract-field="age" aria-label="Age" /></div>
+        <div class="cell"><span class="label">Sex</span><input class="write-line" data-abstract-field="sex" aria-label="Sex" /></div>
+        <div class="cell"><span class="label">Religion</span><input class="write-line" data-abstract-field="religion" aria-label="Religion" /></div>
+        <div class="cell"><span class="label">Nationality</span><input class="write-line" data-abstract-field="nationality" aria-label="Nationality" /></div>
+        <div class="cell"><span class="label">MRN</span><input class="write-line" data-abstract-field="mrn" aria-label="Medical record number" /></div>
+        <div class="cell"><span class="label">Date of Admission</span><input class="write-line" data-abstract-field="dateAdmitted" aria-label="Date of admission" /></div>
+        <div class="cell"><span class="label">Date of Discharge</span><input class="write-line" data-abstract-field="dateDischarged" aria-label="Date of discharge" /></div>
+        <div class="cell disposition"><span class="label">Disposition</span><input class="write-line" data-abstract-field="disposition" aria-label="Disposition" /></div>
+      </div>
+    </section>
+
+    <section class="section abstract-history">
+      <div class="section-title">B. PERTINENT HISTORY AND PHYSICAL EXAMINATION</div>
+      <div class="block complaint"><strong>CHIEF COMPLAINT</strong><textarea class="edit-multiline" data-abstract-field="chiefComplaint" aria-label="Chief complaint"></textarea></div>
+      <div class="block history"><strong>HISTORY OF PRESENT ILLNESS</strong><textarea class="edit-multiline" data-abstract-field="history" aria-label="History of present illness"></textarea></div>
+      <div class="block past-history"><strong>PERTINENT PAST MEDICAL / FAMILY HISTORY</strong><textarea class="edit-multiline" data-abstract-field="pastHistory" aria-label="Pertinent past medical or family history"></textarea></div>
+      <div class="physical">
+        <strong class="physical-title">PHYSICAL FINDING</strong>
+        <div class="physical-grid">
+          <div class="finding-column">
+            <div class="finding"><strong>GENERAL SURVEY:</strong><input data-abstract-field="generalSurvey" aria-label="General survey" /></div>
+            <div class="vital-line"><strong>VITAL SIGNS:</strong><textarea class="edit-multiline" data-abstract-field="vitalSummary" aria-label="Vital signs"></textarea></div>
+            <div class="finding"><strong>HEENT:</strong><input data-abstract-field="heent" aria-label="HEENT findings" /></div>
+            <div class="finding"><strong>CHEST/LUNGS:</strong><input data-abstract-field="chestLungs" aria-label="Chest and lung findings" /></div>
+            <div class="finding"><strong>CVS:</strong><input data-abstract-field="cvs" aria-label="Cardiovascular findings" /></div>
+          </div>
+          <div class="finding-column">
+            <div class="finding"><strong>ABDOMEN:</strong><input data-abstract-field="abdomen" aria-label="Abdominal findings" /></div>
+            <div class="finding"><strong>GU (IE):</strong><input data-abstract-field="gu" aria-label="Genitourinary findings" /></div>
+            <div class="finding"><strong>SKIN/EXTREMITIES:</strong><input data-abstract-field="skinExtremities" aria-label="Skin and extremity findings" /></div>
+            <div class="finding"><strong>NEURO-EXAM:</strong><input data-abstract-field="neuroExam" aria-label="Neurological findings" /></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="diagnosis">
+      <strong>DIAGNOSIS</strong>
+      <textarea class="diagnosis-input edit-multiline" data-abstract-field="diagnosis" aria-label="Diagnosis"></textarea>
+    </section>
+
+    <section class="section abstract-medications">
+      <div class="columns">
+        <div class="column">
+          <div class="section-title">MEDICATIONS</div>
+          <textarea class="write-area edit-multiline" data-abstract-field="medications" aria-label="Medications"></textarea>
+        </div>
+        <div class="column">
+          <div class="section-title">PROCEDURES / DATE / TIME</div>
+          <textarea class="write-area edit-multiline" data-abstract-field="procedures" aria-label="Procedures and dates"></textarea>
+        </div>
+      </div>
+      <div class="recommendations">
+        <strong>RECOMMENDATIONS / REFERRALS</strong>
+        <textarea class="recommendation-input edit-multiline" data-abstract-field="recommendations" aria-label="Recommendations or referrals"></textarea>
+      </div>
+    </section>
+
+    <footer class="signature">
+      <div class="signature-label">ATTENDING PHYSICIAN</div>
+      <div class="physician-name"><input data-abstract-field="physician" aria-label="Attending physician" /></div>
+      <div class="credentials">
+        <span>LICENSE NO. <input data-abstract-field="licenseNo" aria-label="License number" /></span>
+        <span>PTR NO. <input data-abstract-field="ptrNo" aria-label="PTR number" /></span>
+      </div>
+      <div class="date-label">DATE</div>
+      <div class="date-value"><input data-abstract-field="dateSigned" aria-label="Date" /></div>
+    </footer>
+  </main>
+  <script src="../js/lib/supabase.min.js" defer></script>
+  <script src="../function/paths.js"></script>
+  <script src="../function/supabaseClient.js" defer></script>
+  <script src="../function/auth.js?v=v36h" defer></script>
+  <script src="../function/syncEngine.js?v=v35c" defer></script>
+  <script src="../function/offlineStore.js?v=v35b" defer></script>
+  <script src="../function/patientRecords.js?v=v33ak" defer></script>
+  <script src="../function/dbRecords.js?v=v36d" defer></script>
+  <script src="../function/abstract.js?v=v4" defer></script>
+</body>
+</html>
