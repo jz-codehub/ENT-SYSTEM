@@ -398,7 +398,7 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0041 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0046 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
   'run scripts/diagnose_delete.mjs there: ent_may_soft_delete must answer TRUE',

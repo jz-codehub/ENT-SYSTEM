@@ -60,9 +60,61 @@
     const TYPES = {
         nasal: { label: 'Nasal Endoscopy', short: 'Nasal', page: pageUrl('nasalEndoscopy.html'), icon: '\uD83D\uDD2C' },
         laryngeal: { label: 'Laryngeal Endoscopy', short: 'Laryngeal', page: pageUrl('laryngealEndoscopy.html'), icon: '\uD83D\uDD0D' },
-        cf4: { label: 'CF4 Claim Form', short: 'CF4', page: pageUrl('cf4Form.html'), icon: '\uD83D\uDCCB' }
+        cf4: { label: 'CF4 Claim Form', short: 'CF4', page: pageUrl('cf4Form.html'), icon: '\uD83D\uDCCB' },
+        abstract: { label: 'Clinical Abstract', short: 'Abstract', page: pageUrl('abstract.html'), icon: '\uD83D\uDCC4' },
+        medicalCertificate: {
+            label: 'Medical Certificate',
+            short: 'Medical Certificate',
+            page: pageUrl('medicalCertificate.html'),
+            icon: '\uD83D\uDCC4'
+        }
     };
-    const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4'];
+    const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
+    let medicalDocumentsAvailable = false;
+
+    async function canUseMedicalDocuments(user) {
+        const clinicId = String(user && user.clinic_id || '').trim();
+        const username = String(user.username || '').trim().toLowerCase();
+        const fullName = String(user.full_name || '').trim().toLowerCase();
+        const assignedDoctor = String(user.assigned_doctor_name || '').trim().toLowerCase();
+        if (clinicId.toLowerCase() === '00000000-0000-4000-8000-00000000c11c' ||
+            username === 'jess' ||
+            /jess|jesus/i.test(fullName) ||
+            /jess|jesus/i.test(assignedDoctor)) {
+            return true;
+        }
+        if (user.role === 'secretary' && typeof Auth.fetchAssignedDoctors === 'function') {
+            const doctors = await Auth.fetchAssignedDoctors(true);
+            if (doctors.some(function (doctor) {
+                return /jess|jesus/i.test(String(doctor.doctor_name || '')) ||
+                    /jess|jesus/i.test(String(doctor.clinic_name || ''));
+            })) {
+                return true;
+            }
+        }
+        if (user.role === 'secretary' && !/jess|jesus/i.test(assignedDoctor)) {
+            try {
+                const doctorName = await api('rpc/my_assigned_doctor_name', {
+                    method: 'POST',
+                    body: '{}'
+                });
+                if (typeof doctorName === 'string' && /jess|jesus/i.test(doctorName)) return true;
+            } catch (error) {
+                console.warn('[Dashboard] Could not verify the secretary assigned doctor:', error);
+            }
+        }
+        if (!clinicId) return false;
+        const clinics = await api('clinics?select=id,code,name&id=eq.' + encodeURIComponent(clinicId));
+        const clinic = Array.isArray(clinics)
+            ? clinics.find(function (row) { return String(row.id || '') === clinicId; })
+            : null;
+        return !!clinic && (
+            String(clinic.code || '').toLowerCase() === 'main_clinic' ||
+            String(clinic.code || '').toLowerCase() === 'jess' ||
+            /^ent clinic doc jess$/i.test(String(clinic.name || '').trim()) ||
+            String(clinic.name || '').trim().toLowerCase() === 'doc jess'
+        );
+    }
 // Weekday names for the chart column labels - every activity chart (the
 // month grid and the three split charts) prints a three-letter day under
 // each bar, or "Today" on today's column.
@@ -2686,6 +2738,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function startReport(type) {
         const meta = TYPES[type];
         if (!meta) return;
+        if ((type === 'abstract' || type === 'medicalCertificate') && !medicalDocumentsAvailable) return;
         const go = function () { window.location.href = meta.page; };
         if (navigator.onLine && typeof Auth.logActivity === 'function') {
             // Best-effort audit trail; the form opens even if this stalls.
@@ -2898,6 +2951,14 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (!session || !session.user) return;
         me = session.user;
         myName = String(me.username || '').trim().toLowerCase();
+        try {
+            medicalDocumentsAvailable = await canUseMedicalDocuments(me);
+        } catch (error) {
+            medicalDocumentsAvailable = false;
+            console.warn('[Dashboard] Could not verify medical-document clinic access:', error);
+        }
+        document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
+            .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
 
         if (me.role === 'admin') {                    // admins live in admin.html
             scopeInfo = { role: 'admin', doctorId: '', seeAll: true };
@@ -2928,9 +2989,3 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     };
 
 })(window);
-
-
-
-
-
-

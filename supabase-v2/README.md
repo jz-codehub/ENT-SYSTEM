@@ -43,6 +43,7 @@ Nothing here is live yet. Nothing here edits `function/*.js`. Read
 | `migrations/0039_recycle_bin_doctor_and_secretary.sql` | `ent_deleted_reports()` widens to three readers (admin, the shelf's doctor, the shelf's secretary) and `ent_may_soft_delete` lets each mark their own rows |
 | `migrations/0040_missing_grants.sql` | the grant-gap repair found by `check_function_grants.mjs`: `report_access_requests` + `secretary_assignments` get their table grants, 0031/0032's four RPCs get `authenticated` EXECUTE, `ent_capability` gets `service_role` EXECUTE (the 0011 defect-1 class, silent until the photo_storage switch is flipped) |
 | `migrations/0041_duplicate_patient_guard.sql` | duplicate-patient protection at the DATABASE: partial unique indexes `uniq_reports_patient_day` / `uniq_reports_case_number_day` (hospital ID or case number + type + date + shelf, live final rows only — a NAME is never unique) and the read-only, SECURITY-INVOKER review RPC `ent_possible_duplicates()`; the browser adopts the existing row's `record_key` on an ID match and recovers from a 23505 race by merging into the winning row |
+| `migrations/0046_rename_main_clinic_doc_jess.sql` | renames the existing `main_clinic` to `Doc Jess` and corrects doctor Jess's display name to `Doc Jess Jardin`, preserving clinic IDs and records |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing
@@ -290,4 +291,3 @@ These stay true until the test plan says otherwise:
 4. Rollback of the schema is not a revert script — it is `drop schema public
    cascade` on a **test** project and re-apply. On the live project, restore
    the pre-cutover backup instead.
-

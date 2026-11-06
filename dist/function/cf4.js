@@ -76,12 +76,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { /* default below */ }
         return 'capitol';
     }
-    function cf4LeftLogoSrc() {
-        const s = readStoredJson('cf4Settings', {});
-        if (s.cf4LeftLogo) return s.cf4LeftLogo;
+    function defaultCf4LeftLogoSrc() {
         return cf4HospitalKey() === 'rever'
             ? assetUrl('image/rmci-logo.png')
             : assetUrl('image/cumc-logo.png');
+    }
+    function cf4LeftLogoSrc() {
+        const s = readStoredJson('cf4Settings', {});
+        if (s.cf4LeftLogo) return s.cf4LeftLogo;
+        return defaultCf4LeftLogoSrc();
     }
     if (headerLeftLogo) headerLeftLogo.src = cf4LeftLogoSrc();
     if (headerRightLogo) headerRightLogo.src = savedCf4Settings.cf4RightLogo || CF4_DEFAULT_LOGOS.right;
@@ -2381,15 +2384,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 resolve('');
                 return;
             }
-            // Custom settings store logos as data URLs. Reuse them directly; trying
-            // to draw a data URL through a cross-origin canvas can taint the canvas.
-            if (/^data:image\//i.test(url)) {
-                resolve(url);
-                return;
-            }
 
             const img = new Image();
-            img.crossOrigin = 'anonymous';
+            let imageUrl;
+            try {
+                imageUrl = new URL(url, document.baseURI).href;
+            } catch (error) {
+                console.warn('Invalid CF4 logo URL; it cannot be embedded for printing.', error);
+                resolve('');
+                return;
+            }
+            const resolvedUrl = new URL(imageUrl);
+            if (/^https?:$/.test(resolvedUrl.protocol) && resolvedUrl.origin !== window.location.origin) {
+                img.crossOrigin = 'anonymous';
+            }
             img.onload = () => {
                 const width = img.naturalWidth || img.width;
                 const height = img.naturalHeight || img.height;
@@ -2414,7 +2422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             img.onerror = () => resolve('');
-            img.src = url;
+            img.src = imageUrl;
         });
     }
 
@@ -2520,16 +2528,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // moves the PRINTED logo too; a custom upload still wins.
         const leftPath = cf4LeftLogoSrc();
         const rightPath = settings.cf4RightLogo || CF4_DEFAULT_LOGOS.right;
-        const [left, right] = await Promise.all([
+        const defaultLeftPath = defaultCf4LeftLogoSrc();
+        const [left, right, defaultLeft, defaultRight] = await Promise.all([
             imageToBase64(leftPath),
-            imageToBase64(rightPath)
+            imageToBase64(rightPath),
+            imageToBase64(defaultLeftPath),
+            imageToBase64(CF4_DEFAULT_LOGOS.right)
         ]);
+        const absoluteUrl = (value) => {
+            if (!value || /^data:image\//i.test(value)) return value || '';
+            try {
+                return new URL(value, document.baseURI).href;
+            } catch (error) {
+                console.warn('Invalid CF4 logo URL; using the built-in logo instead.', error);
+                return '';
+            }
+        };
 
-        // CF4 Print and Save PDF always use both configured logos. A failed
-        // data-URL conversion still falls back to the browser-resolved path.
+        // Embed the configured images when possible. If a custom image is
+        // broken or unreadable, use the bundled clinic logo instead of a
+        // broken-image placeholder in the printout.
         return {
-            left: left || leftPath,
-            right: right || rightPath
+            left: left || defaultLeft || absoluteUrl(defaultLeftPath),
+            leftFallback: defaultLeft || absoluteUrl(defaultLeftPath),
+            right: right || defaultRight || absoluteUrl(CF4_DEFAULT_LOGOS.right),
+            rightFallback: defaultRight || absoluteUrl(CF4_DEFAULT_LOGOS.right)
         };
     }
 
@@ -2539,13 +2562,37 @@ document.addEventListener('DOMContentLoaded', () => {
         printDiv.style.cssText = 'display:block;width:794px;min-height:1123px;height:auto;box-sizing:border-box;background:#fff;color:#000;position:fixed;inset:0 auto auto 0;z-index:9999;overflow:visible;';
         printDiv.innerHTML = buildPrintContent(logoSources);
         const images = Array.from(printDiv.querySelectorAll('img'));
-        await Promise.all(images.map(image => {
+        const waitForImage = (image) => {
             if (image.complete) return Promise.resolve();
             return new Promise(resolve => {
-                image.addEventListener('load', resolve, { once: true });
-                image.addEventListener('error', resolve, { once: true });
+                const timer = window.setTimeout(finish, 5000);
+                function finish() {
+                    window.clearTimeout(timer);
+                    image.removeEventListener('load', finish);
+                    image.removeEventListener('error', finish);
+                    resolve();
+                }
+                image.addEventListener('load', finish, { once: true });
+                image.addEventListener('error', finish, { once: true });
             });
-        }));
+        };
+        for (const image of images) {
+            await waitForImage(image);
+            if (image.naturalWidth > 0) continue;
+
+            const fallback = image.dataset.logoRole === 'left'
+                ? logoSources.leftFallback
+                : logoSources.rightFallback;
+            if (fallback && image.src !== new URL(fallback, document.baseURI).href) {
+                console.warn(`CF4 ${image.dataset.logoRole} logo did not load; retrying with the bundled logo.`);
+                image.src = fallback;
+                await waitForImage(image);
+            }
+            if (image.naturalWidth === 0) {
+                console.error(`CF4 ${image.dataset.logoRole} logo is unavailable for printing.`);
+                image.remove();
+            }
+        }
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         return printDiv.innerHTML;
     }
@@ -2556,6 +2603,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const latestCf4Settings = readStoredJson('cf4Settings', {});
         const leftLogoSrc = logoSources.left || cf4LeftLogoSrc();
         const rightLogoSrc = logoSources.right || latestCf4Settings.cf4RightLogo || CF4_DEFAULT_LOGOS.right;
+        const htmlAttribute = (value) => String(value).replace(/[&"<>]/g, character => ({
+            '&': '&amp;',
+            '"': '&quot;',
+            '<': '&lt;',
+            '>': '&gt;'
+        })[character]);
 
         let courseRowsHtml = '';
         if (data.courseDate && data.courseDate.length > 0) {
@@ -2595,9 +2648,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div style="font-family:Arial,sans-serif;color:#000;font-size:10px;padding:15px;line-height:1.5;">
             <table class="cf4-print-logo-header" role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 8px;table-layout:fixed;">
                 <tr>
-                    <td style="width:80px;padding:0;vertical-align:middle;text-align:left;">${leftLogoSrc ? `<img src="${leftLogoSrc}" alt="CF4 Left Logo" style="display:block;width:60px;height:60px;object-fit:contain;object-position:left center;" crossorigin="anonymous">` : ''}</td>
+                    <td style="width:80px;padding:0;vertical-align:middle;text-align:left;">${leftLogoSrc ? `<img src="${htmlAttribute(leftLogoSrc)}" data-logo-role="left" alt="CF4 Left Logo" style="display:block;width:60px;height:60px;object-fit:contain;object-position:left center;">` : ''}</td>
                     <td style="padding:0 4px;vertical-align:middle;text-align:center;"><div style="font-size:13px;font-weight:bold;letter-spacing:0.3px;margin-bottom:2px;">PhilHealth</div><div style="font-size:11px;letter-spacing:0.3px;margin-bottom:2px;">CF4 (Claim Form 4)</div><div style="font-size:9px;letter-spacing:0.2px;color:#666;">February 2020</div><div style="font-size:8px;color:#777;margin-top:2px;font-style:italic;">This form may be reproduced and is NOT FOR SALE</div></td>
-                    <td style="width:80px;padding:0;vertical-align:middle;text-align:right;">${rightLogoSrc ? `<img src="${rightLogoSrc}" alt="CF4 Right Logo" style="display:block;width:60px;height:60px;margin-left:auto;object-fit:contain;object-position:right center;" crossorigin="anonymous">` : ''}</td>
+                    <td style="width:80px;padding:0;vertical-align:middle;text-align:right;">${rightLogoSrc ? `<img src="${htmlAttribute(rightLogoSrc)}" data-logo-role="right" alt="CF4 Right Logo" style="display:block;width:60px;height:60px;margin-left:auto;object-fit:contain;object-position:right center;">` : ''}</td>
                 </tr>
             </table>
 

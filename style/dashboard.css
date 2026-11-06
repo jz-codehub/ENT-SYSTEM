@@ -4,13 +4,33 @@
    components of auth.css, so it follows light + dark mode for free.
    ===================================================================== */
 
-.ent-dash-page { text-align: left; }
+.ent-dash-page {
+    --ent-dash-gutter: clamp(20px, 3vw, 48px);
+    text-align: left;
+}
 
 .ent-dash-main {
-    max-width: 1080px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 16px 16px 60px;
+    padding: 16px var(--ent-dash-gutter) 60px;
     text-align: left;
+}
+
+.ent-dash-page > .header {
+    padding-right: 0;
+    padding-left: 0;
+}
+.ent-dash-page > .header .header-content {
+    width: 100%;
+    max-width: 1600px;
+    padding-right: var(--ent-dash-gutter);
+    padding-left: var(--ent-dash-gutter);
+    box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+    .ent-dash-page { --ent-dash-gutter: 12px; }
+    .ent-dash-main { padding: 12px var(--ent-dash-gutter) 50px; }
 }
 
 /* --------------------------- Greeting bar -------------------------- */
@@ -195,7 +215,33 @@
     gap: 5px;
     flex: 1 1 auto;
     min-width: 0;
+    border-radius: 10px;
+    font-weight: 700;
     text-decoration: none;
+    transition: transform 0.16s ease, box-shadow 0.16s ease,
+        border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.ent-dash-actions .ent-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, .12);
+}
+.ent-dash-actions .ent-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+.ent-dash-actions .ent-btn:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .3);
+    outline-offset: 2px;
+}
+.ent-dash-actions .ent-dash-refresh {
+    border-color: #0284c7;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    box-shadow: 0 4px 10px rgba(2, 132, 199, .2);
+}
+.ent-dash-actions .ent-dash-refresh:hover {
+    border-color: #0369a1;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #fff;
 }
 /* The ghost style this row always asked for and never had: .ent-dash-ghost
    appears in the markup but was defined in NO stylesheet, so Print and CSV
@@ -207,11 +253,12 @@
     padding: 6px 8px;
     font-size: 0.72rem;
     font-weight: 600;
+    border-color: var(--border-color);
     background: var(--panel-bg-color);
     color: var(--secondary-text-color);
 }
 .ent-dash-actions-row .ent-dash-ghost:hover {
-    background: var(--primary-light);
+    background: linear-gradient(135deg, var(--primary-light), var(--panel-bg-color));
     border-color: var(--primary-color);
     color: var(--primary-hover-color, #0284c7);
 }
@@ -875,6 +922,7 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     box-shadow: var(--input-shadow);
     min-width: 0;
 }
+.ent-quick[hidden] { display: none; }
 .ent-quick:hover {
     transform: translateY(-3px);
     box-shadow: var(--card-shadow-hover);
@@ -1723,7 +1771,6 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
     .ent-dash-hero { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
-    .ent-dash-main { padding: 12px 12px 50px; }
     .ent-dash-hero { align-items: flex-start; padding: 18px 16px; border-radius: 16px; }
     .ent-dash-hero h2 { font-size: 1.18rem; }
     /* The avatar was sized for a desktop hero beside a wide greeting; a
@@ -2344,9 +2391,16 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
 .ent-dash-page .header-brand {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 7px;
-    text-align: center;
+    text-align: left;
+}
+.ent-dash-page .header-brand .header-titles {
+    justify-content: flex-start;
+}
+.ent-dash-page .header-brand .header-titles h1,
+.ent-dash-page .header-tagline {
+    text-align: left;
 }
 .ent-dash-page .header-content h1 {
     font-size: 1.62rem;
@@ -2377,7 +2431,7 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
 .header-scopes {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 7px;
     margin: 3px 0 0;
@@ -2979,7 +3033,7 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
 
 /* ---------- cards, tools, charts ------------------------------------ */
 @media (max-width: 640px) {
-    .ent-dash-main { padding: 12px 12px 40px; }
+    .ent-dash-main { padding: 12px var(--ent-dash-gutter) 40px; }
     .ent-card { padding: 14px 13px; }
     .ent-card-head { flex-wrap: wrap; row-gap: 4px; }
     .ent-card-head h3 { font-size: 0.98rem; }

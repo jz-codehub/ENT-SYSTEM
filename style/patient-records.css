@@ -2113,6 +2113,9 @@ body.dark-mode .ent-db-card .ent-db-card-editable { background: rgba(245, 158, 1
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
+#offlineRecordsModal {
+    padding: clamp(18px, 2.2vw, 40px);
+}
 #localDraftsModal .ent-drafts-dialog,
 #offlineRecordsModal .ent-drafts-dialog {
     width: min(880px, 96vw);
@@ -2309,6 +2312,29 @@ body.dark-mode #localDraftsModal .ent-drafts-tab.is-active {
 #localDraftsModal .ent-drafts-clear:hover:not(:disabled),
 #offlineRecordsModal .ent-drafts-clear:hover:not(:disabled) {
     transform: translateY(-1px);
+}
+@media (min-width: 900px) {
+    #offlineRecordsModal .ent-drafts-dialog {
+        width: min(1280px, calc(100vw - 64px));
+        max-height: min(88vh, 1040px);
+    }
+    #offlineRecordsModal .ent-drafts-header {
+        padding: clamp(24px, 2vw, 36px);
+    }
+    #offlineRecordsModal .ent-drafts-toolbar {
+        padding: 18px clamp(24px, 2vw, 36px) 10px;
+    }
+    #offlineRecordsModal .ent-drafts-sites {
+        padding-right: clamp(24px, 2vw, 36px);
+        padding-left: clamp(24px, 2vw, 36px);
+    }
+    #offlineRecordsModal .ent-drafts-list {
+        gap: clamp(11px, 1vw, 16px);
+        padding: 16px clamp(24px, 2vw, 36px) 22px;
+    }
+    #offlineRecordsModal .ent-drafts-footer {
+        padding: 14px clamp(24px, 2vw, 36px);
+    }
 }
 .ent-feedback-overlay.is-save .ent-feedback-card {
     width: min(100%, 510px);

@@ -8,7 +8,7 @@
  *  actually has, which is "did the administrator reply to ME" - so the
  *  second clinic is the point, not decoration.
  *
- *    Clinic A   ENT Manila - Dr. Jess Ramos     jess, tara, kaye, gina
+ *    Clinic A   Doc Jess                        jess, tara, kaye, gina
  *    Clinic B   ENT Quezon - Dr. Monique Cruz    monique, lian
  *
  *  Three doctors and three secretaries, each secretary attached to a doctor
@@ -79,10 +79,10 @@ async function call(path, { method = 'GET', body, prefer } = {}) {
 const CLINICS = [
   {
     code: 'main_clinic',
-    name: 'ENT Manila - Dr. Jess Ramos',
-    address: '123 Tomas Mapua St, Manila',
+    name: 'Doc Jess',
+    address: '',
     staff: [
-      { username: 'jess',    fullName: 'Jess Ramos',      role: 'doctor',    pw: 'jess123' },
+      { username: 'jess',    fullName: 'Doc Jess Jardin', role: 'doctor',    pw: 'jess123' },
       { username: 'tara',    fullName: 'Tara Bautista',   role: 'secretary', pw: 'tara123', to: 'jess' },
       { username: 'kaye',    fullName: 'Kaye Villanueva', role: 'doctor',    pw: 'kaye123' },
       { username: 'gina',    fullName: 'Gina Mercado',    role: 'secretary', pw: 'gina123', to: 'jess' },

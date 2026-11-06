@@ -8,8 +8,8 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v33ak">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/tickets.css?v=v33an">
-    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+    <link rel="stylesheet" href="../style/tickets.css?v=v33ap">
+    <link rel="stylesheet" href="../style/mobile.css?v=v15">
 </head>
 <body class="ent-tk-page">
     <!-- TICKETS - the staff side of the ticket system.
@@ -44,18 +44,18 @@
         <!-- THE HERO. Answers two questions before anything is clicked:
              how much of my work is still open, and where do I start?
              The button is the only loud thing here, on purpose. -->
-        <section class="ent-tk-hero" aria-label="Your tickets">
+        <section class="ent-tk-hero" aria-labelledby="tkHeroTitle">
             <div class="ent-tk-hero-text">
                 <span class="ent-tk-hero-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/><path d="M4 15h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z"/><path d="M13 9v2"/></svg></span>
                 <span class="ent-tk-hero-body">
-                    <h1>Your tickets <span class="ent-tk-hero-sub">Report a problem</span></h1>
-                    <p>Something not working? Tell the administrator here &mdash; and come back to this
-                       page to read the answer when it arrives.</p>
+                    <span class="ent-tk-hero-eyebrow">YOUR CLINIC SUPPORT DESK</span>
+                    <h1 id="tkHeroTitle">Need a hand?</h1>
+                    <p>Tell your clinic administrator what went wrong. Track your report here and check back for a reply.</p>
                 </span>
             </div>
             <button type="button" class="ent-btn primary ent-tk-newbtn" id="tkNew">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Report a problem
+                Create a report
             </button>
         </section>
         <!-- Four numbers, counted off the same rows the list below shows,
@@ -84,7 +84,17 @@
              screen and the list returns with a Back tap (tickets.css). -->
         <div class="ent-tk-layout">
             <!-- LEFT: the worklist ------------------------------------- -->
-            <section class="ent-tk-pane ent-tk-listpane" aria-label="Your tickets">
+            <section class="ent-tk-pane ent-tk-listpane" aria-labelledby="tkListTitle">
+                <div class="ent-tk-list-head">
+                    <div>
+                        <span class="ent-tk-section-kicker">SUPPORT HISTORY</span>
+                        <h2 id="tkListTitle">Your reports</h2>
+                        <p>Follow updates and replies from your administrator.</p>
+                    </div>
+                    <span class="ent-tk-list-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H7l-3 3V5z"/><path d="M8 9h8M8 13h5"/></svg>
+                    </span>
+                </div>
                 <div class="ent-tk-tools">
                     <div class="ent-tk-searchwrap">
                         <span class="ent-tk-searchic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg></span>
@@ -105,7 +115,7 @@
                 </div>
             </section>
             <!-- RIGHT: one ticket, or the form ------------------------- -->
-            <section class="ent-tk-pane ent-tk-detail" id="tkDetail" aria-label="Ticket details">
+            <section class="ent-tk-pane ent-tk-detail" id="tkDetail" aria-label="Selected ticket or report form">
                 <!-- Nothing selected. The FIRST state most people see, so
                      it is not a shrug: it says what this page is for and
                      offers the one action. -->
@@ -145,6 +155,15 @@
                     </div>
                     <div class="ent-tk-viewcard" id="tkViewCard">
                     <div class="ent-tk-detail-body">
+                        <div class="ent-tf-intro">
+                            <span class="ent-tf-intro-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2.5 2.5"/><circle cx="12" cy="12" r="9"/></svg>
+                            </span>
+                            <span>
+                                <strong>We’ll help get it sorted.</strong>
+                                <small>Choose the affected area, then describe what happened. Please leave out patient-identifying details.</small>
+                            </span>
+                        </div>
                         <form id="tkForm" novalidate>
                             <fieldset class="ent-tf-block">
                                 <legend>Which part has the problem?</legend>

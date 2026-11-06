@@ -37,7 +37,7 @@ ALTER TABLE public.clinics ENABLE ROW LEVEL SECURITY;
 -- The uuid is fixed so the test plan can reference it without a lookup.
 -- ---------------------------------------------------------------------
 INSERT INTO public.clinics (id, code, name)
-VALUES ('00000000-0000-4000-8000-00000000c11c', 'main_clinic', 'Main ENT Clinic')
+VALUES ('00000000-0000-4000-8000-00000000c11c', 'main_clinic', 'Doc Jess')
 ON CONFLICT (code) DO NOTHING;
 
 -- A second "satellite_clinic" used to be seeded here ONLY so the

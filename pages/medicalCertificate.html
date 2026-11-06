@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Medical Certificate - Rever Medical Center, Inc.</title>
+  <title>Medical Certificate</title>
   <link rel="icon" href="../image/ent-logo.webp" />
   <link rel="stylesheet" href="../style/index.css?v=v33y" />
   <link rel="stylesheet" href="../style/auth.css?v=v36f" />
-  <link rel="stylesheet" href="../style/mobile.css?v=v8" />
-  <link rel="stylesheet" href="../style/medical-documents.css?v=v1" />
+  <link rel="stylesheet" href="../style/mobile.css?v=v14" />
+  <link rel="stylesheet" href="../style/medical-documents.css?v=v11" />
+  <link rel="stylesheet" href="../style/patient-records.css?v=v36h" />
   <style>
     @page { size: A4 portrait; margin: 0; }
     * { box-sizing: border-box; }
@@ -71,9 +72,10 @@
     }
     .letterhead {
       display: grid;
-      grid-template-columns: 27mm 1fr;
+      grid-template-columns: 24mm 1fr;
       align-items: center;
       min-height: 31mm;
+      gap: 3mm;
     }
     .letterhead img { width: 24mm; height: 24mm; object-fit: contain; }
     .letterhead-copy { text-align: center; }
@@ -144,8 +146,18 @@
     .physician { width: 72mm; margin-left: 18mm; }
     .physician-row { display: grid; grid-template-columns: 31mm 1fr; align-items: end; gap: 2mm; }
     .physician-row input { width: 100%; }
-    @media (max-width: 760px) {
-      .certificate { width: 100%; min-height: 0; padding: 6mm; }
+    @media screen and (min-width: 841px) {
+      .certificate { zoom: clamp(100%, 11.85vw, 190%); }
+    }
+    @media screen and (max-width: 840px) {
+      .certificate {
+        width: calc(100% - 2 * var(--ent-page-gutter, 20px));
+        min-height: 0;
+        margin-right: auto;
+        margin-left: auto;
+        padding: 6mm;
+        zoom: 1;
+      }
       .letterhead { grid-template-columns: 20mm 1fr; }
       .letterhead img { width: 18mm; height: 18mm; }
       .letterhead-copy strong { font-size: 12pt; letter-spacing: .06em; }
@@ -174,8 +186,9 @@
         overflow: visible;
         font-size: 11pt;
         line-height: 1.4;
+        zoom: 1;
       }
-      .letterhead { min-height: 27mm; grid-template-columns: 27mm 1fr; }
+      .letterhead { min-height: 27mm; grid-template-columns: 24mm 1fr; gap: 3mm; }
       .letterhead { flex: 0 0 27mm; }
       .letterhead img { width: 24mm; height: 24mm; }
       .letterhead-copy strong { font-size: 17pt; }
@@ -218,9 +231,9 @@
   <header class="report-header certificate-toolbar no-print">
     <div class="header-bar">
       <div class="header-brand">
-        <img class="logo" src="../image/rmci-logo.png" alt="Rever Medical Center logo" />
+        <img class="logo" src="../image/cumc-logo.png" alt="Capitol University Medical Center logo" data-hospital-logo />
         <span class="header-titles">
-          <span class="header-hospital">REVER MEDICAL CENTER, INC.</span>
+          <span class="header-hospital" data-hospital-name>CAPITOL UNIVERSITY MEDICAL CENTER</span>
           <h1>Medical Certificate</h1>
           <small class="header-tagline">Editable and ready to print</small>
         </span>
@@ -231,10 +244,35 @@
       </div>
     </div>
     <div class="header-actions">
-      <a href="../index.html" class="back-button back-button-solid">← Back to Menu</a>
-      <button id="openRecordsBtn" type="button">Open CF4 Record</button>
-      <button id="clearAbstractBtn" type="button">Clear Certificate</button>
-      <button class="print-button" type="button" onclick="window.print()">Print Certificate</button>
+      <div class="document-nav-main">
+      <a href="../index.html" class="back-button back-button-solid">
+        <span class="document-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7 7-7-7 7-7"/></svg></span>
+        <span>Back to Menu</span>
+      </a>
+      <button id="saveDraftBtn" type="button" title="Save this form on this device so you can continue later.">
+        <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2z"/><path d="M7 3v6h10V3M7 21v-7h10v7"/></svg></span>
+        <span class="btn-label"><span class="btn-main">Save Draft</span><span class="btn-sub">this device</span></span>
+      </button>
+      <div class="header-btn-group group-output no-print" role="group" aria-label="Create the final copy">
+        <span class="group-label">Final Copy</span>
+        <button id="previewBtn" type="button" title="Preview the certificate before printing.">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span class="btn-label"><span class="btn-main">Print Preview</span><span class="btn-sub">review first</span></span>
+        </button>
+        <button id="printBtn" type="button" title="Open the print dialog to print the certificate." onclick="window.print()">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg></span>
+          <span class="btn-label"><span class="btn-main">Print</span><span class="btn-sub">paper copy</span></span>
+        </button>
+        <button id="newFormBtn" type="button" title="Start a new blank form for the next patient.">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M14 3v6h6M12 15h7m-3.5-3.5v7"/></svg></span>
+          <span class="btn-label"><span class="btn-main">New Form</span><span class="btn-sub">next patient</span></span>
+        </button>
+      </div>
+      <button id="dbRecordsBtn" type="button">
+        <span class="document-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
+        <span>DB Records</span>
+      </button>
+      </div>
     </div>
   </header>
   <section id="recordPicker" class="record-picker no-print" hidden aria-labelledby="recordPickerTitle">
@@ -247,12 +285,12 @@
 
   <main class="certificate">
     <header class="letterhead">
-      <img src="../image/rmci-logo.png" alt="Rever Medical Center logo" />
+      <img src="../image/cumc-logo.png" alt="Capitol University Medical Center logo" data-hospital-logo />
       <div class="letterhead-copy">
-        <strong>REVER MEDICAL CENTER, INC.</strong>
-        <span>ZONE 4, CAPUNUYAN, APLAYA, JASAAN, MISAMIS ORIENTAL 9003</span>
-        <span>TEL. NO.: (088) 890-4412 / CEL. NO.: 0966-621-2306</span>
-        <span>EMAIL: revermedicalcenter.hr1@gmail.com</span>
+        <strong data-hospital-name>CAPITOL UNIVERSITY MEDICAL CENTER</strong>
+        <span data-hospital-address>GUSA HIGHWAY, GUSA, CAGAYAN DE ORO CITY, MISAMIS ORIENTAL 9000</span>
+        <span data-hospital-phone hidden></span>
+        <span data-hospital-email hidden></span>
       </div>
     </header>
     <h1 class="document-title">MEDICAL CERTIFICATE</h1>
@@ -302,6 +340,10 @@
   <script src="../function/paths.js"></script>
   <script src="../function/supabaseClient.js" defer></script>
   <script src="../function/auth.js?v=v36h" defer></script>
-  <script src="../function/abstract.js?v=v3" defer></script>
+  <script src="../function/syncEngine.js?v=v35d" defer></script>
+  <script src="../function/offlineStore.js?v=v35b" defer></script>
+  <script src="../function/patientRecords.js?v=v33ak" defer></script>
+  <script src="../function/dbRecords.js?v=v36d" defer></script>
+  <script src="../function/abstract.js?v=v16" defer></script>
 </body>
 </html>

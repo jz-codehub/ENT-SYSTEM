@@ -448,7 +448,7 @@
     }
 
     .ent-dash-page .header {
-        padding: 12px 14px;
+        padding: 12px 0;
     }
 
     .ent-dash-page .header-content {
@@ -818,7 +818,7 @@
 
 @media screen and (max-width: 640px) {
     .ent-dash-page .header {
-        padding: 14px 16px 13px;
+        padding: 14px 0 13px;
         margin-bottom: 12px;
         border-radius: 0 0 18px 18px;
         box-shadow: 0 8px 22px rgba(3, 105, 161, 0.2);
@@ -1448,7 +1448,7 @@
 
 @media screen and (max-width: 380px) {
     .ent-dash-page .header {
-        padding-inline: 12px;
+        padding-inline: 0;
     }
 
     .ent-dash-page .header-scopes {
@@ -1715,5 +1715,314 @@
         min-height: 40px;
         padding: 6px 9px;
         font-size: 0.72rem;
+    }
+}
+
+@media screen and (min-width: 1367px) {
+    .report-header + .main-content {
+        width: 100%;
+        max-width: 1600px;
+        padding-right: clamp(32px, 3vw, 52px);
+        padding-left: clamp(32px, 3vw, 52px);
+    }
+
+    .report-header .header-bar {
+        width: 100%;
+        max-width: 1600px;
+        margin-right: auto;
+        margin-left: auto;
+        padding-right: clamp(32px, 3vw, 52px);
+        padding-left: clamp(32px, 3vw, 52px);
+    }
+
+    .report-header .header-actions {
+        max-width: 1600px;
+        margin-right: auto;
+        margin-left: auto;
+        padding-right: clamp(24px, 3vw, 52px);
+        padding-left: clamp(24px, 3vw, 52px);
+    }
+}
+
+@media screen and (min-width: 821px) and (max-width: 1366px) {
+    .report-header .header-bar,
+    .report-header .header-actions {
+        width: 100%;
+        max-width: 1200px;
+        margin-right: auto;
+        margin-left: auto;
+        padding-right: clamp(20px, 2.4vw, 32px);
+        padding-left: clamp(20px, 2.4vw, 32px);
+    }
+}
+
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+    .report-header .header-bar,
+    .report-header .header-actions {
+        padding-right: clamp(16px, 3vw, 28px);
+        padding-left: clamp(16px, 3vw, 28px);
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .report-header .header-bar,
+    .report-header .header-actions {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+}
+
+/* Use the dashboard's page width and responsive gutters throughout the app. */
+:root {
+    --ent-page-gutter: clamp(20px, 3vw, 48px);
+}
+
+.main-content,
+.ent-admin-main,
+.ent-tk-main,
+.ent-cca-main {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1600px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: var(--ent-page-gutter);
+    padding-left: var(--ent-page-gutter);
+}
+
+.report-header + .main-content,
+.report-header .header-bar,
+.report-header .header-actions {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1600px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: var(--ent-page-gutter);
+    padding-left: var(--ent-page-gutter);
+}
+
+.ent-admin-header,
+.settings-page > .header {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.ent-admin-header .header-content,
+.settings-page > .header .header-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1600px;
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: var(--ent-page-gutter);
+    padding-left: var(--ent-page-gutter);
+}
+
+@media screen and (max-width: 720px) {
+    :root {
+        --ent-page-gutter: 12px;
+    }
+}
+
+/* Give the ticket composer the full page instead of squeezing it into the
+   ticket-detail column. The list/detail split returns when the user exits. */
+@media screen {
+    body.ent-tk-page .ent-tk-main:has(#tkReport:not([hidden])) > .ent-tk-hero,
+    body.ent-tk-page .ent-tk-main:has(#tkReport:not([hidden])) > .ent-tk-stats {
+        display: none;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) {
+        display: block;
+        width: 100%;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tk-listpane {
+        display: none;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tk-detail {
+        display: flex;
+        width: 100%;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport {
+        display: flex;
+        width: 100%;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-viewhead {
+        position: static;
+        min-height: 54px;
+        margin-bottom: 14px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-viewcard {
+        display: block;
+        width: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: clamp(18px, 3vw, 36px);
+        overflow: visible;
+        border: 1px solid var(--border-color);
+        border-radius: 22px;
+        background: var(--panel-bg-color);
+        box-shadow: 0 12px 34px rgba(15, 23, 42, .07);
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-detail-body {
+        width: 100%;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 0;
+        overflow: visible;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-intro {
+        margin-bottom: 26px;
+        padding: 20px 22px;
+        border-radius: 16px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-intro strong {
+        font-size: 1rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-intro small {
+        font-size: .86rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block {
+        margin-bottom: 24px;
+        padding: 8px 0 22px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block > legend {
+        margin-bottom: 16px;
+        font-size: .9rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scopes {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope {
+        min-height: 100px;
+        padding: 17px;
+        border-radius: 16px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 1.15rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope-icon svg {
+        width: 21px;
+        height: 21px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope-text b {
+        font-size: .92rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope-text small {
+        font-size: .78rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block .ent-field {
+        margin-bottom: 20px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block .ent-field > label {
+        margin-bottom: 8px;
+        font-size: .82rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block input[type="text"],
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block select,
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block textarea {
+        min-height: 52px;
+        padding: 13px 15px;
+        font-size: 1rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block textarea {
+        min-height: 220px;
+        line-height: 1.65;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-row {
+        gap: 18px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-send {
+        margin-top: 20px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-send .ent-btn {
+        min-height: 58px;
+        font-size: 1rem;
+    }
+}
+
+@media screen and (max-width: 760px) {
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-viewcard {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scopes {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 560px) {
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-viewhead {
+        margin-bottom: 10px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) #tkReport .ent-tk-viewcard {
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-intro {
+        margin-bottom: 20px;
+        padding: 13px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scopes {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 9px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-scope {
+        min-height: 68px;
+        padding: 12px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-block textarea {
+        min-height: 180px;
+    }
+
+    body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
     }
 }

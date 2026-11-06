@@ -4196,8 +4196,342 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     // ===================================================================================
     function setupVideoToImage() {
         if (!imageInput) return;
-        let currentVideoFile = null; // Store original file for manual conversion
         let activeBlackScreenHandler = null; // Track active listener to prevent leaks
+        let ffmpegPromise = null;
+
+        const FFMPEG_VERSION = '0.12.15';
+        const FFMPEG_CORE_VERSION = '0.12.10';
+        const FFMPEG_CDN = 'https://cdn.jsdelivr.net/npm';
+
+        function probeVideoSupport(file) {
+            return new Promise((resolve) => {
+                const probe = document.createElement('video');
+                const sourceUrl = URL.createObjectURL(file);
+                let finished = false;
+                const timeout = window.setTimeout(() => finish(false), 15000);
+
+                function finish(canPlay) {
+                    if (finished) return;
+                    finished = true;
+                    window.clearTimeout(timeout);
+                    probe.oncanplay = null;
+                    probe.onerror = null;
+                    probe.removeAttribute('src');
+                    probe.load();
+                    URL.revokeObjectURL(sourceUrl);
+                    resolve(canPlay);
+                }
+
+                probe.preload = 'metadata';
+                probe.muted = true;
+                probe.oncanplay = () => finish(true);
+                probe.onerror = () => finish(false);
+                probe.src = sourceUrl;
+                probe.load();
+            });
+        }
+
+        async function loadVideoDecoder() {
+            if (!ffmpegPromise) {
+                ffmpegPromise = (async () => {
+                    const moduleUrl = `${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/index.js`;
+                    const coreUrl = `${FFMPEG_CDN}/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm/ffmpeg-core.js`;
+                    const wasmUrl = `${FFMPEG_CDN}/@ffmpeg/core@${FFMPEG_CORE_VERSION}/dist/esm/ffmpeg-core.wasm`;
+                    const workerUrl = `${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`;
+                    const { FFmpeg } = await import(moduleUrl);
+                    const ffmpeg = new FFmpeg();
+                    const [coreResponse, workerResponse, constResponse, errorsResponse] = await Promise.all([
+                        fetch(coreUrl),
+                        fetch(workerUrl),
+                        fetch(`${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/const.js`),
+                        fetch(`${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/errors.js`)
+                    ]);
+                    if (!coreResponse.ok || !workerResponse.ok || !constResponse.ok || !errorsResponse.ok) {
+                        const failedResponse = [coreResponse, workerResponse, constResponse, errorsResponse]
+                            .find((response) => !response.ok);
+                        throw new Error(`Could not download the video decoder (HTTP ${failedResponse.status}).`);
+                    }
+
+                    const workerSource = (await workerResponse.text())
+                        .replaceAll('"./const.js"', `"${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/const.js"`)
+                        .replaceAll('"./errors.js"', `"${FFMPEG_CDN}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/errors.js"`);
+                    const coreBlobUrl = URL.createObjectURL(new Blob(
+                        [await coreResponse.text()],
+                        { type: 'text/javascript' }
+                    ));
+                    const workerBlobUrl = URL.createObjectURL(new Blob(
+                        [workerSource],
+                        { type: 'text/javascript' }
+                    ));
+                    try {
+                        await ffmpeg.load({
+                            coreURL: coreBlobUrl,
+                            wasmURL: wasmUrl,
+                            classWorkerURL: workerBlobUrl
+                        });
+                    } finally {
+                        URL.revokeObjectURL(coreBlobUrl);
+                        URL.revokeObjectURL(workerBlobUrl);
+                    }
+                    return ffmpeg;
+                })().catch((error) => {
+                    ffmpegPromise = null;
+                    throw error;
+                });
+            }
+            return ffmpegPromise;
+        }
+
+        function openCompatibleFramePicker(file) {
+            const picker = document.createElement('div');
+            Object.assign(picker.style, {
+                position: 'fixed', inset: '0', zIndex: '10002', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', padding: '16px',
+                overflowY: 'auto', background: 'rgba(2, 6, 23, .82)'
+            });
+
+            const card = document.createElement('section');
+            Object.assign(card.style, {
+                display: 'flex', width: 'min(900px, 100%)', maxHeight: '94dvh',
+                flexDirection: 'column', gap: '14px', padding: 'clamp(16px, 3vw, 26px)',
+                overflowY: 'auto', border: '1px solid var(--border-color)',
+                borderRadius: '18px', background: 'var(--panel-bg-color)',
+                color: 'var(--text-color)', boxShadow: '0 24px 70px rgba(0,0,0,.35)'
+            });
+
+            const heading = document.createElement('h2');
+            heading.textContent = 'Video frame extractor';
+            heading.style.margin = '0';
+
+            const privacy = document.createElement('p');
+            privacy.textContent = 'This video format cannot play directly in your browser. A compatibility decoder will extract frames on this device. Your video is not uploaded. The decoder download is about 32 MB and requires an internet connection.';
+            Object.assign(privacy.style, {
+                margin: '0', color: 'var(--secondary-text-color)',
+                fontSize: '.9rem', lineHeight: '1.55'
+            });
+
+            const status = document.createElement('p');
+            status.setAttribute('role', 'status');
+            status.textContent = 'Preparing the compatibility decoder…';
+            Object.assign(status.style, { margin: '0', fontSize: '.88rem', fontWeight: '650' });
+
+            const progress = document.createElement('progress');
+            progress.max = 1;
+            progress.value = 0;
+            Object.assign(progress.style, { width: '100%', height: '8px' });
+
+            const preview = document.createElement('img');
+            preview.alt = 'Extracted video frame preview';
+            Object.assign(preview.style, {
+                display: 'block', width: '100%', height: 'min(52vh, 500px)',
+                objectFit: 'contain', borderRadius: '12px', background: '#05080d'
+            });
+
+            const seekRow = document.createElement('div');
+            Object.assign(seekRow.style, {
+                display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                alignItems: 'center', gap: '12px'
+            });
+
+            const timeLabel = document.createElement('label');
+            timeLabel.textContent = 'Frame time';
+            timeLabel.style.fontWeight = '700';
+
+            const seek = document.createElement('input');
+            seek.type = 'range';
+            seek.min = '0';
+            seek.max = '3600';
+            seek.step = '0.1';
+            seek.value = '0';
+            seek.setAttribute('aria-label', 'Video frame time in seconds');
+            seek.style.width = '100%';
+
+            const timeValue = document.createElement('output');
+            timeValue.textContent = '00:00';
+            timeValue.style.minWidth = '58px';
+            timeValue.style.fontVariantNumeric = 'tabular-nums';
+            seekRow.append(timeLabel, seek, timeValue);
+
+            const actions = document.createElement('div');
+            Object.assign(actions.style, {
+                display: 'flex', justifyContent: 'flex-end',
+                flexWrap: 'wrap', gap: '10px'
+            });
+
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Close';
+            close.className = 'btn-secondary';
+
+            const capture = document.createElement('button');
+            capture.type = 'button';
+            capture.textContent = 'Capture this frame';
+            capture.disabled = true;
+
+            actions.append(close, capture);
+            card.append(heading, privacy, status, progress, preview, seekRow, actions);
+            picker.appendChild(card);
+            document.body.appendChild(picker);
+
+            let closed = false;
+            let frameUrl = '';
+            let ffmpeg = null;
+            let inputName = '';
+            let outputCounter = 0;
+            let duration = 0;
+            let requestId = 0;
+
+            function formatTime(seconds) {
+                const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+                const hours = Math.floor(safeSeconds / 3600);
+                const minutes = Math.floor((safeSeconds % 3600) / 60);
+                const secs = safeSeconds % 60;
+                return hours
+                    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+                    : `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+
+            function closePicker() {
+                closed = true;
+                if (frameUrl) URL.revokeObjectURL(frameUrl);
+                if (ffmpeg) {
+                    ffmpeg.off('log', onFfmpegLog);
+                    ffmpeg.terminate();
+                    ffmpegPromise = null;
+                }
+                picker.remove();
+            }
+
+            function onFfmpegLog({ message }) {
+                const match = String(message || '').match(/Duration:\s*(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/);
+                if (!match) return;
+                duration = (Number(match[1]) * 3600) + (Number(match[2]) * 60) + Number(match[3]);
+                if (Number.isFinite(duration) && duration > 0) seek.max = String(duration);
+            }
+
+            async function extractFrame(seconds) {
+                const thisRequest = ++requestId;
+                capture.disabled = true;
+                progress.removeAttribute('value');
+                status.textContent = `Extracting frame at ${formatTime(seconds)}…`;
+                const outputName = `frame-${++outputCounter}.png`;
+                const seekTime = Math.max(0, Number(seconds) || 0).toFixed(2);
+                async function attemptExtraction(outputSeek) {
+                    const seekArgs = outputSeek ? [] : ['-ss', seekTime];
+                    const outputSeekArgs = outputSeek ? ['-ss', seekTime] : [];
+                    const result = await ffmpeg.exec([
+                        ...seekArgs,
+                        '-i', inputName,
+                        ...outputSeekArgs,
+                        '-frames:v', '1',
+                        '-vf', 'scale=1280:-2:force_original_aspect_ratio=decrease',
+                        '-f', 'image2',
+                        outputName
+                    ]);
+                    if (result !== 0) return null;
+                    try {
+                        const bytes = await ffmpeg.readFile(outputName);
+                        return bytes && bytes.length >= 8 ? bytes : null;
+                    } catch (error) {
+                        if (error?.name === 'ErrnoError') return null;
+                        throw error;
+                    }
+                }
+
+                let bytes = await attemptExtraction(false);
+                if (!bytes && !closed && thisRequest === requestId) {
+                    status.textContent = `Seeking accurately to ${formatTime(seconds)}…`;
+                    bytes = await attemptExtraction(true);
+                }
+                if (closed || thisRequest !== requestId) return;
+                if (!bytes) throw new Error('No video frame could be decoded at that time.');
+                await ffmpeg.deleteFile(outputName);
+                const nextUrl = URL.createObjectURL(new Blob([bytes], { type: 'image/png' }));
+                if (frameUrl) URL.revokeObjectURL(frameUrl);
+                frameUrl = nextUrl;
+                preview.src = frameUrl;
+                seek.value = String(seconds);
+                timeValue.textContent = formatTime(seconds);
+                progress.value = 1;
+                status.textContent = duration
+                    ? `Frame ready · ${formatTime(seconds)} of ${formatTime(duration)}`
+                    : `Frame ready · ${formatTime(seconds)}`;
+                capture.disabled = false;
+            }
+
+            close.addEventListener('click', closePicker);
+            picker.addEventListener('click', (event) => {
+                if (event.target === picker) closePicker();
+            });
+            document.addEventListener('keydown', function onEscape(event) {
+                if (event.key !== 'Escape' || closed) return;
+                document.removeEventListener('keydown', onEscape);
+                closePicker();
+            }, { once: true });
+
+            seek.addEventListener('input', () => {
+                timeValue.textContent = formatTime(seek.value);
+            });
+            seek.addEventListener('change', () => {
+                extractFrame(Number(seek.value)).catch((error) => {
+                    console.error('Could not extract the selected video frame:', error);
+                    status.textContent = error.message || 'Could not extract that frame. Try another time.';
+                    progress.value = 0;
+                });
+            });
+
+            capture.addEventListener('click', async () => {
+                if (!preview.complete || !preview.naturalWidth || !preview.naturalHeight) return;
+                if (selectedImages.length >= 6) {
+                    showCustomAlert('Maximum of 6 images reached. Please remove an image to add a new one.', 'Limit Reached');
+                    return;
+                }
+                capture.disabled = true;
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = preview.naturalWidth;
+                    canvas.height = preview.naturalHeight;
+                    canvas.getContext('2d').drawImage(preview, 0, 0);
+                    const resized = await resizeImage(canvas.toDataURL('image/png'));
+                    addBase64ToPreview(resized);
+                    status.textContent = `Frame at ${timeValue.textContent} added to the report.`;
+                } catch (error) {
+                    console.error('Could not add the extracted video frame:', error);
+                    status.textContent = 'Could not save this frame. Please try again.';
+                } finally {
+                    capture.disabled = false;
+                }
+            });
+
+            (async () => {
+                try {
+                    status.textContent = 'Loading the on-device decoder. This first download is about 32 MB…';
+                    progress.removeAttribute('value');
+                    ffmpeg = await loadVideoDecoder();
+                    if (closed) {
+                        ffmpeg.terminate();
+                        ffmpegPromise = null;
+                        return;
+                    }
+                    ffmpeg.on('log', onFfmpegLog);
+
+                    const extensionMatch = file.name.match(/\.([a-z0-9]{1,8})$/i);
+                    inputName = `source-${Date.now()}.${extensionMatch ? extensionMatch[1].toLowerCase() : 'bin'}`;
+                    status.textContent = 'Reading the selected video locally…';
+                    await ffmpeg.writeFile(inputName, new Uint8Array(await file.arrayBuffer()));
+                    if (closed) return;
+
+                    status.textContent = 'Extracting the first frame…';
+                    await extractFrame(0);
+                } catch (error) {
+                    console.error('Video compatibility decoder failed:', error);
+                    if (closed) return;
+                    progress.value = 0;
+                    status.textContent = 'Could not decode this video. Check your internet connection and try again, or convert it to MP4 (H.264).';
+                    capture.disabled = true;
+                }
+            })();
+        }
 
         // 1. Create the "Video to Image" button dynamically
         const videoBtn = document.createElement('button');
@@ -4338,9 +4672,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         // NEW: Add the alternative player button
         const altPlayerBtn = document.createElement('button');
         altPlayerBtn.type = 'button';
-        altPlayerBtn.innerHTML = '🛠️ Fix Black Screen / Alt. Player';
+        altPlayerBtn.innerHTML = '🛠️ Compatibility Player / Alt. Player';
         altPlayerBtn.className = 'btn-secondary';
-        altPlayerBtn.title = 'If the video shows a black screen, use this player. It is more compatible with different video formats.';
+        altPlayerBtn.title = 'Play browser-compatible video or extract frames locally from formats your browser cannot play.';
         Object.assign(altPlayerBtn.style, {
             width: '100%',
             marginTop: '0',
@@ -4389,30 +4723,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 activeBlackScreenHandler = null;
             }
 
-            // BRANCH LOGIC BASED ON MODE
-            if (playerMode === 'canvas') {
-                openCanvasVideoPlayer(file);
-                return; // Done for this mode
+            const isPlayable = await probeVideoSupport(file);
+            if (!isPlayable) {
+                openCompatibleFramePicker(file);
+                return;
             }
 
-            // Default Player Mode
-            currentVideoFile = file; 
-            
-            // Check if browser can play it
-            const testPlayer = document.createElement('video');
-            let isPlayable = false;
-
-            const playablePromise = new Promise((resolve) => {
-                testPlayer.oncanplay = () => { isPlayable = true; resolve(); };
-                testPlayer.onerror = () => { isPlayable = false; resolve(); };
-                testPlayer.src = URL.createObjectURL(file);
-            });
-
-            await playablePromise;
-            URL.revokeObjectURL(testPlayer.src);
-            
-            if (!isPlayable) {
-                showCustomAlert("This video format is not supported by your browser. Please use the 'Alt. Player' button or convert the video to MP4.", "Unsupported Format");
+            if (playerMode === 'canvas') {
+                openCanvasVideoPlayer(file);
                 return;
             }
 
@@ -6272,17 +6590,16 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     function renderOfflineRecords() {
         if (!offlineModal || !offlineListElement) return;
         loadOfflineRecords().then(records => {
-            // OFFLINE MODE: a row that reached the database is no longer an
-            // "offline record" - after the sync engine uploads it, it LEAVES
-            // this list (the syncedCount below keeps the number visible so
-            // nothing looks silently deleted). What stays here is what this
-            // device still OWES the cloud.
-            const pendingRecords = records.filter(record => record && !record.synced);
-            const syncedCount = records.length - pendingRecords.length;
+            // Keep each offline save on this device after sync; its card status
+            // distinguishes synced records from work still waiting to upload.
+            const syncedCount = records.filter(record => record && record.synced).length;
+            const failedCount = records.filter(record =>
+                record && !record.synced && record.syncStatus === 'failed').length;
+            const pendingCount = records.length - syncedCount - failedCount;
             // Build site filter chips
             const siteBar = offlineModal.querySelector('.ent-drafts-sites');
             if (siteBar) {
-                const chips = siteChips(pendingRecords);
+                const chips = siteChips(records);
                 const wanted = chips.length > 1;
                 siteBar.hidden = !wanted;
                 siteBar.innerHTML = '';
@@ -6307,21 +6624,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 }
             }
 
-            const filtered = getFilteredOfflineRecords(pendingRecords);
+            const filtered = getFilteredOfflineRecords(records);
             offlineListElement.innerHTML = '';
 
             if (!filtered.length) {
                 const empty = document.createElement('div');
                 empty.className = 'ent-drafts-empty';
-                if (!offlineSearchTerm && !pendingRecords.length && syncedCount) {
-                    // Everything this device owed the cloud is already there.
-                    empty.className = 'ent-drafts-empty is-all-synced';
-                    empty.textContent = '\u2705 All offline records already saved to database.'
-                        + ((typeof navigator === 'undefined' || navigator.onLine)
-                            ? ' You have signal right now.' : '');
-                } else {
-                    empty.textContent = offlineSearchTerm ? 'No records match this search.' : 'No offline records saved yet.';
-                }
+                empty.textContent = offlineSearchTerm ? 'No records match this search.' : 'No offline records saved yet.';
                 offlineListElement.appendChild(empty);
             } else {
                 filtered.forEach(record => offlineListElement.appendChild(createOfflineCard(record)));
@@ -6329,14 +6638,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
             const summaryElement = offlineModal.querySelector('.ent-drafts-summary');
             if (summaryElement) {
-                if (pendingRecords.length) {
-                    summaryElement.textContent = `${filtered.length} shown · ${pendingRecords.length} waiting to sync`
-                        + (syncedCount ? ` · ${syncedCount} already saved to database` : '');
-                } else if (syncedCount) {
-                    summaryElement.textContent = `${syncedCount} offline record${syncedCount === 1 ? '' : 's'} already saved to database`;
-                } else {
-                    summaryElement.textContent = 'No offline records saved yet';
-                }
+                summaryElement.textContent = `${filtered.length} shown · ${records.length} total`
+                    + ` · ${syncedCount} synced · ${pendingCount} pending`
+                    + (failedCount ? ` · ${failedCount} failed` : '');
             }
         });
     }
@@ -6358,10 +6662,8 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         }
     }
 
-    // Redraw the moment the sync engine uploads offline records: a row
-    // LEAVES this list when it reaches the cloud, and the "everything is
-    // already in the database" state has to appear by itself - the doctor
-    // must never have to close and reopen this window to see the truth.
+    // Redraw the moment the sync engine uploads offline records so their
+    // status changes to Synced without removing them from this list.
     window.addEventListener('ent-offline:all-synced', function () {
         if (offlineModal && offlineModal.classList.contains('is-open')) renderOfflineRecords();
     });

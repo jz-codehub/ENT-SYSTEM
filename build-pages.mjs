@@ -83,14 +83,16 @@ const CSP = [
   // across every page. cdnjs.cloudflare.com is only a FALLBACK used by
   // loadLocalOrCdn() when a local js/lib copy is missing — remove BOTH the
   // fallback calls and this source together to tighten the policy later.
-  "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
   "style-src 'self' 'unsafe-inline'",
   // data: for base64 endoscopy photos, blob: for the cropper/PDF preview
   "img-src 'self' data: blob:",
+  // Uploaded videos are played from browser-created object URLs.
+  "media-src 'self' blob:",
   "font-src 'self'",
-  `connect-src 'self' https://${SUPABASE} wss://${SUPABASE}`,
+  `connect-src 'self' https://${SUPABASE} wss://${SUPABASE} https://cdn.jsdelivr.net`,
   // service worker + pdf.js worker
-  "worker-src 'self' blob:",
+  "worker-src 'self' blob: https://cdn.jsdelivr.net",
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

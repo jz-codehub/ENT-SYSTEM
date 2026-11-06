@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Certificate</title>
+  <link rel="icon" href="../image/ent-logo.webp" />
+  <link rel="stylesheet" href="../style/index.css?v=v33y" />
+  <link rel="stylesheet" href="../style/auth.css?v=v36f" />
+  <link rel="stylesheet" href="../style/mobile.css?v=v14" />
+  <link rel="stylesheet" href="../style/medical-documents.css?v=v11" />
+  <link rel="stylesheet" href="../style/patient-records.css?v=v36h" />
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #171717;
+      background: #e5e7eb;
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.65;
+    }
+    .record-picker {
+      width: min(900px, calc(100% - 24px));
+      margin: 0 auto 14px;
+      padding: 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+    }
+    .record-picker[hidden] { display: none; }
+    .record-picker h2 { margin: 0 0 8px; font-size: 17px; }
+    .record-picker p { margin: 0 0 12px; color: #475569; }
+    .record-search {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 9px 11px;
+      border: 1px solid #94a3b8;
+      border-radius: 6px;
+      font: inherit;
+    }
+    .record-list { display: grid; max-height: 280px; gap: 7px; overflow: auto; }
+    .record-option {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #111827;
+      text-align: left;
+      cursor: pointer;
+    }
+    .record-option:hover { border-color: #0b5e9c; background: #eff6ff; }
+    .record-option small { color: #475569; white-space: nowrap; }
+    .record-status {
+      width: min(900px, calc(100% - 24px));
+      margin: 0 auto 10px;
+      color: #334155;
+      font-size: 13px;
+    }
+    .record-status.error { color: #b91c1c; }
+    .certificate {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 14px;
+      padding: 10mm 20mm;
+      background: #fff;
+    }
+    .letterhead {
+      display: grid;
+      grid-template-columns: 24mm 1fr;
+      align-items: center;
+      min-height: 31mm;
+      gap: 3mm;
+    }
+    .letterhead img { width: 24mm; height: 24mm; object-fit: contain; }
+    .letterhead-copy { text-align: center; }
+    .letterhead-copy strong {
+      display: block;
+      font-size: 17pt;
+      font-weight: 500;
+      letter-spacing: .12em;
+      line-height: 1.2;
+      padding-bottom: 1mm;
+      border-bottom: 1px solid #222;
+    }
+    .letterhead-copy span { display: block; font-size: 8.5pt; line-height: 1.45; }
+    .document-title {
+      margin: 27mm 0 16mm;
+      text-align: center;
+      font-size: 19pt;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .certificate-date { width: 68mm; margin: 0 0 23mm; text-align: center; }
+    .certificate-date input { text-align: center; }
+    .certificate-date span { display: block; font-size: 10pt; font-style: italic; line-height: 1.2; }
+    .certificate-body { padding: 0 20mm; }
+    .salutation { margin-bottom: 14mm; font-weight: 700; }
+    .certificate-copy { margin: 0 0 16mm; }
+    input, select, textarea {
+      max-width: 100%;
+      border: 0;
+      border-bottom: 1px solid #333;
+      border-radius: 0;
+      padding: 0 2px 1px;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      line-height: 1.25;
+      vertical-align: baseline;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: 1px;
+      background: #eff6ff;
+    }
+    .honorific { width: 27mm; }
+    .patient-name { width: min(100%, 103mm); }
+    .age { width: 24mm; }
+    .sex { width: 30mm; }
+    .address { width: min(100%, 112mm); }
+    .date-seen { width: min(100%, 66mm); }
+    .diagnosis { width: min(100%, 84mm); }
+    .recommendation-line {
+      display: grid;
+      grid-template-columns: 45mm 1fr;
+      align-items: end;
+      gap: 6mm;
+      margin: 0 0 18mm;
+    }
+    .recommendation-line input { width: 100%; }
+    .purpose { margin: 0 0 13mm; }
+    .postscript {
+      display: grid;
+      grid-template-columns: 31mm 1fr;
+      align-items: end;
+      gap: 5mm;
+      margin-bottom: 27mm;
+    }
+    .postscript input { width: 100%; }
+    .physician { width: 72mm; margin-left: 18mm; }
+    .physician-row { display: grid; grid-template-columns: 31mm 1fr; align-items: end; gap: 2mm; }
+    .physician-row input { width: 100%; }
+    @media screen and (min-width: 841px) {
+      .certificate { zoom: clamp(100%, 11.85vw, 190%); }
+    }
+    @media screen and (max-width: 840px) {
+      .certificate {
+        width: calc(100% - 2 * var(--ent-page-gutter, 20px));
+        min-height: 0;
+        margin-right: auto;
+        margin-left: auto;
+        padding: 6mm;
+        zoom: 1;
+      }
+      .letterhead { grid-template-columns: 20mm 1fr; }
+      .letterhead img { width: 18mm; height: 18mm; }
+      .letterhead-copy strong { font-size: 12pt; letter-spacing: .06em; }
+      .document-title { margin: 17mm 0 12mm; }
+      .certificate-date { margin-bottom: 15mm; }
+      .certificate-body { padding: 0 2mm; }
+      .postscript { margin-bottom: 18mm; }
+    }
+    @media print {
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff;
+      }
+      body > :not(.certificate) { display: none !important; }
+      .certificate {
+        display: flex;
+        flex-direction: column;
+        width: 210mm;
+        height: 297mm;
+        min-height: 0;
+        margin: 0;
+        padding: 10mm 20mm;
+        overflow: visible;
+        font-size: 11pt;
+        line-height: 1.4;
+        zoom: 1;
+      }
+      .letterhead { min-height: 27mm; grid-template-columns: 24mm 1fr; gap: 3mm; }
+      .letterhead { flex: 0 0 27mm; }
+      .letterhead img { width: 24mm; height: 24mm; }
+      .letterhead-copy strong { font-size: 17pt; }
+      .letterhead-copy span { font-size: 8.5pt; }
+      .document-title { flex: 0 0 auto; margin: 18mm 0 8mm; font-size: 17pt; }
+      .certificate-date { flex: 0 0 auto; width: 58mm; margin: 0 0 12mm; }
+      .certificate-body {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        padding: 0 8mm;
+      }
+      .certificate-body > :not(.physician) { flex: 0 0 auto; }
+      .salutation { margin: 0 0 8mm; }
+      .certificate-copy { margin: 0 0 10mm; }
+      .recommendation-line { margin: 0 0 12mm; }
+      .purpose { margin: 0 0 8mm; }
+      .postscript { margin: 0 0 18mm; }
+      .physician { margin: auto 0 0 18mm; }
+      .certificate-body,
+      .certificate-body > *,
+      .physician-row { break-inside: avoid; page-break-inside: avoid; }
+      input, select, textarea {
+        outline: none !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        color: #171717 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 2px 1px !important;
+        font: inherit;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      select { appearance: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="report-header certificate-toolbar no-print">
+    <div class="header-bar">
+      <div class="header-brand">
+        <img class="logo" src="../image/cumc-logo.png" alt="Capitol University Medical Center logo" data-hospital-logo />
+        <span class="header-titles">
+          <span class="header-hospital" data-hospital-name>CAPITOL UNIVERSITY MEDICAL CENTER</span>
+          <h1>Medical Certificate</h1>
+          <small class="header-tagline">Editable and ready to print</small>
+        </span>
+      </div>
+      <div class="header-meta">
+        <div id="connectionStatus" class="connection-status online" title="Connection status"></div>
+        <div class="header-user-slot" id="headerUserSlot"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="document-nav-main">
+      <a href="../index.html" class="back-button back-button-solid">
+        <span class="document-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7 7-7-7 7-7"/></svg></span>
+        <span>Back to Menu</span>
+      </a>
+      <button id="saveDraftBtn" type="button" title="Save this form on this device so you can continue later.">
+        <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2z"/><path d="M7 3v6h10V3M7 21v-7h10v7"/></svg></span>
+        <span class="btn-label"><span class="btn-main">Save Draft</span><span class="btn-sub">this device</span></span>
+      </button>
+      <div class="header-btn-group group-output no-print" role="group" aria-label="Create the final copy">
+        <span class="group-label">Final Copy</span>
+        <button id="previewBtn" type="button" title="Preview the certificate before printing.">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span class="btn-label"><span class="btn-main">Print Preview</span><span class="btn-sub">review first</span></span>
+        </button>
+        <button id="printBtn" type="button" title="Open the print dialog to print the certificate." onclick="window.print()">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6zM18 12h.01"/></svg></span>
+          <span class="btn-label"><span class="btn-main">Print</span><span class="btn-sub">paper copy</span></span>
+        </button>
+        <button id="newFormBtn" type="button" title="Start a new blank form for the next patient.">
+          <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M14 3v6h6M12 15h7m-3.5-3.5v7"/></svg></span>
+          <span class="btn-label"><span class="btn-main">New Form</span><span class="btn-sub">next patient</span></span>
+        </button>
+      </div>
+      <button id="dbRecordsBtn" type="button">
+        <span class="document-btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
+        <span>DB Records</span>
+      </button>
+      </div>
+    </div>
+  </header>
+  <section id="recordPicker" class="record-picker no-print" hidden aria-labelledby="recordPickerTitle">
+    <h2 id="recordPickerTitle">Open a saved CF4 record</h2>
+    <p>Select a record to fill the patient details and diagnosis. You can edit the certificate before printing.</p>
+    <input id="recordSearch" class="record-search" type="search" placeholder="Search patient name or record number" aria-label="Search CF4 records" />
+    <div id="recordList" class="record-list" aria-live="polite"></div>
+  </section>
+  <p id="recordStatus" class="record-status no-print" role="status">Enter the certificate details or open a saved CF4 record.</p>
+
+  <main class="certificate">
+    <header class="letterhead">
+      <img src="../image/cumc-logo.png" alt="Capitol University Medical Center logo" data-hospital-logo />
+      <div class="letterhead-copy">
+        <strong data-hospital-name>CAPITOL UNIVERSITY MEDICAL CENTER</strong>
+        <span data-hospital-address>GUSA HIGHWAY, GUSA, CAGAYAN DE ORO CITY, MISAMIS ORIENTAL 9000</span>
+        <span data-hospital-phone hidden></span>
+        <span data-hospital-email hidden></span>
+      </div>
+    </header>
+    <h1 class="document-title">MEDICAL CERTIFICATE</h1>
+    <div class="certificate-date">
+      <input data-abstract-field="certificateDate" aria-label="Certificate date" />
+      <span>Date</span>
+    </div>
+    <section class="certificate-body">
+      <p class="salutation">TO WHOM IT MAY CONCERN</p>
+      <p class="certificate-copy">
+        This is to certify that,
+        <select class="honorific" data-abstract-field="honorific" aria-label="Patient title">
+          <option value=""></option>
+          <option value="MR.">MR.</option>
+          <option value="MS.">MS.</option>
+          <option value="MRS.">MRS.</option>
+        </select>
+        <input class="patient-name" data-abstract-field="patientName" aria-label="Patient full name" />,
+        age/sex <input class="age" data-abstract-field="age" aria-label="Patient age" /> /
+        <input class="sex" data-abstract-field="sex" aria-label="Patient sex" /> of
+        <input class="address" data-abstract-field="address" aria-label="Patient address" />
+        was seen and examined on
+        <input class="date-seen" data-abstract-field="seenDate" aria-label="Date seen and examined" />,
+        and was diagnosed to have
+        <input class="diagnosis" data-abstract-field="certificateDiagnosis" aria-label="Diagnosis" />.
+      </p>
+      <div class="recommendation-line">
+        <strong>I therefore recommend:</strong>
+        <input data-abstract-field="recommendation" aria-label="Recommendation" />
+      </div>
+      <p class="purpose">
+        This certificate is being issued upon the request of the above mentioned name for whatever purpose it may serve
+        (<em>EXCLUDING Legal matters</em>).
+      </p>
+      <div class="postscript">
+        <strong>POST SCRIPT:</strong>
+        <input data-abstract-field="postscript" aria-label="Postscript" />
+      </div>
+      <div class="physician">
+        <div class="physician-row"><strong>Physician:</strong><input data-abstract-field="physician" aria-label="Physician name" /></div>
+        <div class="physician-row"><strong>License No.</strong><input data-abstract-field="licenseNo" aria-label="License number" /></div>
+        <div class="physician-row"><strong>PTR No.</strong><input data-abstract-field="ptrNo" aria-label="PTR number" /></div>
+      </div>
+    </section>
+  </main>
+  <script src="../js/lib/supabase.min.js" defer></script>
+  <script src="../function/paths.js"></script>
+  <script src="../function/supabaseClient.js" defer></script>
+  <script src="../function/auth.js?v=v36h" defer></script>
+  <script src="../function/syncEngine.js?v=v35d" defer></script>
+  <script src="../function/offlineStore.js?v=v35b" defer></script>
+  <script src="../function/patientRecords.js?v=v33ak" defer></script>
+  <script src="../function/dbRecords.js?v=v36d" defer></script>
+  <script src="../function/abstract.js?v=v16" defer></script>
+</body>
+</html>

@@ -868,7 +868,39 @@
 // v58: add shared document toolbar styles to the offline shell.
 // v59: center abstract labels and print on a standard A4 page.
 // v60: bump cache so Cloudflare's new files (abstract/medical certificate) replace stale cached copies.
-const CACHE_NAME = 'ent-report-system-v60-offline-workspace';
+// v61: refresh abstract and medical certificate hospital branding.
+// v62: add print margins around the abstract and medical certificate headers.
+// v63: inset the document-page toolbars and tighten printed logo-to-text spacing.
+// v64: match abstract and certificate buttons to the endoscopy toolbar styles.
+// v65: add endoscopy-style action icons and colored rails to document pages.
+// v72: keep synced offline records visible and show their sync status.
+// v73: responsive Offline Records spacing for desktop and large monitors.
+// v74: widen dashboard and report-form layouts for large monitors.
+// v75: align dashboard/report header gutters with their content containers.
+// v76: match header and content side margins across desktop, tablet and mobile.
+// v77: use a shared responsive gutter for the dashboard header and content.
+// v78: align the dashboard title block and report chips to the content's left edge.
+// v79: remove extra dashboard-header side padding on tablet and mobile.
+// v81: align page headers and content gutters across the app.
+// v82: expand application pages to the dashboard's 1600px width and gutters.
+// v83: enlarge the on-screen clinical abstract and medical certificate only.
+// v84: widen the document toolbars and compact them while scrolling.
+// v85: scale document forms to the dashboard content width on screen.
+// v86: redesign Report a Problem and View All Patients page layouts.
+// v87: rebuild the Report a Problem page with a clearer support flow.
+// v88: expand the ticket form to a full-width, naturally scrolling page.
+// v89: rebuild the admin console panels and responsive navigation.
+// v90: add on-device FFmpeg frame extraction for unsupported video codecs.
+// v91: limit Clinical Abstract and Medical Certificate to Doc Jess clinic.
+// v92: recognize the JESS clinic code and refresh the dashboard access check.
+// v93: recognize Doc Jess profile identity when clinic metadata is unavailable.
+// v94: allow secretaries assigned to Doc Jess to access medical documents.
+// v95: accept trusted Jess doctor/clinic names in secretary assignments.
+// v96: force-refresh secretary doctor assignments before gating the documents.
+// v97: resolve secretary assignment before requiring a local clinic ID.
+// v98: use the authenticated assigned-doctor name RPC as secretary fallback.
+// v99: recognize the assigned physician's Jesus Jardin name.
+const CACHE_NAME = 'ent-report-system-v99-jesus-jardin-document-access';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

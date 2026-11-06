@@ -1496,6 +1496,334 @@ body.dark-mode .ent-cca-table tbody tr:hover { background: rgba(14, 165, 233, 0.
     .ent-cca-reqbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .cca-reqbtn { justify-content: center; padding: 10px 8px; font-size: 0.8rem; }
     .ent-cca-toolbar { padding: 13px; }
+}
+
+/* Access overview: bring the account scope, request actions and record
+   counts together so users can understand their access at a glance. */
+.ent-cca-overview {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 22px;
+    min-width: 0;
+    margin: 0 0 18px;
+    padding: clamp(18px, 2.8vw, 30px);
+    border: 1px solid rgba(14, 165, 233, .22);
+    border-radius: 22px;
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(14, 165, 233, .12), transparent 34rem),
+        linear-gradient(140deg, var(--panel-bg-color), var(--primary-light));
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .065);
+}
+
+.ent-cca-overview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+}
+
+.ent-cca-overview-copy {
+    min-width: 0;
+}
+
+.ent-cca-overview-kicker {
+    display: inline-block;
+    margin-bottom: 8px;
+    color: var(--primary-color);
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.ent-cca-overview-copy h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: clamp(1.35rem, 2.6vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -.045em;
+    line-height: 1.15;
+}
+
+.ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 10px 0 0;
+    padding: 7px 11px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-color);
+    border-radius: 10px;
+    background: var(--panel-bg-color);
+    box-shadow: none;
+    color: var(--secondary-text-color);
+    font-size: .84rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.ent-cca-overview-copy .ent-cca-scope-line::before {
+    content: "Viewing ";
+    color: var(--secondary-text-color);
+    font-weight: 500;
+    opacity: .8;
+}
+
+.ent-cca-overview .ent-cca-reqbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+    gap: 10px;
+    flex: 0 1 540px;
+    margin: 0;
+}
+
+.ent-cca-overview .cca-reqbtn {
+    display: flex;
+    min-width: 0;
+    width: 100%;
+    min-height: 74px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .055);
+    color: var(--text-color);
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.35;
+    text-align: left;
+    text-transform: none;
+    white-space: normal;
+}
+
+.ent-cca-overview .cca-reqbtn:hover {
+    transform: translateY(-2px);
+    border-color: rgba(14, 165, 233, .55);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, .1);
+}
+
+.cca-reqbtn-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border-radius: 13px;
+    background: var(--primary-light);
+    font-size: 1.2rem;
+}
+
+.cca-reqbtn-copy {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.cca-reqbtn-copy > span {
+    font-size: .9rem;
+    font-weight: 750;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.cca-reqbtn-copy small {
+    color: var(--secondary-text-color);
+    font-size: .72rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.cca-reqbtn-arrow {
+    margin-left: auto;
+    color: var(--primary-color);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.ent-cca-overview .cca-badge {
+    margin-left: auto;
+}
+
+.ent-cca-overview .ent-cca-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+}
+
+.ent-cca-overview .ent-cca-stat {
+    min-height: 86px;
+    justify-content: center;
+    gap: 5px;
+    padding: 15px 19px;
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--secondary-text-color);
+    border-radius: 15px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .045);
+}
+
+.ent-cca-overview .ent-cca-stat-n {
+    font-size: clamp(1.55rem, 2.5vw, 2rem);
+}
+
+.ent-cca-overview .ent-cca-stat-l {
+    color: var(--secondary-text-color);
+    font-size: .72rem;
+    letter-spacing: .015em;
+    text-transform: none;
+}
+
+.ent-cca-overview .ent-cca-stat.is-ok {
+    border-top-color: #16a34a;
+}
+
+.ent-cca-overview .ent-cca-stat.is-ok .ent-cca-stat-n {
+    color: #15803d;
+}
+
+.ent-cca-overview .ent-cca-stat.is-locked {
+    border-top-color: #94a3b8;
+}
+
+body.dark-mode .ent-cca-overview {
+    border-color: rgba(14, 165, 233, .25);
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(14, 165, 233, .13), transparent 34rem),
+        linear-gradient(140deg, var(--panel-bg-color), rgba(14, 165, 233, .055));
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .22);
+}
+
+body.dark-mode .ent-cca-overview .cca-reqbtn,
+body.dark-mode .ent-cca-overview .ent-cca-stat {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
+}
+
+body.dark-mode .ent-cca-overview .ent-cca-stat.is-ok .ent-cca-stat-n {
+    color: #6ee7a0;
+}
+
+@media screen and (max-width: 900px) {
+    .ent-cca-overview-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .ent-cca-overview .ent-cca-reqbar {
+        width: 100%;
+        flex-basis: auto;
+    }
+}
+
+@media screen and (max-width: 560px) {
+    .ent-cca-overview {
+        grid-column: 1 / -1;
+        gap: 15px;
+        margin: 0;
+        padding: 17px;
+        border-radius: 18px;
+    }
+
+    .ent-cca-overview-head {
+        gap: 15px;
+    }
+
+    .ent-cca-overview-kicker {
+        margin-bottom: 6px;
+        font-size: .64rem;
+    }
+
+    .ent-cca-overview-copy h2 {
+        font-size: 1.3rem;
+    }
+
+    .ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+        margin-top: 8px;
+        font-size: .76rem;
+    }
+
+    .ent-cca-overview .ent-cca-reqbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .ent-cca-overview .cca-reqbtn {
+        min-height: 66px;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 13px;
+    }
+
+    .cca-reqbtn-icon {
+        width: 34px;
+        height: 34px;
+        flex-basis: 34px;
+        border-radius: 10px;
+        font-size: 1rem;
+    }
+
+    .cca-reqbtn-copy > span {
+        font-size: .78rem;
+    }
+
+    .cca-reqbtn-copy small {
+        font-size: .64rem;
+    }
+
+    .cca-reqbtn-arrow {
+        display: inline;
+        margin-left: auto;
+    }
+
+    .ent-cca-overview .ent-cca-stats {
+        gap: 7px;
+    }
+
+    .ent-cca-overview .ent-cca-stat {
+        min-height: 72px;
+        gap: 4px;
+        padding: 10px 8px;
+        border-radius: 12px;
+    }
+
+    .ent-cca-overview .ent-cca-stat-n {
+        font-size: 1.35rem;
+    }
+
+    .ent-cca-overview .ent-cca-stat-l {
+        font-size: .62rem;
+        line-height: 1.2;
+    }
+}
+
+@media screen and (max-width: 360px) {
+    .ent-cca-overview {
+        padding: 13px;
+    }
+
+    .ent-cca-overview .cca-reqbtn {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .cca-reqbtn-copy > span {
+        font-size: .72rem;
+    }
+
+    .ent-cca-overview .ent-cca-stat-l {
+        font-size: .57rem;
+    }
     .ent-cca-filter { width: 100%; justify-content: space-between; }
     .ent-cca-select { max-width: 68%; }
     .ent-cca-toggle { width: 100%; justify-content: flex-start; }
@@ -1537,6 +1865,337 @@ body.dark-mode .ent-cca-table tbody tr:hover { background: rgba(14, 165, 233, 0.
     .ent-cca-header .header-content {
         gap: 8px;
         padding: 8px 10px;
+    }
+
+    @media screen {
+        body.ent-cca-page {
+            background:
+                radial-gradient(ellipse at 92% 0, rgba(14, 165, 233, .08), transparent 34rem),
+                var(--bg-color);
+        }
+
+        .ent-cca-header {
+            border-bottom-color: rgba(14, 165, 233, .18);
+            box-shadow: 0 8px 26px rgba(15, 23, 42, .07);
+        }
+
+        .ent-cca-header .header-brand {
+            justify-content: flex-start;
+        }
+
+        .ent-cca-main {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            align-items: start;
+            gap: 16px 20px;
+            padding-top: clamp(18px, 2.2vw, 34px);
+            padding-bottom: 56px;
+        }
+
+        .ent-cca-main > .ent-page-nav,
+        .ent-cca-main > .ent-cca-notice,
+        .ent-cca-main > .ent-cca-stats,
+        .ent-cca-main > .ent-cca-toolbar,
+        .ent-cca-main > .ent-cca-layout {
+            grid-column: 1 / -1;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .ent-cca-main > .ent-page-nav {
+            margin: 0;
+        }
+
+        .ent-cca-main > .ent-cca-scope-line {
+            grid-column: span 7;
+            align-self: stretch;
+            display: flex;
+            align-items: center;
+            min-height: 58px;
+            margin: 0;
+            padding: 12px 18px;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary-color);
+            border-radius: 14px;
+            background: var(--panel-bg-color);
+            color: var(--text-color);
+            font-size: .9rem;
+            font-weight: 650;
+            line-height: 1.5;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
+        }
+
+        .ent-cca-main > .ent-cca-reqbar {
+            grid-column: span 5;
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .ent-cca-reqbar .cca-reqbtn {
+            min-width: 152px;
+            min-height: 58px;
+            justify-content: center;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-weight: 700;
+        }
+
+        .ent-cca-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin: 0;
+        }
+
+        .ent-cca-stat {
+            min-height: 88px;
+            justify-content: flex-start;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .045);
+        }
+
+        .ent-cca-stat-n {
+            font-size: 1.85rem;
+        }
+
+        .ent-cca-stat-l {
+            margin-top: 4px;
+            font-size: .72rem;
+        }
+
+        .ent-cca-toolbar {
+            display: grid;
+            grid-template-columns: minmax(280px, .95fr) minmax(0, 1.35fr);
+            align-items: end;
+            gap: 18px;
+            margin: 0;
+            padding: 18px 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .045);
+        }
+
+        .ent-cca-search-label {
+            font-size: .8rem;
+            font-weight: 750;
+            letter-spacing: .035em;
+            text-transform: uppercase;
+            color: var(--secondary-text-color);
+        }
+
+        .ent-cca-search {
+            min-height: 48px;
+            border-radius: 12px;
+        }
+
+        .ent-cca-filters {
+            gap: 10px 14px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        .ent-cca-filter {
+            flex: 1 1 190px;
+            min-width: 0;
+        }
+
+        .ent-cca-filter > label {
+            flex: 0 0 auto;
+            font-size: .68rem;
+        }
+
+        .ent-cca-select {
+            max-width: none;
+            min-width: 0;
+            flex: 1 1 auto;
+            min-height: 40px;
+            border-radius: 10px;
+        }
+
+        .ent-cca-toggle {
+            min-height: 40px;
+            border-radius: 10px;
+        }
+
+        .ent-cca-count {
+            flex: 1 0 100%;
+            margin: 0;
+            text-align: right;
+            font-size: .75rem;
+        }
+
+        .ent-cca-card {
+            border-radius: 18px;
+            box-shadow: 0 8px 26px rgba(15, 23, 42, .055);
+        }
+
+        .ent-cca-list-head {
+            padding: 20px 24px;
+            background:
+                linear-gradient(100deg, var(--panel-bg-color), var(--primary-light));
+        }
+
+        .ent-cca-list-head h2 {
+            font-size: 1.1rem;
+        }
+
+        .ent-cca-list-head p {
+            font-size: .84rem;
+        }
+
+        .ent-cca-list-mark {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
+            border-radius: 13px;
+            color: var(--primary-color);
+        }
+
+        .ent-cca-table thead th {
+            padding: 15px 18px;
+            font-size: .68rem;
+            letter-spacing: .075em;
+        }
+
+        .ent-cca-table tbody td {
+            padding: 17px 18px;
+        }
+
+        .cca-name {
+            font-size: .96rem;
+        }
+
+        .cca-sub {
+            font-size: .79rem;
+        }
+
+        .ent-cca-table td.cca-act .cca-pill {
+            margin-right: 12px;
+        }
+
+        .ent-cca-foot {
+            padding: 18px;
+        }
+
+        body.dark-mode .ent-cca-header,
+        body.dark-mode .ent-cca-card,
+        body.dark-mode .ent-cca-toolbar,
+        body.dark-mode .ent-cca-stat {
+            box-shadow: 0 8px 26px rgba(0, 0, 0, .2);
+        }
+
+        body.dark-mode .ent-cca-list-head {
+            background: linear-gradient(100deg, var(--panel-bg-color), rgba(14, 165, 233, .08));
+        }
+    }
+
+    @media screen and (max-width: 900px) {
+        .ent-cca-main {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .ent-cca-main > .ent-cca-scope-line {
+            grid-column: 1 / -1;
+        }
+
+        .ent-cca-main > .ent-cca-reqbar {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+        }
+
+        .ent-cca-toolbar {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .ent-cca-filters {
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+    }
+
+    @media screen and (max-width: 560px) {
+        body.ent-cca-page .ent-cca-main {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 11px;
+            padding-top: 14px;
+        }
+
+        .ent-cca-main > .ent-page-nav,
+        .ent-cca-main > .ent-cca-notice,
+        .ent-cca-main > .ent-cca-scope-line,
+        .ent-cca-main > .ent-cca-reqbar,
+        .ent-cca-main > .ent-cca-stats,
+        .ent-cca-main > .ent-cca-toolbar,
+        .ent-cca-main > .ent-cca-layout {
+            grid-column: 1 / -1;
+        }
+
+        body.ent-cca-page .ent-cca-main > .ent-cca-reqbar {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        body.ent-cca-page .ent-cca-reqbar .cca-reqbtn {
+            min-width: 0;
+            min-height: 48px;
+            padding: 9px 8px;
+            font-size: .76rem;
+        }
+
+        body.ent-cca-page .ent-cca-stats {
+            gap: 8px;
+        }
+
+        body.ent-cca-page .ent-cca-stat {
+            min-height: 74px;
+            padding: 11px;
+            border-radius: 13px;
+        }
+
+        body.ent-cca-page .ent-cca-stat-n {
+            font-size: 1.4rem;
+        }
+
+        body.ent-cca-page .ent-cca-stat-l {
+            font-size: .61rem;
+        }
+
+        .ent-cca-toolbar {
+            padding: 14px;
+            border-radius: 14px;
+        }
+
+        .ent-cca-filter {
+            flex-basis: 100%;
+            justify-content: space-between;
+        }
+
+        .ent-cca-select {
+            max-width: 68%;
+            flex: 0 1 68%;
+        }
+
+        .ent-cca-count {
+            text-align: left;
+        }
+
+        .ent-cca-list-head {
+            padding: 14px;
+        }
+
+        .ent-cca-list-head p {
+            max-width: none;
+        }
+
+        .ent-cca-table tbody td {
+            padding: 6px 12px;
+        }
     }
     .ent-cca-header-brand { gap: 7px; }
     .ent-cca-header-brand .ent-cca-brand-icon {

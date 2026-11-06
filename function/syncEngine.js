@@ -514,14 +514,10 @@ function toIsoDate(value) {
 
     /* ------------------------------------------------------------------
        "ALL CAUGHT UP" CONFIRMATION
-       The doctor's question after a flight is never "did the flush
-       succeed?" - it is "is my offline work in the database yet?".
        When a flush actually uploaded something and the queue comes out
-       EMPTY, say so on screen in plain words and announce it on the
-       event channel so the Offline Records window redraws itself with
-       the uploaded rows already gone. A partial upload stays quiet:
-       there is still something waiting, and claiming otherwise would
-       be the one lie this feature must never tell.
+       EMPTY, confirm it on screen and announce it so Offline Records can
+       refresh each saved row's status. A partial upload stays quiet:
+       there is still something waiting.
        ------------------------------------------------------------------ */
     let syncDoneToast = null;
     let syncDoneTimer = null;
@@ -560,7 +556,7 @@ function toIsoDate(value) {
             syncDoneToast.innerHTML =
                 '<span class="ent-sync-done-mark" aria-hidden="true">&#9989;</span>' +
                 '<div class="ent-sync-done-body">' +
-                '<strong class="ent-sync-done-title">All offline records already saved to database</strong>' +
+                '<strong class="ent-sync-done-title">Offline records synced</strong>' +
                 '<span class="ent-sync-done-detail"></span>' +
                 '</div>' +
                 '<button type="button" class="ent-sync-done-close" title="Dismiss" aria-label="Dismiss">&times;</button>';
@@ -577,7 +573,7 @@ function toIsoDate(value) {
         if (detail) {
             detail.textContent = 'You have signal right now \u2014 ' + count +
                 ' offline save' + (count === 1 ? '' : 's') +
-                ' uploaded. They no longer appear in Offline Records.';
+                ' uploaded. They remain in Offline Records with Synced status.';
         }
         void syncDoneToast.offsetWidth;
         syncDoneToast.classList.add('is-visible');

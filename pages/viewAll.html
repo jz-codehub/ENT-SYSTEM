@@ -8,8 +8,8 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v32c">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/view-all.css?v=v39e">
-    <link rel="stylesheet" href="../style/mobile.css?v=v7">
+    <link rel="stylesheet" href="../style/view-all.css?v=v41-access-buttons">
+    <link rel="stylesheet" href="../style/mobile.css?v=v14">
 </head>
 <body class="ent-cca-page">
     <!-- ------------------------------------------------------------------
@@ -65,43 +65,49 @@
         </div>
         <p class="ent-cca-notice" id="ccaNotice" role="status" hidden></p>
 
-        <span class="ent-cca-scope-line ent-cca-scope-body" id="ccaScope">Checking what you can see&hellip;</span>
-
-        <!-- THE TWO LISTS ARE POP-UPS now. These two buttons park where
-             the tabs used to be - at the top, impossible to miss - and
-             each opens the same <dialog> (below, next to the record
-             pop-up) on its own tab. The ids INSIDE the dialog are the
-             ones the JS already knows, so the tab switcher, the render
-             functions and the delegated Grant/Deny handler keep working
-             without a single change. -->
-        <section class="ent-cca-reqbar no-print" aria-label="Access requests">
-            <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenMy">
-                <span aria-hidden="true">&#128178;</span> My requests
-            </button>
-            <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenInbox">
-                <span aria-hidden="true">&#128229;</span> Inbox (pending to my clinic)
-                <span class="cca-badge" id="ccaInboxBadge" hidden></span>
-            </button>
-        </section>
-
-        <!-- What is actually on this page, in three numbers. Reading them off the
- Access column of every row was the only way to answer "can I open
- anything here?" - and the answer decides whether this page is useful to
- you at all. They are counted from the rows the server returned: no new
- query, and no client-side permission decision. -->
-        <section class="ent-cca-stats" aria-label="Summary">
-            <div class="ent-cca-stat">
-                <span class="ent-cca-stat-n" id="ccaStatTotal">&mdash;</span>
-                <span class="ent-cca-stat-l">Records listed</span>
+        <section class="ent-cca-overview" aria-labelledby="ccaOverviewTitle">
+            <div class="ent-cca-overview-head">
+                <div class="ent-cca-overview-copy">
+                    <span class="ent-cca-overview-kicker">ACCESS OVERVIEW</span>
+                    <h2 id="ccaOverviewTitle">Everything your account can reach</h2>
+                    <p class="ent-cca-scope-line ent-cca-scope-body" id="ccaScope">Checking what you can see&hellip;</p>
+                </div>
+                <section class="ent-cca-reqbar no-print" aria-label="Access requests">
+                    <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenMy">
+                        <span class="cca-reqbtn-icon" aria-hidden="true">&#128178;</span>
+                        <span class="cca-reqbtn-copy">
+                            <span>My requests</span>
+                            <small>Track requests you sent</small>
+                        </span>
+                        <span class="cca-reqbtn-arrow" aria-hidden="true">&rarr;</span>
+                    </button>
+                    <button type="button" class="ent-btn cca-reqbtn" id="ccaOpenInbox">
+                        <span class="cca-reqbtn-icon" aria-hidden="true">&#128229;</span>
+                        <span class="cca-reqbtn-copy">
+                            <span>Inbox (pending to my clinic)</span>
+                            <small>Review requests for this clinic</small>
+                        </span>
+                        <span class="cca-badge" id="ccaInboxBadge" hidden></span>
+                        <span class="cca-reqbtn-arrow" aria-hidden="true">&rarr;</span>
+                    </button>
+                </section>
             </div>
-            <div class="ent-cca-stat is-ok">
-                <span class="ent-cca-stat-n" id="ccaStatOpen">&mdash;</span>
-                <span class="ent-cca-stat-l">Accessible now</span>
-            </div>
-            <div class="ent-cca-stat is-locked">
-                <span class="ent-cca-stat-n" id="ccaStatAsk">&mdash;</span>
-                <span class="ent-cca-stat-l">Needs permission</span>
-            </div>
+            <!-- Counts use the same server-returned rows and access states as the
+                 records below; this presentation does not make permission decisions. -->
+            <section class="ent-cca-stats" aria-label="Record access summary">
+                <div class="ent-cca-stat">
+                    <span class="ent-cca-stat-n" id="ccaStatTotal">&mdash;</span>
+                    <span class="ent-cca-stat-l">Records listed</span>
+                </div>
+                <div class="ent-cca-stat is-ok">
+                    <span class="ent-cca-stat-n" id="ccaStatOpen">&mdash;</span>
+                    <span class="ent-cca-stat-l">Accessible now</span>
+                </div>
+                <div class="ent-cca-stat is-locked">
+                    <span class="ent-cca-stat-n" id="ccaStatAsk">&mdash;</span>
+                    <span class="ent-cca-stat-l">Needs permission</span>
+                </div>
+            </section>
         </section>
 
         <section class="ent-cca-toolbar">
