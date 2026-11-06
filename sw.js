@@ -867,7 +867,8 @@
 // v57: polish the report-page headers, buttons and abstract field alignment.
 // v58: add shared document toolbar styles to the offline shell.
 // v59: center abstract labels and print on a standard A4 page.
-const CACHE_NAME = 'ent-report-system-v59-offline-workspace';
+// v60: bump cache so Cloudflare's new files (abstract/medical certificate) replace stale cached copies.
+const CACHE_NAME = 'ent-report-system-v60-offline-workspace';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
