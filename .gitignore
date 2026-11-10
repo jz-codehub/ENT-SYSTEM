@@ -1,1 +1,3 @@
 .wrangler/
+temp/
+supabase-v2/backup/

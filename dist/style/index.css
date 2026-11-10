@@ -2014,18 +2014,18 @@ input[type="radio"] {
     color: var(--text-color);
 }
 
-/* The login card floats on a sky->navy gradient, not the app background,
-   so the muted grays would go unreadable over the dark half. Fixed white
-   keeps contrast in BOTH themes (this gradient ignores dark-mode), and the
-   narrower block lets the long legal line wrap pleasantly. body's
-   place-items:center stacks this footer as row 2 under the card - no
-   layout risk. */
+/* Keep the legal notice readable but visually secondary beneath the login
+   card on the light, atmospheric page background. */
 body.ent-login-page .ent-copy {
-    max-width: 640px;
-    border-top-color: rgba(255, 255, 255, 0.25);
-    color: rgba(255, 255, 255, 0.78);
+    width: min(100%, 900px);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 8px 14px 0;
+    border-top-color: rgba(71, 85, 105, 0.2);
+    color: rgba(71, 85, 105, 0.82);
+    font-size: 0.68rem;
 }
 
 body.ent-login-page .ent-copy-line {
-    color: #fff;
+    color: #334155;
 }

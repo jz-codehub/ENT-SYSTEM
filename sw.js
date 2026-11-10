@@ -653,13 +653,13 @@
 //        cache name. Without this bump every browser keeps the pre-0033 UI
 //        against a 0033-0037 database.
 // v33al: the ticket system moved OFF the dashboard and back onto its own
-//        page (pages/tickets.html + function/ticketsPage.js +
+//        page (pages/reportProblem.html + function/ticketsPage.js +
 //        style/tickets.css). Two bugs shipped with the first cut and are
 //        fixed here together:
 //          · the "Report a problem" quick-action card was a <button> whose
 //            only handler lived in ticketForm.js and early-returned (the
 //            pop-up markup it expected is gone), so the card did NOTHING.
-//            It is now a plain <a href="pages/tickets.html">.
+//            It is now a plain <a href="pages/reportProblem.html">.
 //          · ticketForm.js stayed on index.html for the unread badge but
 //            called byId('tfForm').addEventListener with no guard, which
 //            THREW on the dashboard and killed the rest of boot. All its
@@ -900,7 +900,30 @@
 // v97: resolve secretary assignment before requiring a local clinic ID.
 // v98: use the authenticated assigned-doctor name RPC as secretary fallback.
 // v99: recognize the assigned physician's Jesus Jardin name.
-const CACHE_NAME = 'ent-report-system-v99-jesus-jardin-document-access';
+// v100: refresh dashboard filters, action/quality panels, admin health notes,
+//       and the database-record browser deep link.
+// v101: move the action list into the former follow-up slot, clarify report
+//       reminders, and restyle the recent-record filters.
+// v102: remove dashboard report reminders and their unused duplicate checks.
+// v103: paginate Latest patients with 10/50/100 report page sizes.
+// v110: replace the old ticket page with the fresh reportProblem.html and
+//       its own responsive stylesheet; workflows remain in ticketsPage.js.
+// v111: polish the medical certificate and clinical abstract workspaces.
+// v112: clarify document workspace steps and remove duplicate list numbering.
+// v113: align document workspace accents with the system primary color.
+// v114: align dashboard and offline workspace accents with the primary palette.
+// v115: restore distinct colors for dashboard quick actions.
+// v116: display the dashboard notification control as a compact icon-only bell.
+// v117: make the bell itself yellow and minimize its click target to the icon.
+// v118: reset inherited global button sizing and shadow on the notification icon.
+// v119: slightly enlarge the yellow notification bell glyph.
+// v120: center the notification panel across viewport sizes.
+// v121: compact and right-align the dashboard profile on phones/tablets.
+// v122: keep the full profile name under the avatar, wrapped at small widths.
+// v123: hide the sign-out label at phone/tablet widths and keep its icon.
+// v124: give the dashboard profile avatar a purple-pink gradient.
+// v125: apply the gradient to the dashboard greeting avatar.
+const CACHE_NAME = 'ent-report-system-v125-dashboard-avatar-gradient';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
@@ -921,7 +944,7 @@ const FILES_TO_CACHE = [
     'pages/medicalCertificate.html',
     'pages/settings.html',
     'pages/viewAll.html',
-    'pages/tickets.html',
+    'pages/reportProblem.html',
     // Orphaned (no inbound links) but still reachable by direct URL, so it
     // must survive going offline like every other page. Its scripts
     // (supabase.min.js, paths.js, supabaseClient.js, auth.js) are all
@@ -944,8 +967,10 @@ const FILES_TO_CACHE = [
     'style/cf4.css',
     'style/patient-records.css',
     'style/tickets.css',
+    'style/reportProblem.css',
     'style/mobile.css',
     'style/medical-documents.css',
+    'style/medical-document-workspace.css',
     'function/auth.js',
     'function/admin.js',
     // paths.js resolves every page/asset URL. If it is not pre-cached, an

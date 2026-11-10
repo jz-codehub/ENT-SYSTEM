@@ -58,7 +58,7 @@ const PAGES = [
   // and is also required by sw.js precaching. If it is absent from this
   // allowlist, its 404 rejects the service-worker install for the whole app.
   // The in-app problem-report page has the same requirement.
-  'pages/tickets.html',
+  'pages/reportProblem.html',
   // READ-ONLY diagnostic: answers one question — are Lilian's Sept–Oct CF4
   // records in the CLOUD (so a deploy shows them) or still on a DEVICE
   // (so only syncing that device recovers them). Writes/deletes nothing.

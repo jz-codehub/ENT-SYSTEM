@@ -10,7 +10,7 @@
   Severity is deliberately split, because a check that cries wolf gets
   ignored and then protects nothing:
 
-    BLOCK   the service-role key value appears outside .env.local
+    BLOCK   a service-role key appears outside .env.local
     WARN    some OTHER JWT-shaped string is committed (could be a key from
             a different project, e.g. the old v1 key)
     INFO    the anon/publishable key is in the frontend on purpose. Supabase
@@ -27,34 +27,39 @@ $ProgressPreference = 'SilentlyContinue'
 $Root = $PSScriptRoot
 
 $envFile = Join-Path $Root 'supabase-v2\scripts\.env.local'
-if (-not (Test-Path $envFile)) {
-  Write-Host '  no .env.local found - nothing to compare against' -ForegroundColor Yellow
-  exit 0
-}
-
 $secrets = @{}
-foreach ($line in Get-Content $envFile) {
-  if ($line -match '^\s*([A-Z0-9_]+)\s*=\s*(\S+)\s*$') {
-    $k = $Matches[1]
-    $v = $Matches[2].Trim('"').Trim("'")
-    if ($v.Length -ge 20 -and $k -match 'KEY|SECRET|TOKEN|PASSWORD') { $secrets[$k] = $v }
+$envFileFound = Test-Path $envFile
+if ($envFileFound) {
+  foreach ($line in Get-Content $envFile) {
+    if ($line -match '^\s*([A-Z0-9_]+)\s*=\s*(\S+)\s*$') {
+      $k = $Matches[1]
+      $v = $Matches[2].Trim('"').Trim("'")
+      if ($v.Length -ge 20 -and $k -match 'KEY|SECRET|TOKEN|PASSWORD') { $secrets[$k] = $v }
+    }
   }
+} else {
+  Write-Host '  no .env.local found - scanning tracked files without key comparison' -ForegroundColor Yellow
 }
 # The anon key is DESIGNED to be shipped to browsers. Never treat it as a leak.
 $serviceKey = $secrets['SUPABASE_SERVICE_ROLE_KEY']
 $anonKey    = $secrets['SUPABASE_ANON_KEY']
 
 $skip = @('supabase-v2\scripts\.env.local')
-$skipFiles = Get-ChildItem -Path $Root -Recurse -Force -File -ErrorAction SilentlyContinue |
-  Where-Object { $_.FullName -notmatch '\\node_modules\\|\\\.git\\|\\backup\\' }
+$gitFiles = @(& git -C $Root ls-files --cached --others --exclude-standard)
+if ($LASTEXITCODE -ne 0) {
+  Write-Host '  BLOCK  could not ask Git which files are publishable' -ForegroundColor Red
+  exit 2
+}
 $binary = @('.png','.jpg','.jpeg','.webp','.ico','.pdf','.zip','.mp4','.woff','.woff2')
 
 $blocks = @(); $warns = @(); $seen = 0
-foreach ($f in $skipFiles) {
-  $rel = $f.FullName.Substring($Root.Length + 1)
+foreach ($rel in $gitFiles) {
+  $rel = $rel.Replace('/', '\')
   if ($skip -contains $rel) { continue }
-  if ($binary -contains $f.Extension.ToLower()) { continue }
-  try { $text = [System.IO.File]::ReadAllText($f.FullName) } catch { continue }
+  $fullPath = Join-Path $Root $rel
+  if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) { continue }
+  if ($binary -contains [IO.Path]::GetExtension($fullPath).ToLower()) { continue }
+  try { $text = [System.IO.File]::ReadAllText($fullPath) } catch { continue }
   if (-not $text) { continue }
   $seen++
 
@@ -62,14 +67,34 @@ foreach ($f in $skipFiles) {
     $blocks += $rel
     continue
   }
+  if ([regex]::IsMatch($text, '\bsb_secret_[A-Za-z0-9_-]{16,}\b')) {
+    $blocks += $rel
+    continue
+  }
   foreach ($m in [regex]::Matches($text, 'eyJ[A-Za-z0-9_\-\.]{40,}')) {
     $v = $m.Value
     if ($anonKey -and $v -eq $anonKey) { continue }   # public by design
     if ($serviceKey -and $v -eq $serviceKey) { $blocks += $rel; break }
-    $warns += [pscustomobject]@{ File = $rel; Prefix = $v.Substring(0, 28) }
+    $parts = $v.Split('.')
+    if ($parts.Length -eq 3) {
+      try {
+        $payload = $parts[1].Replace('-', '+').Replace('_', '/')
+        while (($payload.Length % 4) -ne 0) { $payload += '=' }
+        $claims = [System.Text.Encoding]::UTF8.GetString(
+          [Convert]::FromBase64String($payload)
+        ) | ConvertFrom-Json
+        if ([string]$claims.role -eq 'service_role') {
+          $blocks += $rel
+          break
+        }
+      } catch {
+        # An unparseable JWT-shaped string is warned about below.
+      }
+    }
+    $warns += [pscustomobject]@{ File = $rel }
   }
 }
-$warns = $warns | Group-Object File, Prefix | ForEach-Object { $_.Group[0] }
+$warns = $warns | Group-Object File | ForEach-Object { $_.Group[0] }
 
 # .gitignore coverage, honouring NESTED .gitignore files (a root-only check
 # wrongly reports supabase-v2/scripts/.env.local as uncovered).
@@ -98,7 +123,11 @@ foreach ($secret in @('supabase-v2\scripts\.env.local')) {
 }
 
 Write-Host ''
-Write-Host ('  scanned ' + $seen + ' files; ' + $secrets.Count + ' real secret value(s) in .env.local')
+if ($envFileFound) {
+  Write-Host ('  scanned ' + $seen + ' files; loaded ' + $secrets.Count + ' credential value(s) from .env.local')
+} else {
+  Write-Host ('  scanned ' + $seen + ' files; no .env.local present (credential-format scan only)')
+}
 Write-Host ''
 
 if ($blocks.Count) {
@@ -109,7 +138,7 @@ if ($blocks.Count) {
 if ($warns.Count) {
   Write-Host '  WARN   other JWT-shaped strings are committed. Not the current' -ForegroundColor Yellow
   Write-Host '         service key, but confirm each one is meant to be public:' -ForegroundColor Yellow
-  $warns | ForEach-Object { Write-Host ('          ' + $_.File + '  (' + $_.Prefix + '...)') -ForegroundColor Yellow }
+  $warns | ForEach-Object { Write-Host ('          ' + $_.File) -ForegroundColor Yellow }
   Write-Host ''
 }
 if ($uncovered.Count) {
@@ -124,7 +153,7 @@ if ($blocks.Count -or $uncovered.Count) {
   exit 1
 }
 Write-Host '  PRE-PUBLISH CHECK PASSED' -ForegroundColor Green
-Write-Host '    the service-role key is not in any file git would track'
+Write-Host '    no configured or role-identified service-role key was found in Git-visible files'
 Write-Host '    the anon key in the frontend is public by design (RLS protects the data)'
 Write-Host ''
 exit 0

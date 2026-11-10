@@ -1,16 +1,16 @@
 /* =====================================================================
- *  test_ticket_form.mjs - the ticket system: pages/tickets.html
+ *  test_ticket_form.mjs - the ticket system: pages/reportProblem.html
  * ---------------------------------------------------------------------
  *  A doctor or a secretary reports a problem on THEIR OWN page now:
- *  pages/tickets.html carries the form, the thread and the replies, so
+ *  pages/reportProblem.html carries the form, the thread and the replies, so
  *  reading back an answer does not mean scrolling past a form inside a
  *  pop-up on the dashboard. The dashboard keeps only a LINK to that page
  *  (plus the unread badge), and an admin answers the clinic queue from
  *  the admin console, which never links here.
  *
  *  Checked here:
- *    A. pages/tickets.html exists, and the dashboard links to it
- *    B. tickets.html carries the form and loads its module AFTER auth.js
+ *    A. pages/reportProblem.html exists, and the dashboard links to it
+ *    B. reportProblem.html carries the form and loads its module AFTER auth.js
  *    C. the four scope choices exist as real radios
  *    D. the page boots and a create reaches the server with a scope
  *    E. an admin gets no page at all (redirected away from filing)
@@ -26,7 +26,7 @@ import vm from 'node:vm'
 
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
-const ticketsHtml = readFileSync(join(APP, 'pages', 'tickets.html'), 'utf8')
+const ticketsHtml = readFileSync(join(APP, 'pages', 'reportProblem.html'), 'utf8')
 const formJs = readFileSync(join(APP, 'function', 'ticketsPage.js'), 'utf8')
 const adminHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
 const adminJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
@@ -41,19 +41,24 @@ console.log('==== TICKET FORM TESTS ====')
 console.log('')
 
 /* ---- A. the page exists, and the dashboard links to it -------------- */
-is('T1', 'pages/tickets.html exists', existsSync(join(APP, 'pages', 'tickets.html')),
-   'reporting and reading back answers has its own page')
-const dashLinks = /href="pages\/tickets\.html"/.test(indexHtml) ||
-                  /href="\.\/pages\/tickets\.html"/.test(indexHtml)
+is('T1', 'fresh pages/reportProblem.html exists and replaced the old page',
+   existsSync(join(APP, 'pages', 'reportProblem.html')) &&
+   !existsSync(join(APP, 'pages', 'tickets.html')),
+   'the old ticket page is removed')
+const dashLinks = /href="pages\/reportProblem\.html"/.test(indexHtml) ||
+                  /href="\.\/pages\/reportProblem\.html"/.test(indexHtml)
 is('T2', 'the dashboard links to the ticket page', dashLinks,
    'the "Report a problem" card is a LINK, not a pop-up trigger')
+is('T2b', 'the new page loads its dedicated layout stylesheet',
+   /style\/reportProblem\.css\?v=/.test(ticketsHtml),
+   'page styling is separate from the ticket workflow')
 
 /* ---- A2. every element the JS looks up exists on the page ----------- */
 const ids2 = new Set([...ticketsHtml.matchAll(/\bid\s*=\s*"([^"]+)"/g)].map(m => m[1]))
 const need = ['tkForm', 'tkScope', 'tkSubject', 'tkCategory', 'tkPriority',
                'tkBody', 'tkSend', 'tkNotice', 'tkList', 'tkDetail', 'tkViewCard']
 const absent = need.filter(function (x) { return !ids2.has(x) })
-is('T3', 'tickets.html carries every element the form needs', absent.length === 0,
+is('T3', 'reportProblem.html carries every element the form needs', absent.length === 0,
    absent.length ? 'MISSING: ' + absent.join(', ') : need.length + ' elements present')
 const authAt = ticketsHtml.indexOf('function/auth.js')
 const formAt = ticketsHtml.indexOf('function/ticketsPage.js')
@@ -74,15 +79,14 @@ is('T7', 'the scope radios are real radio inputs (one answer, keyboard navigable
 
 /* ---- B. the panel and the script order ---------------------------- */
 /* ---- B2. the card lives in the quick-action grid ------------------ */
-/* Counts <a> OR <button>: the ticket card is a LINK (it navigates to
-   pages/tickets.html), the View All card always was one, and only the
-   three report cards are buttons - FIVE cards in the grid. Either way
-   the ent-quick-sub / -label / -icon SPANS inside them must not be
-   counted, which is what anchoring on the tag name does - a bare
-   /ent-quick/g would match the spans too and report 20 cards. */
-const cards = [...indexHtml.matchAll(/<(?:a|button)[^>]*class="ent-quick[^"]*"/g)].length
+/* Count only visible <a> OR <button> cards. Two disabled report
+   destinations remain in the markup for feature-flagged deployments;
+   they are not part of the five cards a staff member sees by default. */
+const quickActionTags = [...indexHtml.matchAll(/<(?:a|button)\b[^>]*class="ent-quick[^"]*"[^>]*>/g)]
+const visibleQuickActionTags = quickActionTags.filter(m => !/\bhidden(?:\s|>)/.test(m[0]))
+const cards = visibleQuickActionTags.length
 const cardIds = [...indexHtml.matchAll(/class="ent-quick[^\"]*"\s+id="([^"]+)"/g)].map(m => m[1])
-is('T18', 'there are FIVE quick-action cards (3 reports + ticket + view all)',
+is('T18', 'there are FIVE visible quick-action cards (3 reports + ticket + view all)',
    cards === 5,
    cards + ' found: ' + cardIds.join(', '))
 is('T19', 'the fourth card is the report-a-problem card',
@@ -92,13 +96,14 @@ is('T19', 'the fourth card is the report-a-problem card',
 const ticketCard = indexHtml.match(/<(?:a|button)[^>]*id="tfOpen"[^>]*>/)
 is('T20', 'the ticket card has NO data-report-type (dashboard.js would hijack it)',
    !!ticketCard && !/data-report-type/.test(ticketCard[0]),
-   !!ticketCard ? 'the card is a plain link to pages/tickets.html' : 'card not found')
+   !!ticketCard ? 'the card is a plain link to pages/reportProblem.html' : 'card not found')
 is('T20b', 'the ticket card IS a link (works even if a script fails to load)',
-   !!ticketCard && /^<a\b/.test(ticketCard[0]) && /href="pages\/tickets\.html"/.test(ticketCard[0]),
+   !!ticketCard && /^<a\b/.test(ticketCard[0]) && /href="pages\/reportProblem\.html"/.test(ticketCard[0]),
    ticketCard ? ticketCard[0].slice(0, 90) : 'card not found')
-is('T21', 'the three report cards still carry data-report-type',
-   (indexHtml.match(/data-report-type=/g) || []).length === 3,
-   (indexHtml.match(/data-report-type=/g) || []).length + ' report buttons')
+const visibleReportCards = visibleQuickActionTags.filter(m => /data-report-type=/.test(m[0]))
+is('T21', 'the three visible report cards still carry data-report-type',
+   visibleReportCards.length === 3,
+   visibleReportCards.length + ' report buttons')
 
 /* ---- B3. two columns, and cards that are tall enough to tap ------- */
 // Comments are stripped first. The CSS explains why it is NOT auto-fit
@@ -151,7 +156,7 @@ is('T30', 'each scope tile has an icon and a plain-language hint',
    (ticketsHtml.match(/ent-tf-scope-text/g) || []).length === 4,
    '4 icons + 4 labels, so laryngeal is not a bare word')
 is('T31', 'the thread pane has a header with a Back control',
-   /class="ent-tk-viewhead"/.test(ticketsHtml) && /id="tkViewBack"/.test(ticketsHtml),
+   /class="ent-tk-viewhead[^"]*"/.test(ticketsHtml) && /id="tkViewBack"/.test(ticketsHtml),
    'title + one-tap back, no hunting for a button at the bottom')
 // The form and the ticket list are different jobs and must not read as one:
 // they are two PANES of the page, and the form is ruled into fieldsets.
@@ -215,7 +220,7 @@ function harness(profile) {
   const win = {
     __session: { user: { id: profile.id, email: profile.username + '@zztest.invalid' },
                  access_token: 'jwt', expires_at: Date.now() / 1000 + 3600 },
-    location: { pathname: '/pages/tickets.html', search: '', href: '',
+    location: { pathname: '/pages/reportProblem.html', search: '', href: '',
                 origin: 'http://localhost:5500', protocol: 'http:',
                 replace() { win.redirected = true }, assign() {} },
     navigator: { userAgent: 'node', onLine: true }, console,
@@ -274,7 +279,7 @@ const ADM = { id: 'a1', username: 'bokskie', full_name: 'Bokskie', role: 'admin'
               clinic_id: 'c', assigned_doctor_id: null, is_active: true, must_change_password: false }
 
 const h = harness(DOC)
-is('T8', 'the form scripts load cleanly on tickets.html', h.err === '', h.err || 'clean load')
+is('T8', 'the form scripts load cleanly on reportProblem.html', h.err === '', h.err || 'clean load')
 await new Promise(r => setTimeout(r, 40))
 
 h.g('tkSubject').value = 'CF4 will not save'

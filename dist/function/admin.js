@@ -1602,7 +1602,7 @@
        TICKETS  (the clinic queue)
        ------------------------------------------------------------------
        The SAME two tables the staff page uses. What differs is the vantage
-       point: tickets.html shows one person their own tickets; this shows
+       point: reportProblem.html shows one person their own tickets; this shows
        every ticket raised in the admin's clinic.
 
        RLS is the real boundary. tickets_select_admin_clinic admits an
@@ -4209,28 +4209,43 @@ const FLAG_INFO = {
         const egressLimit = Number(usage.egress_limit_bytes) || FREE_EGRESS;
         const exact = usage.exact !== false;
         const dbUsed = Number(usage.db_bytes);
-        const hasDb = isFinite(dbUsed) && dbUsed >= 0;
-        const appUsed = Number(usage.app_bytes) || 0;
+        const hasDb = usage.db_bytes !== null && usage.db_bytes !== undefined
+            && usage.db_bytes !== '' && isFinite(dbUsed) && dbUsed >= 0;
+        const appRaw = Number(usage.app_bytes);
+        const hasApp = usage.app_bytes !== null && usage.app_bytes !== undefined
+            && usage.app_bytes !== '' && isFinite(appRaw) && appRaw >= 0;
+        const appUsed = hasApp ? appRaw : 0;
         const appRows = Number(usage.app_rows) || 0;
+        const avgRowRaw = Number(usage.avg_row_bytes);
+        const hasAvgRow = usage.avg_row_bytes !== null && usage.avg_row_bytes !== undefined
+            && usage.avg_row_bytes !== '' && isFinite(avgRowRaw) && avgRowRaw >= 0;
         const storageUsed = Number(usage.storage_bytes);
-        const hasStorage = isFinite(storageUsed) && storageUsed >= 0;
+        const hasStorage = usage.storage_bytes !== null && usage.storage_bytes !== undefined
+            && usage.storage_bytes !== '' && isFinite(storageUsed) && storageUsed >= 0;
         const mauRaw = (usage.mau === null || usage.mau === undefined) ? usage.auth_users : usage.mau;
         const mau = Number(mauRaw);
-        const hasMau = isFinite(mau) && mau >= 0;
+        const hasMau = mauRaw !== null && mauRaw !== undefined && mauRaw !== ''
+            && isFinite(mau) && mau >= 0;
         host.innerHTML = [
-            quotaCard('Database size', hasDb ? fmtBytes(dbUsed) : fmtBytes(appUsed),
+            quotaCard('Database size', hasDb ? fmtBytes(dbUsed) : hasApp ? fmtBytes(appUsed) : '\u2014',
                 fmtBytes(dbLimit),
-                hasDb ? (dbUsed / dbLimit) * 100 : (appUsed / dbLimit) * 100,
+                hasDb ? (dbUsed / dbLimit) * 100 : hasApp ? (appUsed / dbLimit) * 100 : 0,
                 hasDb
                     ? 'pg_database_size() \u2014 tables, indexes and free space together.'
-                    : 'Estimated: ' + fmtNum(appRows) + ' records \u00d7 '
-                        + fmtBytes(usage.avg_row_bytes || 0) + ' per row. Run the SQL script for exact bytes.',
-                true),
-            quotaCard('App data', fmtBytes(appUsed), fmtBytes(dbLimit), (appUsed / dbLimit) * 100,
-                fmtNum(appRows) + ' rows across the public schema'
-                + (bucketTruncated
-                    ? ' \u00b7 listing capped at ' + fmtNum(MAX_PAGES * PAGE_SIZE) + ' rows' : ''),
-                true),
+                    : hasApp
+                        ? 'Estimated app data from ' + fmtNum(appRows) + ' records'
+                            + (hasAvgRow ? ' \u00d7 ' + fmtBytes(avgRowRaw) + ' per row' : '')
+                            + '. Run the SQL script for exact database bytes.'
+                        : 'Database size measurement is unavailable.',
+                hasDb || hasApp),
+            quotaCard('App data', hasApp ? fmtBytes(appUsed) : '\u2014', fmtBytes(dbLimit),
+                hasApp ? (appUsed / dbLimit) * 100 : 0,
+                hasApp
+                    ? fmtNum(appRows) + ' rows across the public schema'
+                        + (bucketTruncated
+                            ? ' \u00b7 listing capped at ' + fmtNum(MAX_PAGES * PAGE_SIZE) + ' rows' : '')
+                    : 'App data measurement is unavailable.',
+                hasApp),
             quotaCard('File storage', hasStorage ? fmtBytes(storageUsed) : '\u2014',
                 fmtBytes(storageLimit),
                 hasStorage ? (storageUsed / storageLimit) * 100 : 0,
@@ -4251,6 +4266,26 @@ const FLAG_INFO = {
         setText('dbSourceNote', exact
             ? 'Exact numbers read straight from Postgres \u00b7 refreshed ' + new Date().toLocaleTimeString()
             : 'Estimated through the REST API \u2014 run supabase_admin_insights.sql in the SQL editor for exact meters.');
+        const capacityNote = byId('dbCapacityNote');
+        if (capacityNote) {
+            const readings = [];
+            if (hasDb) readings.push({ label: 'Database', pct: dbUsed / dbLimit * 100 });
+            else if (hasApp) readings.push({ label: 'Estimated app data', pct: appUsed / dbLimit * 100 });
+            if (hasStorage) readings.push({ label: 'File storage', pct: storageUsed / storageLimit * 100 });
+            const warnings = readings.filter(function (reading) { return reading.pct >= 70; });
+            const danger = warnings.some(function (reading) { return reading.pct >= 90; });
+            const kind = danger ? 'is-danger' : warnings.length ? 'is-warn' : '';
+            capacityNote.className = 'ent-hint' + (kind ? ' ' + kind : '');
+            if (!readings.length) {
+                capacityNote.textContent = 'Capacity readings are unavailable. Check the usage source and refresh; no percentage is being assumed.';
+            } else if (warnings.length) {
+                capacityNote.textContent = warnings.map(function (reading) {
+                    return reading.label + ' at ' + Math.round(reading.pct) + '%';
+                }).join(' \u00b7 ') + (danger ? ' \u2014 review capacity soon.' : ' \u2014 monitor growth.');
+            } else {
+                capacityNote.textContent = 'No measured capacity is at the 70% warning threshold. These are point-in-time readings, not live alerts.';
+            }
+        }
         renderDbTables();
         renderClinicUsage();
         renderPlanNote();
@@ -4572,11 +4607,6 @@ const FLAG_INFO = {
     window.addEventListener('DOMContentLoaded', function () { boot(); });
 
 })(window);
-
-
-
-
-
 
 
 

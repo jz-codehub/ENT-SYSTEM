@@ -7,7 +7,7 @@
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v33y">
-    <link rel="stylesheet" href="../style/auth.css?v=v36g">
+    <link rel="stylesheet" href="../style/auth.css?v=v36h">
     <link rel="stylesheet" href="../style/mobile.css?v=v14">
 </head>
 <body class="ent-login-page">
@@ -15,63 +15,84 @@
 
     <form class="ent-login-card" id="loginForm" autocomplete="on" novalidate>
         <div class="ent-login-brand">
-            <img src="../image/ent-logo.webp" alt="ENT Clinic logo">
+            <div class="ent-login-mark">
+                <img src="../image/ent-logo.webp" alt="ENT Clinic logo">
+            </div>
+            <span class="ent-login-kicker">CLINIC WORKSPACE</span>
             <h1>ENT Endoscopy System</h1>
-            <p>Sign in with your clinic account</p>
-        </div>
-
-        <div class="ent-login-error" id="loginError" role="alert"></div>
-
-        <div class="ent-field">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" autocomplete="username"
-                   autocapitalize="none" autocorrect="off" spellcheck="false" required>
-        </div>
-
-        <div class="ent-field">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" autocomplete="current-password" required>
-            <div class="ent-hint" id="capsHint" style="display:none;">&#9888; Caps Lock is on</div>
-        </div>
-
-        <div class="ent-remember-login">
-            <label class="ent-remember-control" for="rememberDevice">
-                <input type="checkbox" id="rememberDevice" checked>
-                <span class="ent-remember-check" aria-hidden="true"></span>
-                <span class="ent-remember-copy">
-                    <strong>Remember username</strong>
-                    <small id="passwordManagerHint">Only your username is saved on this device. Your password is never saved by ENT-SYSTEM.</small>
-                </span>
-                <span class="ent-remember-device" aria-hidden="true">
+            <p class="ent-login-brand-copy">A clear, connected workspace for your clinic's ENT records.</p>
+            <div class="ent-login-brand-rule"></div>
+            <div class="ent-login-feature">
+                <span class="ent-login-feature-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="4" y="10" width="16" height="11" rx="2"></rect>
-                        <path d="M8 10V7a4 4 0 1 1 8 0v3"></path>
-                        <path d="M12 14v3"></path>
+                        <path d="M12 3 19 6v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6l7-3Z"></path>
+                        <path d="m9 12 2 2 4-4"></path>
                     </svg>
                 </span>
-            </label>
+                <span><strong>Clinic team access</strong><small>Records stay organized by doctor.</small></span>
+            </div>
+            <p class="ent-login-brand-foot">For authorized clinic staff</p>
         </div>
 
-        <!-- Shown only when the account still uses its starter password. -->
-        <div class="ent-field" id="changePwSection" style="display:none;">
-            <label for="newPassword">New password</label>
-            <input type="password" id="newPassword" autocomplete="new-password">
-            <div class="ent-hint">At least 6 characters. This replaces the starter password the admin gave you.</div>
+        <div class="ent-login-content">
+            <div class="ent-login-heading">
+                <span class="ent-login-eyebrow">WELCOME BACK</span>
+                <h2>Sign in to your account</h2>
+                <p>Enter your clinic credentials to continue.</p>
+            </div>
+
+            <div class="ent-login-error" id="loginError" role="alert"></div>
+
+            <div class="ent-field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" autocomplete="username"
+                       autocapitalize="none" autocorrect="off" spellcheck="false" required>
+            </div>
+
+            <div class="ent-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+                <div class="ent-hint" id="capsHint" style="display:none;">&#9888; Caps Lock is on</div>
+            </div>
+
+            <div class="ent-remember-login">
+                <label class="ent-remember-control" for="rememberDevice">
+                    <input type="checkbox" id="rememberDevice" checked>
+                    <span class="ent-remember-check" aria-hidden="true"></span>
+                    <span class="ent-remember-copy">
+                        <strong>Remember on this device</strong>
+                        <small id="passwordManagerHint">Your username and password are saved on this device. Anyone with access to this device can sign in.</small>
+                    </span>
+                    <span class="ent-remember-device" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+                            <path d="M8 10V7a4 4 0 1 1 8 0v3"></path>
+                            <path d="M12 14v3"></path>
+                        </svg>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Shown only when the account still uses its starter password. -->
+            <div class="ent-field" id="changePwSection" style="display:none;">
+                <label for="newPassword">New password</label>
+                <input type="password" id="newPassword" autocomplete="new-password">
+                <div class="ent-hint">At least 6 characters. This replaces the starter password the admin gave you.</div>
+            </div>
+
+            <div class="ent-field" id="confirmPwSection" style="display:none;">
+                <label for="confirmPassword">Repeat new password</label>
+                <input type="password" id="confirmPassword" autocomplete="new-password">
+            </div>
+
+            <button type="submit" class="ent-login-submit" id="loginBtn">Sign in</button>
+
+            <p class="ent-login-note">
+                <span>Records are separated per doctor. Secretaries only see the patients of the doctor they are assigned to.</span>
+                <span>Offline access is available for up to 180 days after you prepare this device with an online sign-in. Log out to lock the workspace; your reports remain on this device.</span>
+                <span>Forgot your password? Ask the clinic administrator.</span>
+            </p>
         </div>
-
-        <div class="ent-field" id="confirmPwSection" style="display:none;">
-            <label for="confirmPassword">Repeat new password</label>
-            <input type="password" id="confirmPassword" autocomplete="new-password">
-        </div>
-
-        <button type="submit" class="ent-login-submit" id="loginBtn">Sign in</button>
-
-        <p class="ent-login-note">
-            Records are separated per doctor &mdash; secretaries only see the patients of
-            the doctor they are assigned to.<br>
-            Offline access is available for up to 180 days after you prepare this device with an online sign-in. Log out to lock the workspace; your reports remain on this device.<br>
-            Forgot your password? Ask the clinic administrator.
-        </p>
     </form>
 
     <script src="../js/lib/supabase.min.js" defer></script>
@@ -83,7 +104,7 @@
     <!-- v36a: "Preparing offline access / Offline-ready" status + retry.
          defer is fine: it registers with the service worker auth.js just
          registered and only draws a small status pill. -->
-    <script src="../function/offlineReady.js?v=v36d" defer></script>
+    <script src="../function/offlineReady.js?v=v36e" defer></script>
     <script>
     (function () {
         'use strict';

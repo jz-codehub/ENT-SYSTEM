@@ -27,6 +27,106 @@
     padding-left: var(--ent-dash-gutter);
     box-sizing: border-box;
 }
+.ent-dash-page .header-user-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+.ent-notification-center { position: relative; flex: 0 0 auto; z-index: 20; }
+.ent-notification-toggle {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #facc15;
+    box-shadow: none;
+    font-size: 0;
+    text-transform: none;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+.ent-notification-toggle:hover { color: #fde047; box-shadow: none; transform: none; }
+.ent-notification-toggle:active { box-shadow: none; transform: scale(0.92); }
+.ent-notification-toggle:focus-visible {
+    outline: 2px solid #facc15;
+    outline-offset: 2px;
+}
+.ent-notification-toggle svg { width: 24px; height: 24px; }
+.ent-notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: grid;
+    place-items: center;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 4px;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background: var(--danger-color);
+    color: #fff;
+    font-size: 0.67rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.ent-notification-panel {
+    position: fixed;
+    top: var(--ent-notification-panel-top, 120px);
+    left: 50%;
+    right: auto;
+    width: min(420px, calc(100vw - 24px));
+    max-height: min(70vh, 560px, calc(100vh - var(--ent-notification-panel-top, 120px) - 12px));
+    overflow: auto;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.24);
+    transform: translateX(-50%);
+}
+.ent-notification-panel[hidden] { display: none; }
+.ent-notification-panel h2 {
+    margin: 0 0 10px;
+    color: var(--text-color);
+    font-size: 0.94rem;
+}
+.ent-notification-list { display: grid; gap: 9px; }
+.ent-notification-item {
+    padding: 11px 12px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning-color);
+    border-radius: 11px;
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+.ent-notification-item strong { color: var(--text-color); }
+.ent-notification-item.is-info { border-left-color: var(--primary-color); }
+.ent-notification-item.is-monthly { display: grid; gap: 10px; }
+.ent-notification-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.ent-notification-actions .ent-btn { margin: 0; }
+.ent-notification-empty {
+    margin: 0;
+    padding: 12px 4px;
+    color: var(--secondary-text-color);
+    font-size: 0.82rem;
+}
 
 @media (max-width: 720px) {
     .ent-dash-page { --ent-dash-gutter: 12px; }
@@ -59,7 +159,7 @@
     pointer-events: none;
     background:
         radial-gradient(420px 220px at 12% -30%, color-mix(in srgb, var(--primary-color) 26%, transparent), transparent 70%),
-        radial-gradient(380px 220px at 92% 120%, color-mix(in srgb, #8b5cf6 22%, transparent), transparent 70%);
+        radial-gradient(380px 220px at 92% 120%, color-mix(in srgb, var(--primary-color) 14%, transparent), transparent 70%);
     animation: entAuroraDrift 16s ease-in-out infinite alternate;
 }
 @keyframes entAuroraDrift {
@@ -145,12 +245,16 @@
     font-weight: 800;
     letter-spacing: 0.02em;
     color: #fff;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 22%, transparent),
-        0 6px 16px rgba(2, 132, 199, 0.28);
+    background: linear-gradient(135deg, #a855e8 0%, #df3fa8 100%);
+    box-shadow: 0 0 0 3px rgba(168, 85, 232, 0.18),
+        0 6px 16px rgba(190, 62, 177, 0.28);
 }
-.ent-dash-avatar.role-secretary { background: linear-gradient(135deg, #8b5cf6, #ec4899); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22), 0 6px 16px rgba(139, 92, 246, 0.26); }
-.ent-dash-avatar.role-admin { background: linear-gradient(135deg, #f59e0b, #ef4444); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22), 0 6px 16px rgba(245, 158, 11, 0.24); }
+.ent-dash-avatar.role-secretary,
+.ent-dash-avatar.role-admin {
+    background: linear-gradient(135deg, #a855e8 0%, #df3fa8 100%);
+    box-shadow: 0 0 0 3px rgba(168, 85, 232, 0.18),
+        0 6px 16px rgba(190, 62, 177, 0.28);
+}
 /* The tagline: a quiet italic line under the mood. */
 .ent-dash-tagline {
     margin: 8px 0 0 !important;
@@ -332,7 +436,7 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     margin: 0;
     font-size: 0.98rem;
     font-weight: 800;
-    background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-hover-color));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -346,7 +450,7 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     width: 34px;
     height: 3px;
     border-radius: 3px;
-    background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-hover-color));
 }
 
 /* The gradient title above clips its background to the TEXT and makes the
@@ -686,90 +790,6 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     .ent-queue-open { width: 100%; }
 }
 
-/* ---------------------------------------------------------------------
-   FOLLOW-UPS — "come back on this day" reminders (payload.followUpDate).
-   The badge reuses .ent-dash-alert but in a calmer amber so it reads as a
-   calendar nudge rather than the red "drafts waiting" alarm beside it.
-   --------------------------------------------------------------------- */
-.ent-dash-alert.is-followup {
-    border-color: rgba(243, 156, 18, 0.4);
-    background: rgba(243, 156, 18, 0.12);
-    color: #b9770e;
-    animation: none;
-}
-.ent-dash-alert.is-followup:hover { background: rgba(243, 156, 18, 0.2); }
-.ent-followup { display: flex; flex-direction: column; gap: 8px; }
-.ent-followup-row {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px 12px;
-    padding: 9px 12px;
-    min-width: 0;
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--secondary-text-color);
-    border-radius: 12px;
-    background: var(--bg-color);
-}
-.ent-followup-row.is-overdue { border-left-color: var(--danger-color); }
-.ent-followup-row.is-today { border-left-color: var(--warning-color); }
-.ent-followup-row.is-soon { border-left-color: var(--primary-color); }
-.ent-followup-row.is-future { border-left-color: var(--success-color); }
-.ent-followup-date {
-    font-size: 0.72rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--secondary-text-color);
-    white-space: nowrap;
-}
-.ent-followup-row.is-overdue .ent-followup-date { color: var(--danger-color); }
-.ent-followup-row.is-today .ent-followup-date { color: var(--warning-color); }
-.ent-followup-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.ent-followup-name {
-    font-size: 0.86rem;
-    font-weight: 700;
-    color: var(--text-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.ent-followup-meta { font-size: 0.7rem; color: var(--secondary-text-color); }
-.ent-followup-state {
-    font-size: 0.64rem;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 999px;
-    white-space: nowrap;
-    border: 1px solid var(--border-color);
-    color: var(--secondary-text-color);
-}
-.ent-followup-row.is-overdue .ent-followup-state {
-    background: rgba(231, 76, 60, 0.14);
-    color: var(--danger-color);
-    border-color: rgba(231, 76, 60, 0.32);
-}
-.ent-followup-row.is-today .ent-followup-state {
-    background: rgba(243, 156, 18, 0.16);
-    color: #b9770e;
-    border-color: rgba(243, 156, 18, 0.34);
-}
-.ent-followup-row.is-soon .ent-followup-state {
-    background: var(--primary-light);
-    color: var(--primary-hover-color, #0284c7);
-    border-color: rgba(2, 132, 199, 0.3);
-}
-.ent-followup-row.is-future .ent-followup-state {
-    background: rgba(39, 174, 96, 0.14);
-    color: var(--success-color);
-    border-color: rgba(39, 174, 96, 0.32);
-}
-@media (max-width: 620px) {
-    .ent-followup-row { grid-template-columns: auto minmax(0, 1fr); }
-    .ent-followup-state { grid-column: 1 / -1; justify-self: start; }
-}
-
 .ent-dash-scope {
     display: inline-flex;
     align-items: center;
@@ -813,6 +833,16 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
    rather than reusing is-info so the meaning survives a future recolour. */
 .ent-dash-notice.is-warn { border-left-color: var(--warning-color); }
 .ent-dash-notice .ent-btn { margin-left: auto; }
+.ent-dash-notice.is-monthly { align-items: flex-start; }
+.ent-dash-notice.is-monthly > span { flex: 1 1 360px; }
+.ent-monthly-export-actions {
+    display: flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+.ent-dash-notice.is-monthly .ent-monthly-export-actions .ent-btn { margin-left: 0; }
 .ent-dash-notice[hidden] { display: none; }
 
 /* ====================================================================
@@ -940,11 +970,8 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     border-radius: 11px;
     background: var(--primary-light);
 }
-/* The cards now hold monochrome stroke SVGs instead of emoji (the emoji
-   brought their own bitmaps, which read as "some colour blob" against
-   these tinted badges - you could not tell WHICH icon it was). The SVG
-   inherits the badge tint, so every icon is drawn in its card's own hue
-   and stays legible in both light and dark themes. */
+/* Monochrome stroke SVGs inherit each action's accent, so the report types
+   are easy to tell apart at a glance. */
 .ent-quick-icon svg {
     width: 1.35rem;
     height: 1.35rem;
@@ -960,14 +987,8 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     white-space: nowrap;
 }
 .ent-quick-cf4 { border-top-color: var(--success-color); }
-.ent-quick-cf4 .ent-quick-icon { background: rgba(39, 174, 96, 0.14); }
+.ent-quick-cf4 .ent-quick-icon { background: rgba(39, 174, 96, 0.14); color: var(--success-color); }
 .ent-quick-cf4 .ent-quick-label { color: var(--success-color); }
-
-/* Each card keeps its own accent hue - the top rule already says "this
-   card starts a different thing", the icon tint repeats it where the eye
-   actually lands. CF4's rules above predate this block and are simply the
-   same pattern in the success colour. */
-.ent-quick .ent-quick-icon { color: var(--primary-hover-color); }
 .ent-quick[data-report-type="nasal"] { border-top-color: #0284c7; }
 .ent-quick[data-report-type="nasal"] .ent-quick-icon { background: rgba(2, 132, 199, 0.13); color: #0284c7; }
 .ent-quick[data-report-type="laryngeal"] { border-top-color: #7c3aed; }
@@ -1008,9 +1029,9 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 .ent-tile:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hover); }
-.ent-tile.ent-tile-week { border-left-color: #6366f1; }
-.ent-tile.ent-tile-month { border-left-color: var(--success-color); }
-.ent-tile.ent-tile-year { border-left-color: var(--secondary-color); }
+.ent-tile.ent-tile-week,
+.ent-tile.ent-tile-month,
+.ent-tile.ent-tile-year { border-left-color: var(--primary-color); }
 /* The icon + label row at the top of each tile. */
 .ent-tile-top {
     display: flex;
@@ -1027,9 +1048,9 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     font-size: 0.95rem;
     background: var(--primary-light);
 }
-.ent-tile.ent-tile-week .ent-tile-icon { background: rgba(99, 102, 241, 0.14); }
-.ent-tile.ent-tile-month .ent-tile-icon { background: rgba(39, 174, 96, 0.14); }
-.ent-tile.ent-tile-year .ent-tile-icon { background: rgba(100, 116, 139, 0.16); }
+.ent-tile.ent-tile-week .ent-tile-icon,
+.ent-tile.ent-tile-month .ent-tile-icon,
+.ent-tile.ent-tile-year .ent-tile-icon { background: var(--primary-light); }
 .ent-tile-label {
     font-size: 0.66rem;
     font-weight: 700;
@@ -1047,9 +1068,9 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     color: var(--primary-color);
     font-variant-numeric: tabular-nums;
 }
-.ent-tile-week .ent-tile-n { color: #6366f1; }
-.ent-tile-month .ent-tile-n { color: var(--success-color); }
-.ent-tile-year .ent-tile-n { color: var(--secondary-color); }
+.ent-tile-week .ent-tile-n,
+.ent-tile-month .ent-tile-n,
+.ent-tile-year .ent-tile-n { color: var(--primary-hover-color); }
 .ent-tile-n small { font-size: 0.68rem; font-weight: 600; color: var(--secondary-text-color); margin-left: 5px; }
 /* The per-type split inside each tile: Endoscopy (nasal + laryngeal) vs CF4,
    so the mix is visible without opening the Report types card. */
@@ -3167,12 +3188,10 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
     .ent-queue-refresh,
     .ent-queue-toggle,
     .ent-dash-notice,
-    .ent-followup-state,
     .no-print { display: none !important; }
     .ent-dash-main { padding: 0 !important; }
     .ent-card,
     .ent-tile,
-    .ent-followup-row,
     .ent-queue-row,
     .ent-recent-row,
     .ent-topclinic { break-inside: avoid; box-shadow: none !important; }
@@ -3429,4 +3448,200 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
     .signout-overlay,
     .signout-dialog,
     .signout-actions button { transition-duration: 0.01ms; }
+}
+
+/* -------------------- action and record-quality panels ---------------- */
+.ent-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.ent-action-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+.ent-action-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    text-decoration: none;
+}
+a.ent-action-item:hover { border-color: var(--primary-color); }
+.ent-action-item:focus-visible,
+.ent-queue-more:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--primary-color) 45%, transparent);
+    outline-offset: 2px;
+}
+.ent-action-count {
+    display: grid;
+    place-items: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--panel-bg-color));
+    color: var(--primary-color);
+    font-weight: 800;
+}
+.ent-action-item.is-action .ent-action-count {
+    background: color-mix(in srgb, var(--warning-color) 15%, var(--panel-bg-color));
+    color: var(--warning-color);
+}
+.ent-action-item.is-unknown .ent-action-count { color: var(--secondary-text-color); }
+.ent-action-copy { display: grid; gap: 3px; min-width: 0; }
+.ent-action-copy b { font-size: 0.83rem; }
+.ent-action-copy small { color: var(--secondary-text-color); font-size: 0.72rem; line-height: 1.4; }
+.ent-recent-filters {
+    display: grid;
+    gap: 14px;
+    margin: 0 0 16px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-color) 78%, var(--panel-bg-color));
+}
+.ent-recent-search,
+.ent-recent-filter { display: grid; gap: 6px; min-width: 0; }
+.ent-recent-search > span,
+.ent-recent-filter > span {
+    color: var(--secondary-text-color);
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.045em;
+}
+.ent-recent-filter-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(110px, 1fr)) auto;
+    gap: 10px;
+    align-items: end;
+}
+.ent-recent-filters input,
+.ent-recent-filters select {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    min-height: 42px;
+    padding: 8px 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.82rem;
+    box-shadow: var(--input-shadow);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.ent-recent-filters input:focus,
+.ent-recent-filters select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+.ent-recent-reset {
+    height: 42px;
+    min-height: 42px;
+    align-self: end;
+    padding: 8px 14px;
+    white-space: nowrap;
+}
+.ent-recent-reset:hover,
+.ent-recent-reset:active { transform: none; }
+.ent-recent-result {
+    display: block;
+    padding-top: 2px;
+    font-size: 0.76rem;
+}
+.ent-recent-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+}
+.ent-recent-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--secondary-text-color);
+    font-size: 0.78rem;
+}
+.ent-recent-page-size select {
+    min-height: 36px;
+    padding: 5px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+}
+.ent-recent-page-info {
+    color: var(--secondary-text-color);
+    font-size: 0.78rem;
+    text-align: center;
+}
+.ent-recent-page-buttons { display: inline-flex; gap: 7px; }
+.ent-recent-page-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ent-recent-page-btn:not(:disabled):hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.ent-recent-page-btn:focus-visible,
+.ent-recent-page-size select:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--primary-color) 45%, transparent);
+    outline-offset: 2px;
+}
+.ent-recent-page-btn:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+@media (max-width: 760px) {
+    .ent-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ent-recent-filter-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ent-recent-reset { width: 100%; }
+}
+@media (max-width: 620px) {
+    .ent-recent-filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ent-recent-filter-row > :nth-child(3) { grid-column: 1 / -1; }
+    .ent-recent-filter-row > :nth-child(4) { grid-column: 1; }
+    .ent-recent-reset { grid-column: 2; width: auto; }
+    .ent-recent-pagination { justify-content: center; }
+    .ent-recent-page-info { flex-basis: 100%; order: 1; }
+}
+@media (max-width: 420px) {
+    .ent-recent-filters { padding: 12px; }
+    .ent-recent-filter-row > :nth-child(-n+2) { grid-column: 1 / -1; }
+    .ent-recent-pagination { gap: 9px; padding: 10px; }
+    .ent-recent-page-size { flex-basis: 100%; justify-content: center; }
+    .ent-recent-page-buttons { width: 100%; }
+    .ent-recent-page-btn { flex: 1; }
+    .ent-action-grid { grid-template-columns: 1fr; }
 }

@@ -146,10 +146,15 @@ culprits, and they hit different quotas:
   recurring read: buckets + activity + usage meters). The presence poll
   (`REFRESH_MS`, 30 s) deliberately stays — it reads one tiny presence row,
   and its `LIVE_WINDOW_MS` is 5 minutes anyway.
-* `supabase-v2/scripts/backup_v2.mjs` — default backup now reads `reports`
-  WITHOUT the `payload` column (identity/metadata only, the part a
-  "move to a new project" restore needs). Pass `--with-payload` for a
-  deliberate full archive and accept the one-off egress hit.
+* `supabase-v2/scripts/backup_v2.mjs` — exports all application tables in
+  stable, bounded pages. The default omits `reports.payload` and is
+  metadata-only; `--full` includes clinical payloads and active private
+  `patient-photos` objects. A complete full backup is required for restore.
+  Run `node supabase-v2/scripts/restore_v2.mjs <backup-dir> --check` to
+  validate counts and SHA-256 hashes offline. Full exports contain PHI and
+  auth password hashes; keep them private and never commit them. This REST
+  export is not a transaction-level point-in-time snapshot: pause writes
+  during the export or use a database-native backup for strict consistency.
 
 **Fix prepared (ANTAS 2 — the one that buys YEARS):** migration
 `0038_enable_photo_storage.sql` flips `system_flags.photo_storage` to TRUE

@@ -89,10 +89,16 @@ function domIds() {
 /* ------------------------------------------------------------------ */
 /*  One fresh "browser" per scenario                                   */
 /* ------------------------------------------------------------------ */
-function boot({ user, team, onLine = true, queue = [], counters = [], directory = null }) {
+function boot({
+  user, team, onLine = true, queue = [], counters = [], directory = null,
+  dashboardSummary, exportPages
+}) {
   const calls = []
   const nodes = {}
+  const downloads = []
+  const downloadBlobs = []
   for (const id of domIds()) nodes[id] = makeNode(id)
+  nodes.dashPeriodSelect = makeNode('dashPeriodSelect')
 
   const store = new Map()
   const storage = {
@@ -113,7 +119,13 @@ function boot({ user, team, onLine = true, queue = [], counters = [], directory 
       addEventListener: (t, fn) => { (docListeners[t] = docListeners[t] || []).push(fn) },
       getElementById: id => nodes[id] || null,
       querySelector: () => null, querySelectorAll: () => [],
-      createElement: () => makeNode('new-' + Math.random()),
+      createElement: tag => {
+        const element = makeNode('new-' + Math.random())
+        if (String(tag).toLowerCase() === 'a') {
+          element.click = () => downloads.push({ href: element.href, download: element.download })
+        }
+        return element
+      },
     },
     addEventListener: (t, fn) => { (winListeners[t] = winListeners[t] || []).push(fn) },
     dispatchEvent: () => true,
@@ -121,7 +133,14 @@ function boot({ user, team, onLine = true, queue = [], counters = [], directory 
     navigator: nav,
     console, setInterval: () => 0, clearInterval: () => {},
     setTimeout: () => 0, clearTimeout: () => {},
-    URL, URLSearchParams, Date, JSON, Math, Promise,
+    URL: Object.assign({}, URL, {
+      createObjectURL: blob => {
+        downloadBlobs.push(blob)
+        return 'blob:monthly-export-test'
+      },
+      revokeObjectURL() {},
+    }),
+    URLSearchParams, Date, JSON, Math, Promise, Blob, TextEncoder,
     EntAuth: {
       guard: async () => ({ user, session: {}, expiresAt: 0 }),
       scope: () => ({
@@ -143,6 +162,19 @@ function boot({ user, team, onLine = true, queue = [], counters = [], directory 
       getAccessToken: async () => 'JWT',
       apiRequest: async (endpoint, opts = {}) => {
         calls.push({ endpoint, method: opts.method || 'GET', body: opts.body })
+        if (endpoint.includes('rpc/ent_dashboard_summary')) {
+          if (dashboardSummary === undefined) {
+            throw new Error('Supabase API error (404): PGRST202 ent_dashboard_summary does not exist')
+          }
+          const request = JSON.parse(opts.body || '{}')
+          return typeof dashboardSummary === 'function'
+            ? dashboardSummary(request)
+            : dashboardSummary
+        }
+        if (endpoint.startsWith('reports?is_draft=eq.false&deleted_at=is.null')) {
+          if (typeof exportPages === 'function') return exportPages(endpoint)
+          return exportPages || []
+        }
         if (endpoint.includes('my_secretaries')) {
           if (team.kind === 'pending') {
             return new Promise((res, rej) => { team.resolve = res; team.reject = rej })
@@ -174,7 +206,7 @@ function boot({ user, team, onLine = true, queue = [], counters = [], directory 
   const src = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dashboard.js' })
-  return { win, nodes, calls, docListeners, winListeners, nav }
+  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav }
 }
 
 
@@ -340,9 +372,74 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T27', 'the queue still asks for drafts - that is its whole job',
      queue.length === 1 && !queue[0].endpoint.includes('is_draft=eq.'),
      queue.map(c => c.endpoint).join(' ').slice(0, 90))
+  const period = new Date()
+  env.nodes.dashPeriodSelect.value = (period.getMonth() + 1) + '/' + period.getFullYear()
+  const periodChange = env.nodes.dashPeriodSelect.listeners.change[0]
+  if (periodChange) periodChange()
+  await flush()
+  ok('T27a', 'missing migration is reported instead of silently claiming exact counts',
+     env.nodes.dashNotificationCenter.innerHTML.includes('Counts may be incomplete')
+       && env.nodes.dashNotificationCenter.innerHTML.includes('Apply migration 0048')
+       && env.nodes.dashNotificationCenter.innerHTML.includes('Activity chart may be incomplete')
+       && env.nodes.dashNotificationCenter.innerHTML.includes('Activity Growth could not load exact counts')
+       && !env.nodes.dashNotices.innerHTML.includes('Counts may be incomplete'))
 }
 
 /* ---- 8 · the counters answer "how many were SAVED?" ----------------- */
+{
+  const summaryCalls = []
+  const env = boot({
+    user: DOC, team: { kind: 'rows', rows: [TARA] },
+    dashboardSummary: request => {
+      summaryCalls.push(request)
+      return request.p_windows.map(window => ({
+        bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+        cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+        other_reports: 0, mine: 0
+      }))
+    }
+  })
+  await flush()
+  const windows = summaryCalls[0] && summaryCalls[0].p_windows || []
+  const earliest = Math.min(...windows.map(window => Date.parse(window.starts_at)))
+  const latest = Math.max(...windows.map(window => Date.parse(window.ends_at)))
+  ok('T27b', 'dashboard summary ranges stay within the database 367-day limit',
+     windows.length > 0 && latest - earliest <= 367 * 86400000,
+     windows.length ? Math.round((latest - earliest) / 86400000) + ' days' : 'no summary windows')
+  ok('T27c', 'summary windows never include future days',
+     windows.length > 0 && latest <= Date.now() + 10000)
+  ok('T27d', 'successful cloud summaries leave no incomplete-count warning',
+     !env.nodes.dashNotificationCenter.innerHTML.includes('Counts may be incomplete')
+       && !env.nodes.dashNotificationCenter.innerHTML.includes('Activity chart may be incomplete'))
+}
+
+{
+  let summaryCalls = 0
+  const env = boot({
+    user: DOC, team: { kind: 'rows', rows: [TARA] },
+    dashboardSummary: request => {
+      summaryCalls++
+      if (summaryCalls === 1) throw new Error('Dashboard summary time range exceeds 367 days.')
+      return request.p_windows.map(window => ({
+        bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+        cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+        other_reports: 0, mine: 0
+      }))
+    }
+  })
+  await flush()
+  const period = new Date()
+  env.nodes.dashPeriodSelect.value = (period.getMonth() + 1) + '/' + period.getFullYear()
+  const periodChange = env.nodes.dashPeriodSelect.listeners.change[0]
+  if (periodChange) periodChange()
+  await flush()
+  ok('T27e', 'activity summary can recover after the main summary fails',
+     summaryCalls > 1
+       && env.nodes.dashNotificationCenter.innerHTML.includes('Counts may be incomplete')
+       && !env.nodes.dashNotificationCenter.innerHTML.includes('Activity chart may be incomplete'))
+}
+
+/* ---- 9 · the counters answer "how many were SAVED?" ----------------- */
 {
   const nowIso = new Date().toISOString()
   const todayKey = new Date().toISOString().slice(0, 10)
@@ -490,6 +587,140 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T39', 'a record with no clinic still shows under a plain "Clinic" head',
      box().includes('No Clinic Patient') && />Clinic</.test(box()),
      box().slice(0, 300))
+}
+
+/* ---- 8 · exact aggregate totals do not depend on the 3,000-row window */
+{
+  const env = boot({
+    user: DOC,
+    team: { kind: 'rows', rows: [] },
+    counters: [],
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key,
+      reports: window.bucket_key === 'month' ? 5001 : 0,
+      patient_count: window.bucket_key === 'today' ? 4000 : 0,
+      endo_count: window.bucket_key === 'today' ? 3000 : 0,
+      cf4_count: window.bucket_key === 'today' ? 1000 : 0,
+      nasal_reports: window.bucket_key === 'month' ? 1000 : 0,
+      laryngeal_reports: window.bucket_key === 'month' ? 2000 : 0,
+      cf4_reports: window.bucket_key === 'month' ? 2001 : 0,
+      other_reports: 0,
+      mine: 0,
+    })),
+  })
+  await flush()
+  const summaryCall = env.calls.find(call => call.endpoint.includes('rpc/ent_dashboard_summary'))
+  const request = summaryCall && JSON.parse(summaryCall.body)
+  const data = env.win.EntDashboard.getData()
+
+  ok('T40', 'dashboard patient tiles use the exact server aggregate, not fetched rows',
+     data.today.patientCount === 4000 && data.today.endoCount === 3000
+       && data.today.cf4Count === 1000,
+     'today=' + data.today.patientCount)
+  ok('T41', 'monthly report totals use the full database aggregate',
+     data.month.reports === 5001 && data.month.types.nasal === 1000
+       && data.month.types.laryngeal === 2000 && data.month.types.cf4 === 2001,
+     'month=' + data.month.reports)
+  ok('T42', 'the aggregate request is scoped to the signed-in doctor and is bounded',
+     !!summaryCall && summaryCall.method === 'POST'
+       && request.p_doctor_id === DOC.id && request.p_scope_all === false
+       && request.p_windows.length <= 64,
+     summaryCall ? summaryCall.endpoint : 'no RPC request')
+}
+
+/* ---- 9 · monthly dated records download for doctors and secretaries */
+{
+  const records = Array.from({ length: 251 }, (_, index) => ({
+    id: 'report-' + (index + 1),
+    patient_name: index ? 'Sample Patient ' + (index + 1) : 'Sample Patient',
+    report_type: index ? 'nasal' : 'cf4',
+    is_draft: false, deleted_at: null, created_at: '2026-10-01T10:00:00Z',
+    payload: { formData: index ? {} : { diagnosis: 'Test fixture only' } },
+  }))
+  const env = boot({
+    user: DOC,
+    team: { kind: 'rows', rows: [] },
+    counters: [],
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+    exportPages: endpoint => {
+      const offset = Number((endpoint.match(/&offset=(\d+)$/) || [])[1] || 0)
+      return records.slice(offset, offset + 250)
+    },
+  })
+  await flush()
+  const notice = () => env.nodes.dashNotificationCenter.innerHTML
+  ok('T42a', 'successful exact summaries do not leave stale count or activity warnings',
+     !notice().includes('Counts may be incomplete')
+       && !notice().includes('Activity chart may be incomplete')
+       && notice().includes('data-notification-toggle')
+       && !env.nodes.dashNotices.innerHTML.includes('Counts may be incomplete'))
+  const bellHandler = env.nodes.dashNotificationCenter.listeners.click[0]
+  if (bellHandler) bellHandler({ target: { dataset: { notificationToggle: '' } } })
+  ok('T42b', 'the notification bell opens an accessible panel with its active count',
+     notice().includes('aria-expanded="true"')
+       && notice().includes('aria-controls="dashNotificationPanel"')
+       && notice().includes('dashNotificationPanel')
+       && notice().includes('ent-notification-count'))
+
+  ok('T43', 'monthly reminder tells the user the JSON is sensitive and not a full backup',
+     notice().includes('Monthly records download')
+       && notice().includes('It is not a full system backup')
+       && notice().includes('sensitive patient data'))
+
+  const handler = env.nodes.dashNotificationCenter.listeners.click[0]
+  const downloadButton = {
+    dataset: { monthlyExportAction: 'download' },
+    disabled: false,
+    textContent: 'Download monthly records',
+  }
+  if (handler) await handler({ target: downloadButton })
+  await flush()
+  const reportQuery = env.calls.find(call =>
+    call.endpoint.startsWith('reports?is_draft=eq.false&deleted_at=is.null'))
+  const savedState = JSON.parse(env.win.localStorage.getItem('entMonthlyRecordsExportV1:' + DOC.id))
+  const file = env.downloads[0]
+  const content = env.downloadBlobs[0] ? await env.downloadBlobs[0].text() : ''
+
+  ok('T44', 'export queries saved, live records with a stable page order under RLS',
+     !!reportQuery && reportQuery.method === 'GET'
+       && reportQuery.endpoint.includes('select=*')
+       && reportQuery.endpoint.includes('order=created_at.asc,id.asc')
+       && reportQuery.endpoint.includes('limit=250&offset=0')
+       && !reportQuery.endpoint.includes('doctor_id=eq'))
+  ok('T44a', 'the export paginates through more than one batch without truncating records',
+     env.calls.some(call => call.endpoint.includes('limit=250&offset=250'))
+       && env.calls.filter(call => call.endpoint.startsWith('reports?is_draft=eq.false&deleted_at=is.null')).length === 2)
+  ok('T45', 'download filename includes the requested YYYY-MM-DD date',
+     !!file && /^ent-records-\d{4}-\d{2}-\d{2}\.json$/.test(file.download),
+     file && file.download)
+  ok('T46', 'export contains the full report payload and monthly status is saved per user',
+     content.includes('"diagnosis":"Test fixture only"')
+       && content.includes('"id":"report-251"')
+       && savedState.completedMonth === new Date().getFullYear() + '-'
+         + String(new Date().getMonth() + 1).padStart(2, '0')
+       && !notice().includes('Monthly records download'))
+}
+
+{
+  const SEC = {
+    id: 'sec-tara', username: 'tara', full_name: 'Tara Bautista', role: 'secretary',
+    assigned_doctor_id: 'doc-jardin', assigned_doctor_name: 'Jesus Jardin', is_active: true
+  }
+  const env = boot({ user: SEC, team: { kind: 'rows', rows: [] }, counters: [] })
+  await flush()
+  ok('T47', 'secretaries also receive the monthly reminder and can snooze it',
+     env.nodes.dashNotificationCenter.innerHTML.includes('Monthly records download')
+       && !env.nodes.dashNotices.innerHTML.includes('Monthly records download'))
+  const handler = env.nodes.dashNotificationCenter.listeners.click[0]
+  if (handler) handler({ target: { dataset: { monthlyExportAction: 'later' } } })
+  const saved = JSON.parse(env.win.localStorage.getItem('entMonthlyRecordsExportV1:' + SEC.id))
+  ok('T48', 'snooze hides the reminder for seven days on this account and device',
+     saved.snoozedUntil > Date.now()
+       && !env.nodes.dashNotificationCenter.innerHTML.includes('Monthly records download'))
 }
 
 }

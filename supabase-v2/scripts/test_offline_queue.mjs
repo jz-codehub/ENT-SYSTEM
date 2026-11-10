@@ -178,6 +178,32 @@ const image = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQ
   assert('OQ-09', jobs.length === 0 && (await win.EntOfflineStore.jobCount()) === 1, 'conflicting work remains stored but is not retried blindly')
 }
 
+{
+  const { win, apiCalls } = makeWindow()
+  const records = Array.from({ length: 60 }, (_, index) => ({
+    key: `cf4|cloud-stub-${index}`,
+    reportType: 'cf4',
+    patientName: `Stub ${index}`,
+    ownerId: 'user-1',
+    lastActivityAt: new Date(Date.now() - index * 1000).toISOString(),
+    cloudStub: true
+  }))
+  win.localStorage.setItem('entPatientRecordHistoryV1', JSON.stringify(records))
+  win.localStorage.setItem('entDbSavedRecordKeysV1', JSON.stringify(records.map(record => record.key)))
+
+  await win.EntSync.syncPatientRecords()
+  const firstBatch = apiCalls.filter(path => path.startsWith('reports?record_key='))
+    .map(path => decodeURIComponent((/[?&]record_key=eq\.([^&]+)/.exec(path) || [])[1] || ''))
+  await win.EntSync.syncPatientRecords()
+  const allBatches = apiCalls.filter(path => path.startsWith('reports?record_key='))
+    .map(path => decodeURIComponent((/[?&]record_key=eq\.([^&]+)/.exec(path) || [])[1] || ''))
+  const secondBatch = allBatches.slice(firstBatch.length)
+  assert('OQ-16', firstBatch.length === 50 && firstBatch.includes('cf4|cloud-stub-0'),
+    'one sync cycle upgrades at most 50 cloud metadata stubs')
+  assert('OQ-17', secondBatch.length === 50 && secondBatch.includes('cf4|cloud-stub-50'),
+    'a persisted round-robin cursor lets older stubs progress when earlier upgrades keep failing')
+}
+
 const edge = readFileSync(join(APP, 'supabase-v2', 'edge-functions', 'patient-photos', 'index.ts'), 'utf8')
 assert('OQ-10', !edge.includes('retry_safe') && edge.includes('buildObjectPath(report.clinic_id, report.id, ext)'), 'the existing online photo upload contract is unchanged')
 const workspace = readFileSync(join(APP, 'pages', 'offlineWorkspace.html'), 'utf8')

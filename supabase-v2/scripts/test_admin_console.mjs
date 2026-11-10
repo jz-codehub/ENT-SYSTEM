@@ -381,7 +381,7 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
      /data-panel="settings"/.test(adminHtml) && /id="panel-settings"/.test(adminHtml),
      'nav + panel both present')
   // An admin ANSWERS the clinic queue; filing a ticket is what a doctor or
-  // a secretary does, from tickets.html. A 'My tickets' tab here would
+  // a secretary does, from reportProblem.html. A 'My tickets' tab here would
   // always be empty and would suggest the wrong workflow.
   is('A16c', 'there is NO My tickets tab in the admin console',
      !/data-panel="mytickets"/.test(adminHtml) && !/id="panel-mytickets"/.test(adminHtml),
@@ -407,12 +407,11 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
 
   is('A16', 'admin.html links to settings.html', /href="settings\.html"/.test(adminHtml),
      'found href="settings.html"')
-  // There is no tickets.html any more: a doctor or secretary reports from
-  // the dashboard (index.html) and an admin answers in this console. A link
-  // to the deleted page is a dead button that looks like a broken app.
-  is('A17', 'admin.html has NO link to the deleted tickets page',
+  // Staff file reports from reportProblem.html; admins answer them here.
+  // A link to a staff reporting page from this console suggests the wrong flow.
+  is('A17', 'admin.html has NO link to the staff reporting page',
      !/href="tickets\.html"/.test(adminHtml),
-     'the queue is the Tickets tab here; reporting is on the dashboard')
+     'the queue is the Tickets tab here; staff reporting has its own page')
 
   // Every data-panel target must have a matching section, or clicking the
   // tab silently shows an empty page.
@@ -424,7 +423,7 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
   // SIGNED-IN user back to login.html. That is not a login bug, it is a
   // missing script tag, and it reads exactly like "the login is broken".
   // It shipped twice: once in the Sept-30 admin.html that was restored, and
-  // once in tickets.html, which was written without it.
+  // once in reportProblem.html, which was written without it.
   const { readdirSync } = await import('node:fs')
   const PAGES = readdirSync(APP).filter(f => /\.html$/.test(f))
   const noSupabase = PAGES.filter(function (f) {
@@ -971,7 +970,6 @@ console.log('==== ' + (failed ? failed + ' FAILED' : 'ADMIN CONSOLE OK') + ' - '
   passed + ' passed, ' + failed + ' failed ====')
 console.log('')
 process.exitCode = failed ? 1 : 0
-
 
 
 

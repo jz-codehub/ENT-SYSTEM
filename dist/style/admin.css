@@ -1393,4 +1393,16 @@ body.ent-nav-open .ent-drawer-scrim {
     color: var(--ent-muted);
     font-size: 0.78rem;
 }
-
+.ent-database-health {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 16px 0;
+}
+.ent-database-health h3 { margin: 0 0 6px; font-size: 0.9rem; }
+.ent-database-health p { margin: 0; line-height: 1.55; }
+#dbCapacityNote.is-warn { color: #b45309; font-weight: 700; }
+#dbCapacityNote.is-danger { color: #b91c1c; font-weight: 700; }
+@media (max-width: 700px) {
+    .ent-database-health { grid-template-columns: 1fr; }
+}

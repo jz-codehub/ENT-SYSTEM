@@ -11,6 +11,7 @@
     'use strict';
 
     const SAVED_KEYS_STORAGE = 'entDbSavedRecordKeysV1';
+    const STUB_UPGRADE_CURSOR_KEY = 'entCloudStubUpgradeCursorV1';
     const REMOTE_ONLY_LIMIT = 100;
     const STUB_UPGRADE_LIMIT = 50;
 
@@ -219,14 +220,26 @@ function toIsoDate(value) {
                 if (!recordMap.has(row.record_key)) recordMap.set(row.record_key, buildStub(row));
             });
 
-            // Upgrade records previously stored on this device as stubs (bounded).
-            const stubUpgrades = localRecords.filter(rec => rec && rec.cloudStub && rec.key).slice(0, STUB_UPGRADE_LIMIT);
+            // Rotate the bounded metadata-upgrade window so a few unavailable
+            // records cannot permanently block older stubs from being tried.
+            const cursorKey = localStorage.getItem(STUB_UPGRADE_CURSOR_KEY) || '';
+            const cursorIndex = localRecords.findIndex(rec => rec && rec.key === cursorKey);
+            const upgradeOrder = cursorIndex < 0
+                ? localRecords
+                : localRecords.slice(cursorIndex + 1).concat(localRecords.slice(0, cursorIndex + 1));
+            const stubUpgrades = upgradeOrder
+                .filter(rec => rec && rec.cloudStub && rec.key)
+                .slice(0, STUB_UPGRADE_LIMIT);
             if (stubUpgrades.length) {
                 const upgradeResults = await Promise.allSettled(
                     stubUpgrades.map(rec => fetchFullMetadata(rec.key))
                 );
+                let failedUpgrades = 0;
                 upgradeResults.forEach((result, index) => {
-                    if (result.status !== 'fulfilled' || !result.value) return;
+                    if (result.status !== 'fulfilled' || !result.value) {
+                        failedUpgrades++;
+                        return;
+                    }
                     const localRec = stubUpgrades[index];
                     const lightMeta = stripHeavyFields(result.value);
                     if (!lightMeta) return;
@@ -237,6 +250,14 @@ function toIsoDate(value) {
                     if (keepSynced) localRec.syncedAt = keepSynced;
                     delete localRec.cloudStub;
                 });
+                try {
+                    localStorage.setItem(STUB_UPGRADE_CURSOR_KEY, stubUpgrades[stubUpgrades.length - 1].key);
+                } catch (error) {
+                    console.warn('Could not persist the offline metadata upgrade cursor.', error);
+                }
+                if (failedUpgrades) {
+                    console.warn(`${failedUpgrades} cloud record metadata upgrade(s) will be retried in later sync cycles.`);
+                }
             }
 
             // Upsert local records that changed locally and are not database-finalized.

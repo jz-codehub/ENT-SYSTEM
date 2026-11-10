@@ -1,4 +1,4 @@
-# Real keys never go in git. Copy .env.example to .env.local.
+# Real keys never go in git. Create .env.local locally.
 .env.local
 .env
 .env.old-backup

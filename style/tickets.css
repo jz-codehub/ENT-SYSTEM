@@ -1788,3 +1788,525 @@ body.ent-tk-page {
         min-height: 52vh;
     }
 }
+
+@media screen {
+    body.ent-tk-page .ent-tk-hero {
+        overflow: hidden;
+        border-color: rgba(125, 211, 252, .26);
+        background:
+            radial-gradient(ellipse at 92% 8%, rgba(56, 189, 248, .28), transparent 25rem),
+            linear-gradient(118deg, #082f49 0%, #0c4a6e 62%, #075985 100%);
+        color: #f8fafc;
+    }
+
+    body.ent-tk-page .ent-tk-hero-eyebrow {
+        color: #7dd3fc;
+    }
+
+    body.ent-tk-page .ent-tk-hero-body h1,
+    body.ent-tk-page .ent-tk-hero-body p {
+        color: #f8fafc;
+    }
+
+    body.ent-tk-page .ent-tk-hero-body p {
+        color: #dbeafe;
+    }
+
+    body.ent-tk-page .ent-tk-newbtn {
+        border: 1px solid rgba(255, 255, 255, .72);
+        background: #fff;
+        color: #075985;
+    }
+
+    body.ent-tk-page .ent-tk-newbtn:hover {
+        background: #e0f2fe;
+    }
+}
+
+@media screen {
+    body.ent-tk-page {
+        background:
+            radial-gradient(ellipse at 50% -20rem, var(--primary-light), transparent 50rem),
+            var(--bg-color);
+    }
+
+    body.ent-tk-page .ent-tk-header {
+        margin-bottom: 0;
+        border: 0;
+        background: var(--primary-color);
+        box-shadow: 0 4px 16px rgba(14, 165, 233, .18);
+    }
+
+    body.ent-tk-page .ent-tk-header .header-bar {
+        min-height: 76px;
+        padding: 10px 24px;
+    }
+
+    body.ent-tk-page .ent-tk-header .header-titles h1,
+    body.ent-tk-page .ent-tk-header .header-hospital {
+        color: #fff;
+    }
+
+    body.ent-tk-page .ent-tk-header .header-titles h1 {
+        font-size: .94rem;
+        letter-spacing: .08em;
+    }
+
+    body.ent-tk-page .ent-tk-header .logo {
+        padding: 4px;
+        border-radius: 9px;
+        background: #fff;
+    }
+
+    body.ent-tk-page .ent-tk-header .ent-conn {
+        border-color: rgba(255, 255, 255, .4);
+        background: rgba(255, 255, 255, .14);
+        color: #fff;
+    }
+
+    body.ent-tk-page .ent-tk-main {
+        max-width: 1240px;
+        padding: 24px 24px 56px;
+    }
+
+    body.ent-tk-page .ent-page-nav {
+        margin-bottom: 16px;
+    }
+
+    body.ent-tk-page .ent-page-nav .ent-page-back {
+        min-height: 38px;
+        padding: 8px 13px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--panel-bg-color);
+        color: var(--text-color);
+        box-shadow: none;
+    }
+
+    body.ent-tk-page .ent-page-nav .ent-page-back:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        color: var(--primary-hover-color);
+        box-shadow: none;
+    }
+
+    body.ent-tk-page .ent-tk-hero {
+        min-height: 0;
+        gap: 24px;
+        padding: clamp(24px, 4vw, 42px);
+        border: 1px solid color-mix(in srgb, var(--primary-color) 25%, var(--border-color));
+        border-radius: 20px;
+        background:
+            radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--primary-color) 15%, transparent), transparent 30rem),
+            linear-gradient(120deg, var(--panel-bg-color), var(--primary-light));
+        box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    }
+
+    body.ent-tk-page .ent-tk-hero::before,
+    body.ent-tk-page .ent-tk-hero::after {
+        border-color: color-mix(in srgb, var(--primary-color) 16%, transparent);
+    }
+
+    body.ent-tk-page .ent-tk-hero-ic {
+        border: 1px solid color-mix(in srgb, var(--primary-color) 25%, var(--border-color));
+        border-radius: 16px;
+        background: var(--panel-bg-color);
+        color: var(--primary-color);
+        box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 13%, transparent);
+    }
+
+    body.ent-tk-page .ent-tk-hero-eyebrow,
+    body.ent-tk-page .ent-tk-section-kicker {
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tk-hero-body h1 {
+        color: var(--text-color);
+        letter-spacing: -.04em;
+    }
+
+    body.ent-tk-page .ent-tk-hero-body p {
+        color: var(--secondary-text-color);
+    }
+
+    body.ent-tk-page .ent-tk-newbtn,
+    body.ent-tk-page .ent-tk-newbtn:hover {
+        border: 1px solid var(--primary-color);
+        border-radius: 12px;
+        background: var(--primary-color);
+        color: #fff;
+        box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 24%, transparent);
+    }
+
+    body.ent-tk-page .ent-tk-newbtn:hover {
+        transform: translateY(-1px);
+        background: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tk-stats {
+        gap: 12px;
+        margin: 16px 0 20px;
+    }
+
+    body.ent-tk-page .ent-tk-stat {
+        min-height: 82px;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid var(--border-color);
+        border-top: 3px solid var(--primary-color);
+        border-radius: 14px;
+        background: var(--panel-bg-color);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, .045);
+    }
+
+    body.ent-tk-page .ent-tk-stat:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 7px 18px rgba(15, 23, 42, .08);
+    }
+
+    body.ent-tk-page .ent-tk-stat-ic,
+    body.ent-tk-page .ent-tk-stat.is-active .ent-tk-stat-ic,
+    body.ent-tk-page .ent-tk-stat.is-new .ent-tk-stat-ic,
+    body.ent-tk-page .ent-tk-stat.is-done .ent-tk-stat-ic,
+    body.ent-tk-page .ent-tk-stat.is-all .ent-tk-stat-ic {
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    body.ent-tk-page .ent-tk-stat-n {
+        color: var(--text-color);
+    }
+
+    body.ent-tk-page .ent-tk-stat-l {
+        color: var(--secondary-text-color);
+        letter-spacing: .02em;
+    }
+
+    body.ent-tk-page .ent-tk-layout {
+        gap: 16px;
+    }
+
+    body.ent-tk-page .ent-tk-pane {
+        border-color: var(--border-color);
+        border-radius: 16px;
+        background: var(--panel-bg-color);
+        box-shadow: 0 6px 20px rgba(15, 23, 42, .05);
+    }
+
+    body.ent-tk-page .ent-tk-pane:hover {
+        border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color));
+    }
+
+    body.ent-tk-page .ent-tk-list-head,
+    body.ent-tk-page .ent-tk-viewhead {
+        border-color: var(--border-color);
+        background: var(--panel-bg-color);
+    }
+
+    body.ent-tk-page .ent-tk-list-head h2 {
+        color: var(--text-color);
+    }
+
+    body.ent-tk-page .ent-tk-list-head p {
+        color: var(--secondary-text-color);
+    }
+
+    body.ent-tk-page .ent-tk-list-mark {
+        border-color: color-mix(in srgb, var(--primary-color) 22%, var(--border-color));
+        background: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    body.ent-tk-page .ent-tk-tools {
+        border-color: var(--border-color);
+        background: var(--bg-color);
+    }
+
+    body.ent-tk-page .ent-tk-searchwrap input {
+        border-color: var(--border-color);
+        background: var(--panel-bg-color);
+    }
+
+    body.ent-tk-page .ent-tk-searchwrap input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+    }
+
+    body.ent-tk-page .ent-tk-chip {
+        border-color: var(--border-color);
+        background: var(--panel-bg-color);
+        color: var(--secondary-text-color);
+    }
+
+    body.ent-tk-page .ent-tk-chip:hover,
+    body.ent-tk-page .ent-tk-chip.is-on {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-ticket,
+    body.ent-tk-page .ent-ticket.is-open,
+    body.ent-tk-page .ent-ticket.is-progress,
+    body.ent-tk-page .ent-ticket.is-resolved,
+    body.ent-tk-page .ent-ticket.is-closed {
+        border-left-color: var(--primary-color);
+        background: var(--panel-bg-color);
+    }
+
+    body.ent-tk-page .ent-ticket:hover,
+    body.ent-tk-page .ent-ticket.is-unread {
+        border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border-color));
+        border-left-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    body.ent-tk-page .ent-ticket.is-open .ent-ticket-row strong,
+    body.ent-tk-page .ent-ticket.is-unread .ent-ticket-subject {
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-ticket-new,
+    body.ent-tk-page .ent-badge.is-open,
+    body.ent-tk-page .ent-badge.is-progress,
+    body.ent-tk-page .ent-badge.is-resolved,
+    body.ent-tk-page .ent-badge.is-closed {
+        border-color: color-mix(in srgb, var(--primary-color) 25%, var(--border-color));
+        background: var(--primary-light);
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-ticket-pip {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+    }
+
+    body.ent-tk-page .ent-ticket-go {
+        border-color: var(--primary-color);
+    }
+
+    body.ent-tk-page .ent-tk-backbtn {
+        border-color: var(--border-color);
+        background: var(--panel-bg-color);
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tk-backbtn:hover {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    body.ent-tk-page .ent-tk-viewno {
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tk-viewcard {
+        border-color: var(--border-color);
+        border-radius: 16px;
+        background: var(--panel-bg-color);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
+    }
+
+    body.ent-tk-page .ent-tf-intro {
+        border-color: color-mix(in srgb, var(--primary-color) 23%, var(--border-color));
+        background: var(--primary-light);
+    }
+
+    body.ent-tk-page .ent-tf-intro-icon,
+    body.ent-tk-page .ent-tf-scope-icon {
+        background: var(--panel-bg-color);
+        color: var(--primary-color);
+    }
+
+    body.ent-tk-page .ent-tf-block > legend,
+    body.ent-tk-page .ent-tf-block .ent-field > label {
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tf-scope,
+    body.ent-tk-page .ent-tf-scope:nth-child(n) .ent-tf-scope-icon {
+        border-color: var(--border-color);
+        background: var(--bg-color);
+        color: var(--primary-color);
+    }
+
+    body.ent-tk-page .ent-tf-scope:hover,
+    body.ent-tk-page .ent-tf-scope:has(input:checked) {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+        box-shadow: 0 3px 10px color-mix(in srgb, var(--primary-color) 12%, transparent);
+    }
+
+    body.ent-tk-page .ent-tf-scope-text b {
+        color: var(--text-color);
+    }
+
+    body.ent-tk-page .ent-tf-block input[type="text"],
+    body.ent-tk-page .ent-tf-block select,
+    body.ent-tk-page .ent-tf-block textarea {
+        border-color: var(--input-border-color);
+        background: var(--input-bg-color);
+    }
+
+    body.ent-tk-page .ent-tf-block input[type="text"]:focus,
+    body.ent-tk-page .ent-tf-block select:focus,
+    body.ent-tk-page .ent-tf-block textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+    }
+
+    body.ent-tk-page .ent-tf-send .ent-btn,
+    body.ent-tk-page #tkWelcome .ent-btn {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: #fff;
+    }
+
+    body.ent-tk-page .ent-tf-send .ent-btn:hover,
+    body.ent-tk-page #tkWelcome .ent-btn:hover {
+        background: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tk-notice.is-bad,
+    body.ent-tk-page .ent-tk-notice.is-ok,
+    body.ent-tk-page .ent-tf-notice.is-bad,
+    body.ent-tk-page .ent-tf-notice.is-ok {
+        border-left-color: var(--primary-color);
+        color: var(--primary-hover-color);
+    }
+
+    body.ent-tk-page .ent-tf-report {
+        border-left-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    body.ent-tk-page .ent-tf-msg.is-mine,
+    body.ent-tk-page .ent-tf-msg.is-report {
+        border-color: color-mix(in srgb, var(--primary-color) 30%, var(--border-color));
+        background: var(--primary-light);
+    }
+
+    body.ent-tk-page .ent-tf-msg.is-report header b {
+        color: var(--primary-hover-color);
+    }
+
+    body.dark-mode.ent-tk-page .ent-tk-hero {
+        background:
+            radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--primary-color) 20%, transparent), transparent 30rem),
+            linear-gradient(120deg, var(--panel-bg-color), var(--primary-light));
+    }
+
+    body.dark-mode.ent-tk-page .ent-tk-header .ent-conn {
+        background: rgba(255, 255, 255, .12);
+        color: #fff;
+    }
+}
+
+@media screen and (max-width: 760px) {
+    body.ent-tk-page .ent-tk-header .header-bar {
+        padding: 10px 14px;
+    }
+
+    body.ent-tk-page .ent-tk-main {
+        padding: 16px 14px 40px;
+    }
+
+    body.ent-tk-page .ent-tk-hero {
+        gap: 18px;
+        padding: 22px;
+    }
+
+    body.ent-tk-page .ent-tk-stats {
+        gap: 9px;
+    }
+
+    body.ent-tk-page .ent-tk-stat {
+        min-height: 70px;
+        padding: 10px;
+    }
+}
+
+@media screen and (max-width: 560px) {
+    body.ent-tk-page .ent-tk-header .header-bar {
+        min-height: 68px;
+        padding: 8px 12px;
+    }
+
+    body.ent-tk-page .ent-tk-header .header-titles h1 {
+        font-size: .75rem;
+        letter-spacing: .045em;
+    }
+
+    body.ent-tk-page .ent-tk-main {
+        padding: 14px 12px 32px;
+    }
+
+    body.ent-tk-page .ent-tk-hero {
+        gap: 14px;
+        padding: 17px;
+        border-radius: 16px;
+    }
+
+    body.ent-tk-page .ent-tk-hero-text {
+        flex-basis: 100%;
+    }
+
+    body.ent-tk-page .ent-tk-hero-body h1 {
+        font-size: 1.35rem;
+    }
+
+    body.ent-tk-page .ent-tk-newbtn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    body.ent-tk-page .ent-tk-stats {
+        gap: 8px;
+        margin: 12px 0 15px;
+    }
+
+    body.ent-tk-page .ent-tk-stat {
+        min-height: 66px;
+        gap: 7px;
+        padding: 9px;
+        border-radius: 12px;
+    }
+
+    body.ent-tk-page .ent-tk-stat-ic {
+        width: 30px;
+        height: 30px;
+    }
+
+    body.ent-tk-page .ent-tk-stat-n {
+        font-size: 1.05rem;
+    }
+
+    body.ent-tk-page .ent-tk-stat-l {
+        font-size: .58rem;
+    }
+
+    body.ent-tk-page .ent-tk-layout {
+        gap: 12px;
+    }
+
+    body.ent-tk-page .ent-tk-pane {
+        border-radius: 14px;
+    }
+
+    body.ent-tk-page .ent-tk-list-head {
+        padding: 14px;
+    }
+
+    body.ent-tk-page .ent-tk-tools,
+    body.ent-tk-page .ent-tk-detail-body {
+        padding: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.ent-tk-page *,
+    body.ent-tk-page *::before,
+    body.ent-tk-page *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
+}

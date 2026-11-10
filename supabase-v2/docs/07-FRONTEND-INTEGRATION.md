@@ -1,8 +1,12 @@
 # 07 · Frontend integration — the map, not the move
 
-**No file in `function/` has been changed.** This is the plan for that work,
-written down so the move is a sequence of small, checkable steps instead of one
-rewrite. Do it in this order; each step leaves the app working.
+> **Status update (2026-11-10):** This document began as a migration plan.
+> The checked-in frontend now uses Supabase GoTrue for sign-in, `auth-admin`
+> for account operations, the v2 `reports` API for records, and
+> `patient-photos` for photo operations. The steps below describe the original
+> transition and are not a current implementation checklist. This repository
+> does not prove which migrations or functions are deployed in production;
+> verify the live project and take a backup before any cutover or cleanup.
 
 The rule for every step: **the browser stops deciding anything.** It may *ask*
 for a role, a clinic, a flag, or a photo. It may not *state* one.
@@ -153,4 +157,3 @@ that is the one change in this list that is a security fix rather than a refacto
 - `login.html` may keep asking for a username and a password — that is a UI
   decision, not a security one. What has to stop is the browser *verifying*
   the password.
-

@@ -111,11 +111,12 @@ function makeEl(tag) {
                         page BOUNDARY row repeats on the next page (the
                         row-shift that a save mid-paging causes)
    -------------------------------------------------------------------- */
-function boot({ mode = 'normal', user, listRows, statsRows }) {
+function boot({ mode = 'normal', user, listRows, statsRows, rpcAvailable = false }) {
   // Each scenario builds a NEW modal; the exported selector nodes must
   // belong to THIS browser, not to the previous one's.
   for (const k of Object.keys(firstBySel)) delete firstBySel[k]
   const calls = []
+  const rpcCalls = []
   const patches = []        // bodies the Set/Move button PATCHed, for assertions
   const alerts = []
   const docListeners = {}
@@ -164,7 +165,8 @@ function boot({ mode = 'normal', user, listRows, statsRows }) {
     history: { replaceState() {} },
     localStorage: storage, sessionStorage: storage,
     navigator: { onLine: true, userAgent: 'node-test' },
-    console, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+    console: { warn() {}, error() {}, log() {} },
+    setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
     URLSearchParams, URL,
     alert: m => alerts.push(String(m)),
     EntFormBridge: {
@@ -220,6 +222,46 @@ function boot({ mode = 'normal', user, listRows, statsRows }) {
           if (hasOldLiteral) return r.is_draft === false
           return true
         }
+        if (endpoint === 'rpc/ent_db_record_page') {
+          if (!rpcAvailable) throw new Error('PGRST202 Could not find function public.ent_db_record_page')
+          const args = JSON.parse(opts.body || '{}')
+          rpcCalls.push(args)
+          let rows = listRows.filter(admitted)
+          if (args.p_report_type) rows = rows.filter(row => row.report_type === args.p_report_type)
+          if (args.p_site) rows = rows.filter(row => String(row.site || '').toUpperCase() === args.p_site)
+          if (args.p_search) {
+            const needle = args.p_search.toLowerCase()
+            rows = rows.filter(row => [row.patient_name, row.patient_id, row.case_number,
+              row.record_key, row.created_by, row.created_by_name]
+              .some(value => String(value || '').toLowerCase().includes(needle)))
+          }
+          rows = rows.slice().sort(args.p_sort === 'name'
+            ? (a, b) => String(a.patient_name || '').localeCompare(String(b.patient_name || ''))
+              || String(b.updated_at || '').localeCompare(String(a.updated_at || ''))
+            : (a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))
+          const offset = Number(args.p_offset || 0)
+          const limit = Number(args.p_limit || 100)
+          return rows.slice(offset, offset + limit)
+        }
+        if (endpoint === 'rpc/ent_patient_record_stats') {
+          if (!rpcAvailable) throw new Error('PGRST202 Could not find function public.ent_patient_record_stats')
+          const keys = new Set(JSON.parse(opts.body || '{}').p_patient_keys || [])
+          const groups = new Map()
+          statsRows.filter(admitted).forEach(row => {
+            const pid = String(row.patient_id || '').replace(/\s+/g, ' ').trim().toLowerCase()
+            const name = String(row.patient_name || '').replace(/\s+/g, ' ').trim().toLowerCase()
+            const key = pid ? `id:${pid}` : (name ? `name:${name}` : '')
+            if (!keys.has(key)) return
+            const day = String(row.procedure_date || String(row.created_at || '').slice(0, 10)).slice(0, 10)
+            const group = groups.get(key) || { records: 0, days: new Set() }
+            group.records++
+            if (day) group.days.add(day)
+            groups.set(key, group)
+          })
+          return [...groups].map(([stats_key, group]) => ({
+            stats_key, records: group.records, visits: Math.max(1, group.days.size)
+          }))
+        }
         if (isList) {
           if (mode === 'failName' && wantsName) {
             throw new Error('column reports.created_by_name does not exist')
@@ -256,7 +298,7 @@ function boot({ mode = 'normal', user, listRows, statsRows }) {
   const src = readFileSync(join(APP, 'function', 'dbRecords.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dbRecords.js' })
-  return { win, calls, patches, alerts, docListeners, dialogs }
+  return { win, calls, rpcCalls, patches, alerts, docListeners, dialogs }
 }
 
 /* --------------------------------------------------------------------
@@ -737,12 +779,9 @@ console.log('')
      solo ? solo.innerHTML.replace(/\s+/g, ' ').slice(0, 200) : 'no card')
 }
 
-/* ---- 16 · EVERY row pages in; a duplicate row is ONE card --------------
-   The live complaint: a shelf whose table is far bigger than one response
-   - the list used to stop at the newest 200 rows flat, so older saved
-   records were invisible, and a duplicated row earned a second card.
-   The mock honours limit/offset (1201 rows -> 3 pages) and repeats each
-   full page's boundary row, the shift a save mid-paging causes. */
+/* ---- 16 · bounded lazy pages; a duplicate row is ONE card --------------
+   The first response is bounded to 100 rows. The user can keep requesting
+   pages; the mock repeats a page boundary as if a save shifted the result. */
 {
   const now = Date.parse('2026-10-05T09:32:00Z')
   const BIG = []
@@ -764,16 +803,18 @@ console.log('')
   await flush()
   const list = firstBySel['.ent-db-list']
   const status = firstBySel['.ent-db-status']
+  const firstPageCount = list.children.length
+  for (let i = 0; i < 20; i++) await env.win.EntDbRecords.loadMoreRecords()
   const html = list.children.map(c => c.innerHTML).join('\n')
   const listCalls = env.calls.filter(c => c.includes('report_type=eq.'))
 
-  ok('C74', 'the list keeps asking for more pages until the server runs dry',
-     listCalls.length === 3 && listCalls.every(c => c.includes('offset=')),
-     JSON.stringify(listCalls.map(c => (/[?&]offset=\d+/.exec(c) || [''])[0])))
+  ok('C74', 'the initial read is bounded and older pages are loaded explicitly',
+     firstPageCount === 99 && listCalls.length === 13 && listCalls.every(c => c.includes('offset=')),
+     `first=${firstPageCount}; ${JSON.stringify(listCalls.map(c => (/[?&]offset=\d+/.exec(c) || [''])[0]))}`)
   ok('C75', 'pages carry the id.desc tie-break so rows cannot reshuffle',
      listCalls.every(c => c.includes('order=updated_at.desc,id.desc')),
      (listCalls[0] || 'no list call').slice(0, 120))
-  ok('C76', 'every saved row is displayed - well past the old 200 cap',
+  ok('C76', 'loading more reaches every saved row beyond the initial page',
      list.children.length === 1200, 'got ' + list.children.length)
   ok('C77', 'the OLDEST row, far below any newest-N window, still has a card',
      html.includes('PAGE, ROW1199'))
@@ -781,6 +822,37 @@ console.log('')
      (html.match(/PAGE, ROW0</g) || []).length === 1
        && /1200 saved patients/.test(status.textContent),
      status.textContent)
+}
+
+/* ---- 16a · server page RPC bounds and filters the list ---------------- */
+{
+  const env = boot({
+    mode: 'normal', user: USER, listRows: LIST_ROWS, statsRows: STATS_ROWS,
+    rpcAvailable: true
+  })
+  await flush()
+  env.win.EntDbRecords.openRecordsModal()
+  await flush()
+  const first = env.rpcCalls[0]
+  ok('C78a', 'the server page is limited to 100 rows and begins at offset zero',
+     first.p_limit === 100 && first.p_offset === 0,
+     JSON.stringify(first))
+  const initialHtml = firstBySel['.ent-db-list'].children.map(c => c.innerHTML).join('\n')
+  ok('C78b', 'server-side aggregation preserves exact patient record and visit counts',
+     initialHtml.includes('9 records') && initialHtml.includes('4 visits'),
+     initialHtml.match(/9 records[^<]*/)?.[0] || 'chip missing')
+
+  env.search = firstBySel['.ent-db-search']
+  env.search.value = 'RACOMA'
+  env.win.EntDbRecords.setSiteFilter('RMCI')
+  await flush()
+  const filtered = env.rpcCalls[env.rpcCalls.length - 1]
+  ok('C78c', 'search and hospital filtering stay server-side and restart pagination',
+     filtered.p_search === 'RACOMA' && filtered.p_site === 'RMCI' && filtered.p_offset === 0,
+     JSON.stringify(filtered))
+  ok('C78d', 'search returns only matching records from the selected hospital',
+     firstBySel['.ent-db-list'].children.length === 1,
+     String(firstBySel['.ent-db-list'].children.length))
 }
 
 /* ---- 17 · the SERVER draft filter admits exactly what the card admits ---
@@ -874,4 +946,3 @@ console.log('')
 console.log(`  ${passed} passed, ${failed} failed`)
 console.log('')
 process.exitCode = failed ? 1 : 0
-

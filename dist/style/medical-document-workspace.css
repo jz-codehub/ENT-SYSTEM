@@ -1,0 +1,205 @@
+.medical-document-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 12% 0, color-mix(in srgb, var(--primary-color) 9%, transparent), transparent 34rem),
+    linear-gradient(180deg, #f3f7fc 0, #edf2f8 34rem, #e8eef6 100%);
+  color: #172b45;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.medical-document-page .report-header {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-bottom: 1px solid #d9e3f0;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(27, 55, 89, .08);
+  border-top: 3px solid var(--primary-color);
+}
+
+.medical-document-page .header-bar {
+  background: linear-gradient(115deg, #fff 0%, #f5f9ff 66%, #eaf2ff 100%);
+}
+
+.medical-document-page .header-actions {
+  border-top-color: #e4ebf4;
+  background: rgba(248, 250, 253, .96);
+}
+
+.document-workspace {
+  display: flex;
+  width: min(1200px, calc(100% - 40px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 24px auto 16px;
+  padding: 21px 24px;
+  border: 1px solid #d9e4f2;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--primary-light) 82%, transparent), transparent 28rem),
+    #fff;
+  box-shadow: 0 12px 30px rgba(32, 58, 91, .08);
+}
+
+.workspace-copy { min-width: 0; }
+
+.workspace-eyebrow {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--primary-hover-color);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.workspace-copy h2 {
+  margin: 0;
+  color: #183653;
+  font-size: clamp(19px, 2.2vw, 25px);
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+
+.workspace-copy p {
+  max-width: 680px;
+  margin: 7px 0 0;
+  color: #61738a;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.workspace-steps {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.workspace-steps [role="listitem"] {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid #e1e9f3;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .86);
+  color: #435a73;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.workspace-step-number {
+  display: inline-grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary-hover-color);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.workspace-step-label { margin-left: 7px; }
+
+.medical-document-page .record-status {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto 13px;
+  padding: 10px 14px;
+  border: 1px solid #dbe6f2;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .88);
+  color: #52677e;
+  font: 500 12px/1.5 "Segoe UI", Arial, sans-serif;
+  box-shadow: 0 4px 12px rgba(32, 58, 91, .04);
+}
+
+.medical-document-page .record-status.error {
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #b42318;
+}
+
+.medical-document-page .record-picker {
+  width: min(1200px, calc(100% - 40px));
+  margin: 0 auto 15px;
+  padding: 18px;
+  border: 1px solid #d9e4f2;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(32, 58, 91, .08);
+}
+
+.medical-document-page .certificate,
+.medical-document-page .sheet {
+  box-shadow: 0 18px 48px rgba(24, 43, 68, .18);
+}
+
+.medical-document-page .certificate:focus-within,
+.medical-document-page .sheet:focus-within {
+  outline: 3px solid rgba(37, 99, 168, .18);
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .document-workspace {
+    width: calc(100% - 24px);
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 16px;
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .workspace-steps {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .workspace-steps [role="listitem"] {
+    min-height: 32px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .medical-document-page .record-status,
+  .medical-document-page .record-picker {
+    width: calc(100% - 24px);
+  }
+
+  .medical-document-page .record-picker { padding: 14px; }
+
+  .medical-document-page .certificate,
+  .medical-document-page .sheet {
+    box-shadow: 0 10px 28px rgba(24, 43, 68, .16);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .document-workspace { animation: workspace-enter .35s ease-out both; }
+}
+
+@keyframes workspace-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media print {
+  .medical-document-page {
+    min-height: 0;
+    background: #fff;
+  }
+
+  .medical-document-page .certificate,
+  .medical-document-page .sheet {
+    outline: 0;
+    box-shadow: none;
+  }
+}

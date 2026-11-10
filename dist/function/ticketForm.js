@@ -520,7 +520,7 @@
 
     /* --------------------------- mount --------------------------- */
     function wire() {
-        // The form and the ticket list now live on pages/tickets.html
+        // The form and the ticket list now live on pages/reportProblem.html
         // (ticketsPage.js). This file stays on index.html only so the
         // dashboard badge can read unreadCount(), so every element lookup
         // here is GUARDED: on the dashboard none of these ids exist, and an

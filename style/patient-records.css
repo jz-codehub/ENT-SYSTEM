@@ -949,6 +949,32 @@ body.cf4-page #patientRecordsBtn .btn-sub {
     content: ' …';
 }
 
+.ent-db-load-more {
+    align-self: center;
+    margin: 0 18px 16px;
+    padding: 9px 18px;
+    border: 1px solid var(--primary-color, #2563eb);
+    border-radius: 9px;
+    background: var(--panel-bg-color, #fff);
+    color: var(--primary-color, #2563eb);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-db-load-more:hover:not(:disabled) {
+    background: var(--primary-color, #2563eb);
+    color: #fff;
+}
+
+.ent-db-load-more:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.ent-db-load-more[hidden] { display: none; }
+
 .ent-db-list {
     display: flex;
     flex-direction: column;

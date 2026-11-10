@@ -8,8 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="./style/index.css?v=v33y">
     <link rel="stylesheet" href="./style/auth.css?v=v33al">
-    <link rel="stylesheet" href="./style/dashboard.css?v=v36aa">
-    <link rel="stylesheet" href="./style/mobile.css?v=v14">
+    <link rel="stylesheet" href="./style/dashboard.css?v=v36aq">
+    <link rel="stylesheet" href="./style/mobile.css?v=v23">
 </head>
 <body class="ent-dash-page">
     <div class="header">
@@ -57,19 +57,16 @@
             <div class="header-meta">
                 <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
                 <button id="installAppBtn" type="button">⬇️ Install App</button>
-                <div class="theme-switch-wrapper">
-                    <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
-                        <input type="checkbox" id="theme-toggle" />
-                        <span class="slider round"></span>
-                    </label>
+                <div class="header-user-controls">
+                    <div class="theme-switch-wrapper">
+                        <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
+                            <input type="checkbox" id="theme-toggle" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="ent-notification-center" id="dashNotificationCenter"></div>
+                    <div class="header-user-slot" id="headerUserSlot"></div>
                 </div>
-                <div class="header-user-slot" id="headerUserSlot"></div>
-                <!-- The notification bell used to live here (#tfBell / #tfBellCount).
-                     It was removed on request: it never had a click handler, so it
-                     did nothing except sit there. paintBell() in ticketForm.js still
-                     runs and still finds no element - it early-returns on
-                     `if (!bell) return;` - so nothing else had to change. Tickets
-                     are opened from the "Report a problem" card instead. -->
             </div>
         </div>
     </div>
@@ -94,13 +91,6 @@
                 <div class="ent-dash-statusrow">
                     <p class="ent-dash-mood" id="dashMood"></p>
                     <button type="button" class="ent-dash-alert" id="dashQueuePill" hidden></button>
-                    <!-- Follow-up reminder: a red pill shown ONLY when a patient is
-                         due or overdue for a follow-up visit (never at zero - a
-                         permanent zero is noise). Driven by the same list as the
-                         Follow-ups card below, so the two can never disagree. -->
-                    <button type="button" class="ent-dash-alert is-followup" id="dashFollowUpBadge" hidden>
-                        &#128197; <b id="dashFollowUpN">0</b> due for follow-up
-                    </button>
                 </div>
                 <div class="ent-dash-footrow">
                     <p class="ent-dash-last" id="dashLatest">&mdash;</p>
@@ -205,7 +195,7 @@
                     </span>
                 </button>
                 <!-- Reporting a problem now lives on its OWN page
-                     (pages/tickets.html): the pop-up made reading an answer
+                     (pages/reportProblem.html): the pop-up made reading an answer
                      mean scrolling past the form every time.
 
                      This card is a LINK, not a button - same as the View All
@@ -213,7 +203,7 @@
                      can be middle-clicked into a new tab, and can be
                      bookmarked. It keeps its id so the ticket wiring stays
                      stable. -->
-                <a class="ent-quick ent-quick-ticket" id="tfOpen" href="pages/tickets.html">
+                <a class="ent-quick ent-quick-ticket" id="tfOpen" href="pages/reportProblem.html">
                     <span class="ent-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
                     <span class="ent-quick-text">
                         <span class="ent-quick-label">REPORT A PROBLEM</span>
@@ -312,7 +302,7 @@
                 <b class="ent-newwork-n" id="dashNewWorkN">0</b>
             </span>
             <a class="ent-newwork is-ticket" id="dashTicketBadge" hidden
-                  role="status" aria-live="polite" href="pages/tickets.html"
+                  role="status" aria-live="polite" href="pages/reportProblem.html"
                   title="The administrator replied to your ticket">
                 <span class="ent-newwork-dot" aria-hidden="true"></span>
                 <span class="ent-newwork-text">Admin replied</span>
@@ -320,17 +310,13 @@
             </a>
         </div>
 
-        <!-- Follow-ups: the patients who were told to come back, soonest
-             first. Filled by renderFollowUps() from payload.followUpDate.
-             Hidden for an admin (he works from the console, not this page)
-             and for a role with nothing due. -->
-        <section class="ent-card" id="dashFollowUpCard" hidden>
+        <section class="ent-card ent-action-center" id="dashActionSummary" aria-labelledby="dashActionTitle">
             <div class="ent-card-head">
-                <h3><span class="ent-h3-emoji">&#128197;</span> Follow-ups</h3>
-                <span class="ent-hint" id="dashFollowUpHint">&mdash;</span>
+                <h3 id="dashActionTitle">Today&rsquo;s action list</h3>
+                <span class="ent-hint" id="dashActionHint">Checking your reports and this device&hellip;</span>
             </div>
-            <div class="ent-followup" id="dashFollowUp">
-                <p class="ent-empty">Loading&hellip;</p>
+            <div class="ent-action-grid" id="dashActionItems" role="status" aria-live="polite">
+                <p class="ent-empty">Checking team reviews, offline sync and report reminders&hellip;</p>
             </div>
         </section>
 
@@ -423,20 +409,73 @@
                 <h3>Latest patients</h3>
                 <span class="ent-hint">Newest first &middot; the card on the right is when it was entered</span>
             </div>
+            <div class="ent-recent-filters no-print" role="search" aria-label="Filter recent patient records">
+                <label class="ent-recent-search">
+                    <span>Search patient</span>
+                    <input type="search" id="dashRecentSearch" placeholder="Name or patient ID&hellip;" autocomplete="off">
+                </label>
+                <div class="ent-recent-filter-row">
+                    <label class="ent-recent-filter">
+                        <span>Visit date from</span>
+                        <input type="date" id="dashRecentFrom" aria-label="Visit date from">
+                    </label>
+                    <label class="ent-recent-filter">
+                        <span>Visit date to</span>
+                        <input type="date" id="dashRecentTo" aria-label="Visit date to">
+                    </label>
+                    <label class="ent-recent-filter">
+                        <span>Report type</span>
+                        <select id="dashRecentType" aria-label="Filter by report type">
+                        <option value="">All report types</option>
+                        <option value="nasal">Nasal</option>
+                        <option value="laryngeal">Laryngeal</option>
+                        <option value="cf4">CF4</option>
+                        <option value="abstract">Clinical abstract</option>
+                        <option value="medicalCertificate">Medical certificate</option>
+                        </select>
+                    </label>
+                    <label class="ent-recent-filter">
+                        <span>Hospital site</span>
+                        <select id="dashRecentSite" aria-label="Filter by hospital site">
+                        <option value="">All sites</option>
+                        <option value="RMCI">RMCI</option>
+                        <option value="CUMC">CUMC</option>
+                        </select>
+                    </label>
+                    <button type="button" class="ent-btn ent-recent-reset" id="dashRecentReset">Clear filters</button>
+                </div>
+                <span class="ent-hint ent-recent-result" id="dashRecentResult" aria-live="polite"></span>
+            </div>
             <p class="ent-recent-legend"><span><i class="ent-legend-dot" style="background:#0ea5e9"></i>Nasal</span><span><i class="ent-legend-dot" style="background:#6366f1"></i>Laryngeal</span><span><i class="ent-legend-dot" style="background:var(--success-color)"></i>CF4</span><span class="ent-recent-legend-dim">Visit day is under the name &middot; entry date + time is on the right</span></p>
             <div class="ent-recent" id="dashRecent">
                 <p class="ent-empty">Loading&hellip;</p>
             </div>
+            <div class="ent-recent-pagination no-print" id="dashRecentPagination" aria-label="Recent reports pages">
+                <label class="ent-recent-page-size">
+                    <span>Show</span>
+                    <select id="dashRecentPageSize" aria-label="Rows per page">
+                        <option value="10" selected>10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span>per page</span>
+                </label>
+                <span class="ent-recent-page-info" id="dashRecentPageInfo" role="status" aria-live="polite">Loading reports&hellip;</span>
+                <div class="ent-recent-page-buttons">
+                    <button type="button" class="ent-recent-page-btn" id="dashRecentPrev" aria-label="Previous reports page" disabled>Previous</button>
+                    <button type="button" class="ent-recent-page-btn" id="dashRecentNext" aria-label="Next reports page" disabled>Next</button>
+                </div>
+            </div>
         </section>
 
         <!-- ================= REPORT A PROBLEM =================
-             Reporting moved to its OWN page (pages/tickets.html): the
+             Reporting moved to its OWN page (pages/reportProblem.html): the
              dashboard pop-up made reading an answer mean scrolling past
              the form every time. The fifth quick-action card above now
              navigates there (dashboard.js); an ADMIN answers the queue
              from the admin console and never files. -->
         <div class="ent-tk-gone" id="tfGone" hidden>
-            Reporting now lives on pages/tickets.html.
+            Reporting now lives on pages/reportProblem.html.
         </div>
 
     <div id="installModal" class="modal-overlay" style="display:none; z-index: 10002;">
@@ -505,14 +544,14 @@
          the two pages every visit passes through. It registers nothing that
          auth.js has not already registered; it verifies the cache and
          reports the truth, including "not prepared yet" offline. -->
-    <script src="function/offlineReady.js?v=v36d" defer></script>
+    <script src="function/offlineReady.js?v=v36e" defer></script>
     <!-- syncEngine.js?v=v35c carries the OWNERSHIP GATE: this device may only
      push local records it actually created, which is what stopped one
      doctor's patients being copied onto a new doctor's shelf. -->
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
     <script src="function/index.js?v=v35e"></script>
-    <script src="function/dashboard.js?v=v36s" defer></script>
+    <script src="function/dashboard.js?v=v36z" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">
         <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>

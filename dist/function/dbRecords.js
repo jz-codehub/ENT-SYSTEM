@@ -11,12 +11,9 @@
     'use strict';
 
     const SAVED_KEYS_STORAGE = 'entDbSavedRecordKeysV1';
-    // The list is NOT capped at a page: it pages until the server returns a
-    // short page. These only bound the paging loop (a runaway guard, never a
-    // UI limit) and size one request. 500/request keeps every round trip small
-    // while MAX_LIST_RECORDS means "the list shows every row up to 50k".
-    const MAX_LIST_RECORDS = 50000;
-    const LIST_PAGE_SIZE = 500;
+    const LIST_PAGE_SIZE = 100;
+    const MAX_LIST_OFFSET = 1000000;
+    const MAX_STATS_FALLBACK_ROWS = 50000;
 
     const TYPE_LABELS = {
         cf4: 'CF4 Form',
@@ -31,6 +28,15 @@
     let statusElement = null;
     let searchElement = null;
     let currentRecords = [];
+    let listOffset = 0;
+    let hasMoreRecords = false;
+    let loadingRecords = false;
+    let listRequestId = 0;
+    let listRpcAvailable = null;
+    let patientStatsRpcAvailable = null;
+    let listServerFiltered = false;
+    let loadMoreButtonElement = null;
+    let searchTimer = null;
     let hiddenDrafts = 0;
     // The dialog has two views: the records list (default) and the recycle
     // bin (admin + secretary only - RLS hides deleted rows from every other
@@ -190,7 +196,8 @@
         // the same convention syncEngine.js (row.dbSaved) and dashboard.js
         // already rely on. The literal expression key is kept as a fallback
         // for in-memory rows and older fixtures.
-        const dbSaved = (row.dbSaved !== undefined) ? row.dbSaved : row['payload->>dbSaved'];
+        const dbSaved = (row.db_saved !== undefined) ? row.db_saved
+            : (row.dbSaved !== undefined) ? row.dbSaved : row['payload->>dbSaved'];
         if (String(dbSaved || '') === 'true') return true;
         if (row.is_draft === true || row.is_draft === 'true') return false;
         return true;
@@ -205,6 +212,7 @@
     function isFinalSaved(row) {
         if (!row) return false;
         // The flag tier carries it plainly (payload->>dbSaved was selected).
+        if (row.db_saved !== undefined) return row.db_saved === true || String(row.db_saved || '') === 'true';
         if (row.dbSaved !== undefined) return String(row.dbSaved || '') === 'true';
         // Older or fixture rows may keep it inside the payload object.
         const p = row.payload;
@@ -1637,6 +1645,10 @@ function doctorFilter() {
         // reused, so a query typed before closing would silently keep
         // filtering the next open. Clear it so every open starts empty.
         if (searchElement) searchElement.value = '';
+        if (searchTimer) {
+            window.clearTimeout(searchTimer);
+            searchTimer = null;
+        }
         if (modal) modal.style.display = 'none';
     }
 
@@ -1662,10 +1674,12 @@ function doctorFilter() {
     // also falls back to All so no list can stay stuck on a hidden tab.
     function syncSiteTabs() {
         const on = hospitalFeatureEnabled();
+        const previousSite = siteFilter;
         if (siteTabsElement) siteTabsElement.hidden = !on;
         if (!on && siteFilter) siteFilter = '';
         renderSiteTabs();
-        renderList(currentRecords);
+        if (!trashMode && previousSite !== siteFilter) loadRecords(false, true);
+        else renderList(currentRecords);
     }
 
     // Called by the tab clicks (and by the tests, directly).
@@ -1673,6 +1687,7 @@ function doctorFilter() {
         siteFilter = normaliseSite(site);
         renderSiteTabs();
         renderList(currentRecords);
+        loadRecords(false, true);
     }
 
     // The sort bar. Fixed order - Latest (default) | A-Z - built as a
@@ -1704,6 +1719,7 @@ function doctorFilter() {
         sortMode = mode === 'name' ? 'name' : 'date';
         renderSortBar();
         renderList(currentRecords);
+        loadRecords(false, true);
     }
 
     // Latest first: updated_at DESC (what the server query already orders
@@ -1756,6 +1772,7 @@ function doctorFilter() {
                 <div class="ent-db-sites" hidden></div>
                 <div class="ent-db-status" role="status" hidden></div>
                 <div class="ent-db-list"></div>
+                <button type="button" class="ent-db-load-more" hidden>Load more records</button>
             </div>
         `;
         document.body.appendChild(modal);
@@ -1765,6 +1782,8 @@ function doctorFilter() {
         searchElement = modal.querySelector('.ent-db-search');
         siteTabsElement = modal.querySelector('.ent-db-sites');
         sortBarElement = modal.querySelector('.ent-db-sortbar');
+        loadMoreButtonElement = modal.querySelector('.ent-db-load-more');
+        loadMoreButtonElement.hidden = true;
         renderSiteTabs();
         renderSortBar();
 
@@ -1773,6 +1792,7 @@ function doctorFilter() {
             if (trashMode) loadTrashRows();
             else loadRecords();
         });
+        loadMoreButtonElement.addEventListener('click', loadMoreRecords);
         // Recycle bin toggle (admin, secretary and the row's own doctor).
         // It is a VIEW of this dialog, not a separate page. Entering it
         // swaps the list for the bin's rows; leaving it reloads the records,
@@ -1784,7 +1804,13 @@ function doctorFilter() {
         }
         searchElement.addEventListener('input', () => {
             if (trashMode) renderTrashList();
-            else renderList(currentRecords);
+            else if (listRpcAvailable === true) {
+                window.clearTimeout(searchTimer);
+                renderList(currentRecords);
+                searchTimer = window.setTimeout(() => loadRecords(false, true), 250);
+            } else {
+                renderList(currentRecords);
+            }
         });
         modal.addEventListener('click', event => {
             // Sort chip (delegated like the tabs below).
@@ -1839,23 +1865,8 @@ function doctorFilter() {
 
 
 
-    // ------------------------------------------------------------------
-    // Read the WHOLE result set, page by page. Supabase/PostgREST always
-    // caps one response (a plain GET tops out well below "every row a
-    // shelf owns"), so a single fixed limit silently TRUNCATED the DB
-    // Records list: older finished rows fell below the newest-N window
-    // and the panel read "No saved patients yet" for saved patients.
-    //
-    // The loop asks for LIST_PAGE_SIZE rows at a time with a growing
-    // offset and stops on the honest "no more rows" signal: a page that
-    // came back SHORT of what was requested. Two guards keep it safe:
-    //   - a page that contributed zero NEW rows (a server ignoring
-    //     offset would repeat page 1 forever) breaks immediately, and
-    //   - MAX_LIST_RECORDS is a runaway ceiling, never a display limit:
-    //     in practice a shelf finishes long before it.
-    // dedupe: listRowKey(row) de-duplicates ACROSS pages, because rows can
-    // shift between requests when something is saved mid-paging.
-    // ------------------------------------------------------------------
+    // Compatibility paging is used only when the aggregate stats RPC is not
+    // installed. The normal list path fetches one small server-filtered page.
     function listRowKey(row) {
         if (row && row.record_key) return `${row.record_key}|${row.updated_at || ''}`;
         return null;
@@ -1892,7 +1903,7 @@ function doctorFilter() {
     function selectedProgressValue(record, field) {
         const path = `payload->formData->${field.json ? '' : '>'}${field.key}`;
         if (record[field.key] !== undefined) return record[field.key];
-        const data = record.formData || record['payload->formData'];
+        const data = record.formData || record.form_data || record['payload->formData'];
         if (data && typeof data === 'object' && data[field.key] !== undefined) {
             return data[field.key];
         }
@@ -1928,7 +1939,7 @@ function doctorFilter() {
     }
 
     function formCompletionProgress(record) {
-        const data = record.formData || record['payload->formData'];
+        const data = record.formData || record.form_data || record['payload->formData'];
         if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
         const fields = Object.entries(data).filter(([key]) => (
             key !== 'images' && key !== 'photosFromStorage'
@@ -1946,10 +1957,11 @@ function doctorFilter() {
         };
     }
 
-    async function fetchAllPages(requestPage) {
+    async function fetchAllPages(requestPage, maxRows) {
         const collected = [];
         const seen = new Set();
-        for (let offset = 0; offset < MAX_LIST_RECORDS; offset += LIST_PAGE_SIZE) {
+        const ceiling = Number.isInteger(maxRows) ? maxRows : MAX_LIST_OFFSET;
+        for (let offset = 0; offset < ceiling; offset += LIST_PAGE_SIZE) {
             const page = await requestPage(offset);
             const rows = Array.isArray(page) ? page : [];
             let fresh = 0;
@@ -1962,134 +1974,136 @@ function doctorFilter() {
             });
             if (rows.length < LIST_PAGE_SIZE) break; // short page = last page
             if (!fresh) break;                       // same rows again
+            if (offset + LIST_PAGE_SIZE >= ceiling) {
+                throw new Error(`The compatibility visit-count query reached its ${ceiling.toLocaleString()} row safety limit.`);
+            }
         }
         return collected;
     }
 
-    async function loadRecords() {
+    function missingRpc(error, name) {
+        const message = String((error && error.message) || error || '');
+        return (error && error.status === 404)
+            || (/PGRST202|could not find the function|function .* does not exist/i.test(message)
+                && message.toLowerCase().includes(name.toLowerCase()));
+    }
+
+    async function fetchRecordPage(bridge, offset) {
+        const search = String((searchElement && searchElement.value) || '').trim().slice(0, 200);
+        const site = siteFilter && hospitalFeatureEnabled() ? siteFilter : '';
+        if (listRpcAvailable !== false) {
+            try {
+                const rows = await window.EntSupabase.apiRequest('rpc/ent_db_record_page', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        p_report_type: toReportType(bridge.reportType),
+                        p_search: search || null,
+                        p_site: site || null,
+                        p_sort: sortMode,
+                        p_limit: LIST_PAGE_SIZE,
+                        p_offset: offset
+                    })
+                });
+                if (!Array.isArray(rows)) throw new Error('The database returned an invalid records page.');
+                listRpcAvailable = true;
+                return { rows, flagKnown: true, serverFiltered: true };
+            } catch (error) {
+                if (!missingRpc(error, 'ent_db_record_page')) throw error;
+                listRpcAvailable = false;
+                console.warn('Bounded DB Records endpoint is not installed; using a paged compatibility query.', error);
+            }
+        }
+
+        const baseSelect = 'id,record_key,report_type,patient_name,patient_id,case_number,procedure_date'
+            + ',created_by,created_at,updated_at';
+        const flagSelect = baseSelect + ',doctor_id,is_draft,payload->>dbSaved,payload->>site';
+        const workSelect = flagSelect + ',payload->formData';
+        const nameSelect = workSelect + ',created_by_name';
+        const draftFilter = '&or=(is_draft.eq.false,is_draft.is.null,payload->>dbSaved.eq.true)';
+        const order = sortMode === 'name'
+            ? 'patient_name.asc.nullslast,updated_at.desc,id.desc'
+            : 'updated_at.desc,id.desc';
+        const query = (select, withDraftFilter) => 'reports'
+            + `?report_type=eq.${encodeURIComponent(toReportType(bridge.reportType))}`
+            + (withDraftFilter ? draftFilter : '')
+            + (site ? `&payload->>site=eq.${encodeURIComponent(site)}` : '')
+            + `&select=${select}&order=${order}&limit=${LIST_PAGE_SIZE}&offset=${offset}`;
+        try {
+            return {
+                rows: await window.EntSupabase.apiRequest(query(nameSelect, true)),
+                flagKnown: true,
+                serverFiltered: false
+            };
+        } catch (nameError) {
+            try {
+                return {
+                    rows: await window.EntSupabase.apiRequest(query(workSelect, true)),
+                    flagKnown: true,
+                    serverFiltered: false
+                };
+            } catch (workError) {
+                try {
+                    return {
+                        rows: await window.EntSupabase.apiRequest(query(flagSelect, true)),
+                        flagKnown: true,
+                        serverFiltered: false
+                    };
+                } catch (flagError) {
+                    console.warn('Falling back to the plain record list.', flagError);
+                    return {
+                        rows: await window.EntSupabase.apiRequest(query(baseSelect, false)),
+                        flagKnown: false,
+                        serverFiltered: false
+                    };
+                }
+            }
+        }
+    }
+
+    async function loadRecords(append, preserveCurrent) {
+        const isAppend = append === true;
         const bridge = getBridge();
         if (!bridge) return;
+        if (isAppend && (loadingRecords || !hasMoreRecords)) return;
+        const requestId = isAppend ? listRequestId : ++listRequestId;
 
         if (!window.EntSupabase || !window.EntSupabase.isConfigured()) {
             currentRecords = [];
+            hasMoreRecords = false;
             renderList([]);
             setStatus('Cloud database is not configured. Open Settings \u2192 Cloud Sync first.', false, true);
             return;
         }
 
-        setStatus('Loading records from the database...', true, false);
+        if (!isAppend) {
+            if (!preserveCurrent) currentRecords = [];
+            listOffset = 0;
+            hasMoreRecords = false;
+            hiddenDrafts = 0;
+            if (!preserveCurrent) patientStats = null;
+            renderList(currentRecords);
+        }
+        const offset = isAppend ? listOffset : 0;
+        loadingRecords = true;
+        if (loadMoreButtonElement) loadMoreButtonElement.disabled = true;
+        if (!preserveCurrent) {
+            setStatus(isAppend ? 'Loading more records...' : 'Loading records from the database...', true, false);
+        }
+
         try {
-            // created_by / created_at tell WHO saved the patient and WHEN;
-            // created_by_name (0028) is that author's display name beside
-            // the uuid. THREE tiers, so a database that has not run 0028
-            // yet keeps today's exact behaviour instead of losing the
-            // draft filter to a 400: name+flags -> flags -> plain. The
-            // hospital tag (payload->>site) rides on the flag tier; a
-            // pre-payload database simply has no tags and those rows
-            // live under the All tab only.
-            //
-            // is_draft=eq.false (now the three-clause or= filter) runs ON THE
-            // SERVER for the two flag tiers - it admits the same rows
-            // isDatabaseRecord() accepts (false, NULL, or payload-saved).
-            // The list used to pull the newest 200 rows of ANY kind and only
-            // then throw drafts away in the browser: once a shelf held 200+
-            // newer drafts, every finished record fell below the limit and
-            // the list read "No saved patients yet" for patients that were
-            // saved long ago (reported for a secretary's CF4 shelf). It also
-            // stopped at 200 rows flat, so even a clean shelf showed only the
-            // newest 200 - now it pages until the server runs dry and shows
-            // every saved row. The plain tier is the pre-0017 fallback -
-            // flagUnknown means it has no is_draft column to filter on, so it
-            // stays unfiltered.
-            // id is selected on purpose: it is the reports PRIMARY KEY, and
-            // the list de-duplicates on it (see the One CARD note below).
-            // Without it the browser could only key on record_key, which is
-            // NOT unique across rows - so a secretary's two real CF4 rows
-            // (a re-save, a doctor reassignment, or a pre-0017 writer that
-            // landed twice) shared one record_key and the OLDER one was
-            // silently dropped from the list while the counter still said
-            // "2 records". id makes every distinct row survive.
-            const baseSelect = 'id,record_key,report_type,patient_name,patient_id,case_number,procedure_date'
-                + ',created_by,created_at,updated_at';
-            const flagSelect = baseSelect + ',doctor_id,is_draft,payload->>dbSaved,payload->>site';
-            const workSelect = flagSelect + ',payload->formData';
-            const nameSelect = workSelect + ',created_by_name';
-            // No clinic filter, no doctor filter: RLS decides. An unfiltered
-            // query is the honest one — the database is the thing saying no.
-            //
-            // v33af sent `is_draft=eq.false` and it was TOO STRICT: SQL says
-            // NULL ≠ false, so a legacy row with no flag never came back, and
-            // a row whose column still reads TRUE while payload.dbSaved says
-            // it was SAVED (a pre-0017 writer that omitted the column, or a
-            // toggle flip stored only in payload) was dropped too — the exact
-            // "secretary sees 1 CF4 record" report. The server filter now
-            // admits EXACTLY the rows isDatabaseRecord() accepts below:
-            //   · is_draft = false       — a writer finalized it
-            //   · is_draft IS NULL       — flag never written (legacy row)
-            //   · payload->>dbSaved=true — the payload says it was saved;
-            //     dbSaved is checked FIRST in isDatabaseRecord, so it wins
-            //     over a wrong TRUE column. Drafts (TRUE + no saved payload)
-            //     still match none of these and stay in "My Drafts".
-            const DRAFT_FILTER = '&or=(is_draft.eq.false,is_draft.is.null,'
-                + 'payload->>dbSaved.eq.true)';
-            // ONE page of the list. Server order is updated_at desc with id
-            // desc as the tie-break: without it, two rows updated in the same
-            // second could swap places between page requests and a row would
-            // either repeat or get skipped while paging.
-            const query = (select, withDraftFilter, offset) => `reports`
-                + `?report_type=eq.${encodeURIComponent(toReportType(bridge.reportType))}`
-                + (withDraftFilter ? DRAFT_FILTER : '')
-                + `&select=${select}`
-                + `&order=updated_at.desc,id.desc`
-                + `&limit=${LIST_PAGE_SIZE}&offset=${offset}`;
-            // Page until the server hands back a SHORT page - that is the
-            // honest "no more rows" signal - so the list shows EVERY saved
-            // record no matter how many rows the shelf holds.
-            const fetchAll = (select, withDraftFilter) => fetchAllPages(
-                offset => window.EntSupabase.apiRequest(query(select, withDraftFilter, offset)));
-            let rows;
-            let flagKnown = true;
-            try {
-                rows = await fetchAll(nameSelect, true);
-            } catch (nameError) {
-                try {
-                    rows = await fetchAll(workSelect, true);
-                } catch (workError) {
-                    try {
-                        rows = await fetchAll(flagSelect, true);
-                    } catch (flagError) {
-                        console.warn('Falling back to the plain record list.', flagError);
-                        rows = await fetchAll(baseSelect, false);
-                        flagKnown = false;
-                    }
-                }
-            }
-            const all = Array.isArray(rows) ? rows : [];
-            // Drafts are NOT database records: a shared draft is only a listing
-            // and lives in "My Drafts" until somebody presses "Save to Database".
-            const savedRows = flagKnown ? all.filter(isDatabaseRecord) : all;
-            hiddenDrafts = flagKnown ? all.length - savedRows.length : 0;
-            // One CARD per REAL ROW, keyed on the primary key `id`.
-            //
-            // The old code de-duplicated on `record_key` alone, and that is
-            // exactly what hid a secretary's saved patient: record_key is
-            // `type|patient|date`, so it is NOT unique across table rows.
-            // When Lilian re-saved the same CF4 patient (or a row was written
-            // twice by a retry / before the clinic_id,doctor_id,record_key
-            // upsert target existed), the database held TWO real rows with
-            // the SAME record_key. The list arrives ordered updated_at desc,
-            // so the dedup kept only the FIRST (= newest) and threw the
-            // OLDER row away - the counter still counted both ("2 records")
-            // while the list showed one. Two real saves must be two cards.
-            //
-            // id is the PRIMARY KEY, so two rows with the same id are
-            // literally the same row (only possible from a page repeat,
-            // which fetchAllPages already guards). Keying on id means every
-            // distinct saved row survives. record_key stays as a fallback
-            // ONLY for a row that somehow arrived without an id.
-            const seenIds = new Set();
-            const seenKeys = new Set();
-            currentRecords = savedRows.filter(row => {
+            const result = await fetchRecordPage(bridge, offset);
+            if (requestId !== listRequestId) return;
+            listServerFiltered = result.serverFiltered;
+            const all = Array.isArray(result.rows) ? result.rows : [];
+            const savedRows = result.flagKnown ? all.filter(isDatabaseRecord) : all;
+            hiddenDrafts = isAppend
+                ? hiddenDrafts + all.length - savedRows.length
+                : all.length - savedRows.length;
+
+            const seenIds = new Set(isAppend ? currentRecords.map(row => String(row.id || '').trim()).filter(Boolean) : []);
+            const seenKeys = new Set(isAppend ? currentRecords.map(row => String(row.record_key || '').trim()).filter(Boolean) : []);
+            const newRows = savedRows.filter(row => {
                 const id = String(row.id || '').trim();
                 if (id) {
                     if (seenIds.has(id)) return false;
@@ -2102,26 +2116,47 @@ function doctorFilter() {
                 seenKeys.add(key);
                 return true;
             });
-            // Visit counts are a separate, lighter read (loadPatientStats);
-            // they must never break the list, so a failure leaves
-            // patientStats null and the cards simply show no chip.
-            patientStats = await loadPatientStats();
+            currentRecords = isAppend ? currentRecords.concat(newRows) : newRows;
+            listOffset = Math.min(offset + LIST_PAGE_SIZE, MAX_LIST_OFFSET);
+            hasMoreRecords = all.length >= LIST_PAGE_SIZE && listOffset < MAX_LIST_OFFSET;
+            if (!isAppend) patientStats = new Map();
+            const pageStats = await loadPatientStats(savedRows);
+            if (requestId !== listRequestId) return;
+            if (pageStats) {
+                if (!patientStats) patientStats = new Map();
+                pageStats.forEach((value, key) => patientStats.set(key, value));
+            }
             renderList(currentRecords);
+            if (all.length >= LIST_PAGE_SIZE && listOffset >= MAX_LIST_OFFSET) {
+                setStatus('The safety limit was reached. Narrow the search to browse additional records.', false, true);
+            } else if (hasMoreRecords && !result.serverFiltered && searchElement.value.trim()) {
+                setStatus('Search covers loaded records only on this older database. Load more to search older rows.', false, false);
+            }
         } catch (error) {
             console.error('Could not load database records:', error);
-            currentRecords = [];
-            patientStats = null;
-            renderList([]);
-            setStatus(`Could not load records: ${error.message}`, false, true);
+            if (!isAppend && !preserveCurrent) {
+                currentRecords = [];
+                patientStats = null;
+                renderList([]);
+            }
+            setStatus(`Could not load${isAppend ? ' more' : ''} records: ${error.message}`, false, true);
+        } finally {
+            if (requestId === listRequestId) {
+                loadingRecords = false;
+                if (loadMoreButtonElement) loadMoreButtonElement.disabled = false;
+                updateLoadMoreButton();
+            }
         }
+    }
+
+    function loadMoreRecords() {
+        return loadRecords(true);
     }
 
     // ------------------------------------------------------------------
     // How many records does this patient have on file, and on how many
-    // different days? The DB Records list is one report type at a time,
-    // so the counts come from their own lightweight all-types read (no
-    // payload) - that is what makes "9 records · 4 visits" true for the
-    // clinic's whole record of this patient, not just this form.
+    // different days? The aggregate RPC counts all report types, but only
+    // for the keys on this page and only within the caller's RLS-visible rows.
     //
     // Identity: patient_id when the row has one, otherwise the trimmed,
     // case-folded name. RACOMA, ALLOY has no ID on file, so a name key
@@ -2130,9 +2165,7 @@ function doctorFilter() {
     // dashboard's counters already make.
     //
     // "Visits" = distinct dates: procedure_date, falling back to the day
-    // the record was saved. Soft-deleted rows never arrive (0026 hides
-    // them in RLS for EVERY caller) and drafts are excluded twice: by the
-    // three-clause or= filter in the query, and again by isDatabaseRecord here.
+    // the record was saved. The compatibility path preserves legacy filters.
     // ------------------------------------------------------------------
     function patientStatsKey(row) {
         const pid = String((row && row.patient_id) || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -2141,11 +2174,32 @@ function doctorFilter() {
         return name ? 'name:' + name : '';
     }
 
-    async function loadPatientStats() {
-        // Same paging contract as the list (fetchAllPages): the clinic's
-        // whole record counts as visits, so a fixed newest-5000 window
-        // would quietly undercount a busy shelf. `id.desc` is only the
-        // order tie-break so pages cannot reshuffle between requests.
+    async function loadPatientStats(records) {
+        const keys = [...new Set((records || []).map(patientStatsKey).filter(Boolean))];
+        if (!keys.length) return new Map();
+        if (patientStatsRpcAvailable !== false) {
+            try {
+                const result = await window.EntSupabase.apiRequest('rpc/ent_patient_record_stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ p_patient_keys: keys })
+                });
+                if (!Array.isArray(result)) throw new Error('The database returned invalid patient visit counts.');
+                patientStatsRpcAvailable = true;
+                return new Map(result.map(row => [row.stats_key, {
+                    records: Number(row.records) || 0,
+                    visits: Number(row.visits) || 0
+                }]));
+            } catch (error) {
+                if (!missingRpc(error, 'ent_patient_record_stats')) {
+                    console.warn('Patient visit counts unavailable.', error);
+                    return null;
+                }
+                patientStatsRpcAvailable = false;
+                console.warn('Aggregated patient visit endpoint is not installed; using a paged compatibility query.', error);
+            }
+        }
+
         const base = 'reports?select=patient_name,patient_id,procedure_date,created_at'
             + ',is_draft,payload->>dbSaved';
         const plainBase = 'reports?select=patient_name,patient_id,procedure_date,created_at,is_draft';
@@ -2162,14 +2216,16 @@ function doctorFilter() {
         let rows;
         try {
             rows = await fetchAllPages(
-                offset => window.EntSupabase.apiRequest(pageQuery(base, savedFilter)(offset)));
+                offset => window.EntSupabase.apiRequest(pageQuery(base, savedFilter)(offset)),
+                MAX_STATS_FALLBACK_ROWS);
         } catch (first) {
             try {
                 // Older API without the jsonb path: is_draft alone still
                 // separates drafts from saved records (0017 made both honest),
                 // and IS NULL is kept - a missing flag is NOT a draft.
                 rows = await fetchAllPages(
-                    offset => window.EntSupabase.apiRequest(pageQuery(plainBase, plainSavedFilter)(offset)));
+                    offset => window.EntSupabase.apiRequest(pageQuery(plainBase, plainSavedFilter)(offset)),
+                    MAX_STATS_FALLBACK_ROWS);
             } catch (second) {
                 console.warn('Patient visit counts unavailable.', second);
                 return null;
@@ -2191,11 +2247,19 @@ function doctorFilter() {
         totals.forEach(function (v, k) {
             out.set(k, { records: v.records, visits: Math.max(1, v.days.size) });
         });
-        return out;
+        return new Map(Array.from(out.entries()).filter(([key]) => keys.includes(key)));
+    }
+
+    function updateLoadMoreButton() {
+        if (!loadMoreButtonElement) return;
+        loadMoreButtonElement.hidden = trashMode || !hasMoreRecords;
+        loadMoreButtonElement.disabled = loadingRecords;
+        loadMoreButtonElement.textContent = loadingRecords ? 'Loading records...' : 'Load more records';
     }
 
     function renderList(records) {
         if (!listElement) return;
+        updateLoadMoreButton();
         const query = String((searchElement && searchElement.value) || '').toLowerCase().trim();
         const filtered = (records || []).filter(record => {
             if (!query) return true;
@@ -2232,12 +2296,13 @@ function doctorFilter() {
         }
 
         rows.forEach(record => listElement.appendChild(buildCard(record)));
-        const suffix = query ? ` (filtered from ${records.length})` : '';
+        const suffix = query && !listServerFiltered ? ` (filtered from ${records.length} loaded)` : '';
         const scope = siteFilter ? ` \u00B7 ${siteFilter}` : '';
         const draftNote = hiddenDrafts
             ? ` \u00B7 ${hiddenDrafts} shared draft${hiddenDrafts === 1 ? '' : 's'} hidden (see My Drafts)`
             : '';
-        setStatus(`${rows.length} saved patient${rows.length === 1 ? '' : 's'}${scope}${suffix}${draftNote}`, false, false);
+        const pageNote = hasMoreRecords ? ` \u00B7 ${currentRecords.length} loaded; more available` : '';
+        setStatus(`${rows.length} saved patient${rows.length === 1 ? '' : 's'}${scope}${suffix}${draftNote}${pageNote}`, false, false);
     }
 
     // ------------------------------------------------------------------
@@ -2314,6 +2379,7 @@ function doctorFilter() {
 
     function renderTrashList() {
         if (!listElement) return;
+        updateLoadMoreButton();
         const rows = trashTypeRows();
         listElement.innerHTML = '';
         if (!rows.length) {
@@ -2839,7 +2905,8 @@ function doctorFilter() {
         // The Final Saved <-> Editable status button beside Set/Move, for
         // exactly the same reason: the test drives it directly, and this
         // is where the record_key -> row id resolution gets locked down.
-        toggleFinalSaved
+        toggleFinalSaved,
+        loadMoreRecords
     };
 
     if (document.readyState === 'loading') {

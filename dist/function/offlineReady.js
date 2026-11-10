@@ -36,6 +36,8 @@
     const DISMISS_KEY = 'entOfflineReadyDismissedV1'; // sessionStorage: shown once per session
     let pill = null;
     let textEl = null;
+    let detailsEl = null;
+    let detailsBtn = null;
     let retryBtn = null;
     let running = false;
     let lastState = '';
@@ -66,6 +68,23 @@
                     'max-width:min(92vw,380px);transition:background .2s}',
                     '#entOfflineReady .ent-or-dot{width:9px;height:9px;border-radius:50%;',
                     'background:#64748b;flex:0 0 auto}',
+                    '#entOfflineReady [hidden]{display:none!important}',
+                    '#entOfflineReady.is-ready{gap:7px;padding:5px 8px 5px 9px;',
+                    'font-size:11px;max-width:min(82vw,190px)}',
+                    '#entOfflineReady.is-ready .ent-or-dot{width:8px;height:8px}',
+                    '#entOfflineReady .ent-or-details{display:none;max-width:100%;',
+                    'color:#cbd5e1;font:500 11px/1.45 system-ui,-apple-system,sans-serif}',
+                    '#entOfflineReady.is-expanded{display:grid!important;grid-template-columns:9px 1fr auto;',
+                    'align-items:center;column-gap:8px;row-gap:7px;max-width:min(90vw,320px)}',
+                    '#entOfflineReady.is-expanded .ent-or-details{display:block;grid-column:2/4}',
+                    '#entOfflineReady .ent-or-more{display:none;width:24px;height:24px;min-width:0;min-height:0;',
+                    'box-sizing:border-box;',
+                    'align-items:center;justify-content:center;padding:0;border:1px solid rgba(226,232,240,.25);',
+                    'border-radius:50%;background:transparent;color:#e2e8f0;font:700 12px/1 system-ui,sans-serif;',
+                    'cursor:pointer}',
+                    '#entOfflineReady.is-ready .ent-or-more{display:inline-flex}',
+                    '#entOfflineReady.is-ready .ent-or-more:hover{background:rgba(255,255,255,.12)}',
+                    '#entOfflineReady.is-ready.is-expanded .ent-or-more{grid-column:3;grid-row:1}',
                     '#entOfflineReady.is-preparing .ent-or-dot{background:#38bdf8;',
                     'animation:entOrPulse .9s infinite alternate}',
                     '#entOfflineReady.is-ready .ent-or-dot{background:#22c55e}',
@@ -92,6 +111,23 @@
             textEl = document.createElement('span');
             textEl.className = 'ent-or-text';
             textEl.textContent = 'Checking offline access\u2026';
+            detailsEl = document.createElement('span');
+            detailsEl.className = 'ent-or-details';
+            detailsEl.hidden = true;
+            detailsBtn = document.createElement('button');
+            detailsBtn.type = 'button';
+            detailsBtn.className = 'ent-or-more';
+            detailsBtn.textContent = 'i';
+            detailsBtn.setAttribute('aria-label', 'Show offline access details');
+            detailsBtn.setAttribute('aria-expanded', 'false');
+            detailsBtn.addEventListener('click', function () {
+                const expanded = pill.classList.toggle('is-expanded');
+                detailsEl.hidden = !expanded;
+                detailsBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                detailsBtn.setAttribute('aria-label', expanded
+                    ? 'Hide offline access details'
+                    : 'Show offline access details');
+            });
             retryBtn = document.createElement('button');
             retryBtn.type = 'button';
             retryBtn.className = 'ent-or-retry';
@@ -110,6 +146,8 @@
             });
             pill.appendChild(dot);
             pill.appendChild(textEl);
+            pill.appendChild(detailsEl);
+            pill.appendChild(detailsBtn);
             pill.appendChild(retryBtn);
             document.body.appendChild(pill);
         } catch (e) {
@@ -124,7 +162,14 @@
         if (stateChanged && hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         pill.className = 'no-print is-' + kind;
         pill.style.display = 'inline-flex';
-        textEl.textContent = text;
+        const isReady = kind === 'ready';
+        textEl.textContent = isReady ? 'Offline-ready \u2713' : text;
+        textEl.title = isReady ? text : '';
+        detailsEl.textContent = text;
+        detailsEl.hidden = true;
+        detailsBtn.hidden = !isReady;
+        detailsBtn.setAttribute('aria-expanded', 'false');
+        detailsBtn.setAttribute('aria-label', 'Show offline access details');
         // Retry helps whenever something is missing or could not start; it
         // is hidden only for "ready" and for "this browser has no service
         // worker support at all" (retrying would not change that).

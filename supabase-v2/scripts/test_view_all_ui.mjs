@@ -474,6 +474,22 @@ ok('T25', 'a 500 surfaces its message rather than claiming success',
      nodes.ccaRecord.open === false, 'open=' + nodes.ccaRecord.open);
 }
 
+// ---- 11 · request actions use simple monochrome icons ----------------
+{
+  const pageHtml = readFileSync(join(APP, 'pages', 'viewAll.html'), 'utf8');
+  const css = readFileSync(join(APP, 'style', 'view-all.css'), 'utf8');
+  const requestButtons = [...pageHtml.matchAll(/<button[^>]*class="ent-btn cca-reqbtn"[\s\S]*?<\/button>/g)]
+  const icons = requestButtons.map(match => match[0].match(/class="cca-reqbtn-icon"[\s\S]*?<\/span>/))
+
+  ok('T51', 'My requests and Inbox use drawn icons instead of colored emoji',
+     requestButtons.length === 2 &&
+     icons.every(icon => icon && /<svg/.test(icon[0]) && /stroke="currentColor"/.test(icon[0])) &&
+     !/&#128178;|&#128229;/.test(pageHtml))
+  ok('T52', 'request icons and arrows stay black on both themes',
+     /body\.ent-cca-page \.cca-reqbtn-icon svg\s*\{[^}]*color:\s*#111/.test(css) &&
+     /body\.ent-cca-page \.cca-reqbtn-copy > span,[\s\S]*?\.cca-reqbtn-arrow\s*\{[^}]*color:\s*#111/.test(css))
+}
+
 console.log('')
 console.log(failed === 0
   ? `==== ALL UI CHECKS PASSED — ${passed} passed, 0 failed ====`

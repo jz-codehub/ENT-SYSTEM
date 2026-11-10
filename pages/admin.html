@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v32c">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/admin.css?v=v34ab">
+    <link rel="stylesheet" href="../style/admin.css?v=v34ac">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
 </head>
 <body class="ent-admin-page">
@@ -49,7 +49,7 @@
 
              There is deliberately NO "My tickets" tab. An admin answers the
              clinic queue; filing a ticket is what a doctor or a secretary
-             does, from tickets.html.
+             does, from reportProblem.html.
         -->
         <nav class="ent-admin-nav" id="adminTabs" aria-label="Admin sections">
             <div class="ent-nav-cluster">
@@ -474,6 +474,19 @@
                 <div class="ent-empty">Loading usage&hellip;</div>
             </div>
 
+            <div class="ent-card ent-database-health">
+                <div>
+                    <h3>Capacity signals</h3>
+                    <p class="ent-hint" id="dbCapacityNote">Waiting for the latest usage readings&hellip;</p>
+                </div>
+                <div>
+                    <h3>Backup status</h3>
+                    <p class="ent-hint" id="dbBackupNote">
+                        Not verified by this dashboard. An authorized operator must run the documented backup, protect its sensitive output outside the web root, and verify recovery with a restore test. No backup time or restore status is available here.
+                    </p>
+                </div>
+            </div>
+
             <div class="ent-card-grid">
                 <div class="ent-card">
                     <div class="ent-card-head">
@@ -783,6 +796,6 @@
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/auth.js?v=v36h" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v34a" defer></script>
+    <script src="../function/admin.js?v=v34b" defer></script>
 </body>
 </html>

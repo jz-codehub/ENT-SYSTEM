@@ -101,7 +101,9 @@ Mag-upgrade sa **Pro ($25/buwan)** kapag kahit isa ang nangyari:
 - Egress > 4 GB/buwan sa chart;
 - DB > 300 MB;
 - Kailangan ng **automated backup** (free: walang — ang recovery plan ay
-  ang buwanang `backup_v2.mjs` na i-run mo mismo; Pro: daily, 7 araw);
+  ang buwanang `backup_v2.mjs --full` na i-run mo mismo, i-validate gamit
+  ang `restore_v2.mjs <backup-dir> --check`, at itago nang pribado; Pro:
+  daily, 7 araw);
 - Hindi na mapananahanan ang "isang beses bawat linggo" na gamit.
 
 ## Buwanang monitoring (10 minuto)
@@ -112,3 +114,34 @@ Mag-upgrade sa **Pro ($25/buwan)** kapag kahit isa ang nangyari:
 3. Isulat ang tatlong numero sa isang maliit na tala kada buwan — ang
    **trend** ang mahalaga, hindi ang solong basa.
 4. Kapag lumagpas sa threshold sa itaas: kilos bago mapuno, hindi pagkatapos.
+
+Ang full export ay maaaring malaki at naglalaman ng patient data at auth
+password hashes. Hindi ito transaction snapshot; i-pause ang writes habang
+nag-e-export para mabawasan ang posibilidad ng hindi tugmang mga pahina.
+Hindi pa napatunayan ang restore sa live project—subukan muna ito sa
+throwaway project bago umasa rito para sa recovery.
+
+May monthly reminder din sa doctor/secretary dashboard para mag-download ng
+RLS-visible, saved report rows bilang JSON (`ent-records-YYYY-MM-DD.json`).
+Kasama rito ang report payload pero hindi ang deleted rows, hiwalay na
+Storage photo files, auth accounts, o buong system settings—kaya hindi ito
+kapalit ng full admin backup. Paalalahanan ang staff na panatilihing pribado
+ang file. Ang reminder state ay lokal sa browser/device at bawat user account;
+puwedeng ipagpaliban nang 7 araw. I-pause ang pag-save/pag-edit habang
+nag-e-export para mabawasan ang posibilidad ng hindi tugmang mga pahina.
+
+Para sa mas malaking history, ang DB Records browser ay naglo-load ng tig-
+100 row at gumagamit ng RLS-scoped aggregate para sa visit chips matapos
+ma-apply ang `0047_bounded_patient_record_reads.sql`. Ang offline cache ay
+sadyang nananatiling limitado sa 500 local metadata rows; ang online DB
+Records ang daan para sa buong cloud history. Ang 50-row metadata upgrade
+batch ay umiikot sa stubs para hindi maharangan ng paulit-ulit na failed
+download ang mga susunod na row.
+
+Ang dashboard ay gumagamit na ng `0048_dashboard_summary_counts.sql` para
+magpa-compute sa database ng exact counts sa buong sakop na period; maliliit
+na totals lang ang ipinapadala sa browser. RLS pa rin ang naglilimita kung
+sinong records ang mabibilang. I-apply ang migration bago ang matching
+browser build. Kung wala pa ito, malinaw na warning ang ipapakita at babalik
+ang dashboard sa capped count. Mananatili ang 3,000-row cap para sa recent
+patients at follow-up panels, dahil kailangan nila ang mismong record details.

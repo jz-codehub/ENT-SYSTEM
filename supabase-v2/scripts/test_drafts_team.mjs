@@ -70,6 +70,7 @@ function makeEl(tag) {
     setAttribute(k, v) { if (k === 'id') el.id = String(v); if (k === 'class') el.className = String(v) },
     getAttribute() { return null },
     appendChild(c) { children.push(c); return c },
+    append(...items) { children.push(...items) },
     removeChild(c) { const i = children.indexOf(c); if (i >= 0) children.splice(i, 1); return c },
     remove() {},
     querySelector(sel) {
@@ -116,7 +117,11 @@ function boot({ mode = 'normal', onLine = true, search = '', user, mineRows, tea
 
   const document = {
     readyState: 'complete', title: 'test',
-    body: { style: {}, appendChild() {}, classList: { contains: () => false }, insertAdjacentHTML() {} },
+    body: {
+      style: {}, children: [],
+      appendChild(el) { this.children.push(el); return el },
+      classList: { contains: () => false }, insertAdjacentHTML() {}
+    },
     addEventListener: () => {},
     getElementById: () => null,
     createElement: tag => makeEl(tag),
@@ -387,7 +392,7 @@ console.log('')
      env.win.location.href)
 }
 
-/* ---- 8 · arriving from the other page: it opens by itself ---------- */
+/* ---- 8 · arriving from the other page: confirm replacement ---------- */
 {
   const mine = [draftRow({ key: 'cf4|R1', by: 'doc-jess', byName: 'Jesus Jardin', patient: 'HANDED, OVER' })]
   const env = await open({
@@ -396,9 +401,15 @@ console.log('')
     mineRows: mine,
     teamRows: [],
   })
-  ok('T28', 'arriving with ?ent_draft opens the draft with no button pressed',
-     env.alerts.some(a => /DRAFT LOADED/.test(a)), env.alerts.join(' / ').slice(0, 70))
-  ok('T29', 'and it read the shelf on arrival, even with no modal open',
+  const feedback = env.win.document.body.children.find(el =>
+    String(el.className || '').includes('ent-feedback-overlay'))
+  const feedbackText = feedback && feedback.children[0]
+    ? feedback.children[0].children.map(el => el.textContent).join(' ')
+    : ''
+  ok('T28', 'arriving with ?ent_draft asks before replacing the current form',
+     feedbackText.includes('Replace the current form?')
+       && feedbackText.includes('Open HANDED, OVER in the form?'), feedbackText)
+  ok('T29', 'and it read the shelf automatically on arrival',
      env.calls.some(c => c.includes('is_draft=eq.true')))
 }
 

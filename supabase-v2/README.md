@@ -1,12 +1,31 @@
 # supabase-v2 — the rebuild
 
-This folder is the **replacement** for `supabase/` (v1). It is a full schema
-plus two Edge Functions, written so that the questions the old probes kept
-asking — *who is allowed to see this row, and where is the password stored* —
-have one answer each, in the database.
+This folder contains the current v2 schema and Edge Functions. The checked-in
+frontend is integrated with v2 for authentication, reports, account
+administration, and photo operations. The older v1 implementation may still
+exist in a deployed project; this repository cannot confirm which backend or
+migrations are currently live. Verify the deployed project before changing
+schemas, switching traffic, or removing a legacy function.
 
-Nothing here is live yet. Nothing here edits `function/*.js`. Read
-`docs/07-FRONTEND-INTEGRATION.md` before touching the frontend.
+`docs/07-FRONTEND-INTEGRATION.md` records the original migration plan and
+summarizes the integration status. Do not treat its historical steps as work
+that is still pending.
+
+The DB Records paging RPCs require `0047_bounded_patient_record_reads.sql`
+to be applied before deploying the matching browser build. Existing builds
+fall back to the older paged REST queries if the migration has not yet been
+applied; do not mistake that compatibility path for the bounded optimized path.
+
+Exact dashboard count tiles and activity-day summaries require
+`0048_dashboard_summary_counts.sql`. Before it is applied, the dashboard keeps
+working but its cloud counts may be limited to the newest 3,000 loaded rows.
+Recent-patient and follow-up panels remain intentionally bounded after 0048.
+
+The doctor/secretary dashboard also reminds each account monthly to download
+its RLS-visible saved reports as a dated JSON file. This is a private,
+user-scoped report export, not a full project backup; separately stored photos,
+deleted rows, and auth accounts are excluded. The reminder state is per
+browser/device.
 
 ## What changes, in one line each
 
@@ -44,6 +63,8 @@ Nothing here is live yet. Nothing here edits `function/*.js`. Read
 | `migrations/0040_missing_grants.sql` | the grant-gap repair found by `check_function_grants.mjs`: `report_access_requests` + `secretary_assignments` get their table grants, 0031/0032's four RPCs get `authenticated` EXECUTE, `ent_capability` gets `service_role` EXECUTE (the 0011 defect-1 class, silent until the photo_storage switch is flipped) |
 | `migrations/0041_duplicate_patient_guard.sql` | duplicate-patient protection at the DATABASE: partial unique indexes `uniq_reports_patient_day` / `uniq_reports_case_number_day` (hospital ID or case number + type + date + shelf, live final rows only — a NAME is never unique) and the read-only, SECURITY-INVOKER review RPC `ent_possible_duplicates()`; the browser adopts the existing row's `record_key` on an ID match and recovers from a 23505 race by merging into the winning row |
 | `migrations/0046_rename_main_clinic_doc_jess.sql` | renames the existing `main_clinic` to `Doc Jess` and corrects doctor Jess's display name to `Doc Jess Jardin`, preserving clinic IDs and records |
+| `migrations/0047_bounded_patient_record_reads.sql` | RLS-scoped DB Records paging (100 rows), photo-stripped card projections, and exact visit aggregates for only the patients on the current page |
+| `migrations/0048_dashboard_summary_counts.sql` | RLS-scoped dashboard totals and daily report aggregates without sending report rows to the browser |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing
@@ -60,8 +81,9 @@ Nothing below needs credentials.
 
 ```powershell
 cd "supabase-v2\scripts"
-npm install
-node check_migrations.mjs        # 317 static checks over SQL + functions
+npm ci
+npm test                         # offline/static checks; does not contact the database
+node check_migrations.mjs        # static checks over SQL + functions
 node parse_check.mjs             # every Edge Function parses as an ES module
 node bundle_for_dashboard.mjs    # dist/*.bundle.ts, each re-parsed
 ```
@@ -78,8 +100,15 @@ A new project takes about a minute: supabase.com → New project → any name, a
 password you will not reuse, **region Singapore** (closest to the clinic). The
 ref is the subdomain in the project URL.
 
-Dashboard → Project Settings → API Keys gives three values. Put them in
-`scripts/.env.local`, which already exists here with placeholders:
+Dashboard → Project Settings → API Keys gives three values. Create
+`scripts/.env.local` locally; no key template is committed. This file is
+git-ignored:
+
+```text
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+```
 
 | Value | Where it may appear |
 |---|---|
@@ -90,19 +119,20 @@ Dashboard → Project Settings → API Keys gives three values. Put them in
 Then set the functions' env in Dashboard → Configuration → Edge Functions →
 Secrets (section 3 below) — before deploying, so the first boot has them.
 
-`git` is not installed on this machine, so nothing here is under version control
-yet. The `.gitignore` files are already in place; they only start doing
-something once the folder is in a repository.
+This project is under version control. Keep credentials and local test output
+out of commits; run the repository's pre-publish check before pushing.
 
 
 ## 2 · Apply the schema
 
-**Use a throwaway project first.** Do not run these against the project the
-live app is using until the test plan passes end to end.
+**Use a throwaway project first.** For an existing project, confirm its schema
+and migration history before applying anything. Do not run the whole chain
+against the live app's database or assume repeated application is safe.
 
-Dashboard → SQL Editor → run each file **in the order above**, one at a time.
-Every file is idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `ON CONFLICT
-DO NOTHING`), so a half-finished run can be re-run safely.
+For a new test project, Dashboard → SQL Editor → run each file **in order**,
+one at a time. If any file fails, stop and inspect the resulting database state
+before deciding whether to retry or continue; the presence of guards in some
+migrations does not make the entire chain safe to replay.
 ### The mechanics, once
 
 1. SQL Editor → **New query**. Give it a name like `0001` (or leave it
@@ -265,7 +295,7 @@ curl.exe -X POST "https://<ref>.supabase.co/functions/v1/auth-admin" `
 
 ```powershell
 cd supabase-v2\scripts
-copy .env.example .env.local     # fill in URL + service key
+# Create .env.local locally with the target project's URL and keys first.
 node create_test_accounts.mjs    # synthetic roster, prints passwords once
 ```
 
@@ -285,9 +315,10 @@ These stay true until the test plan says otherwise:
    in IndexedDB exactly as they do today. Flip it only after every `STORAGE-*`
    test passes, and flip it per clinic — not by editing localStorage.
 2. No real patient data is migrated until `CRED-*`, `ISO-*` and `PRIV-*` pass.
-3. The v1 functions (`supabase/edge-functions/`) stay deployed and untouched
-   until the frontend is moved over file by file. The two schemas do not share
-   a table, so both can run side by side during the switch.
+3. Keep any deployed v1 functions available only as long as the verified
+   cutover or rollback plan requires them. The checked-in frontend calls v2;
+   confirm the actual production traffic and backup before disabling a legacy
+   function. The v1 and v2 schemas do not share a table.
 4. Rollback of the schema is not a revert script — it is `drop schema public
    cascade` on a **test** project and re-apply. On the live project, restore
    the pre-cutover backup instead.

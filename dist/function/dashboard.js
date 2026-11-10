@@ -28,10 +28,14 @@
 
     const ADMIN_PREVIEW_KEY = 'entDashAdminPreview';
     const LOOKBACK_DAYS = 365;      // how far back the counters look
-    const ROW_LIMIT = 3000;         // safety cap on the fetched window
+    const ROW_LIMIT = 3000;         // bounded rows for recent/detail panels
+    const EXPORT_PAGE_SIZE = 250;
+    const MAX_MONTHLY_EXPORT_ROWS = 50000;
+    const MAX_MONTHLY_EXPORT_BYTES = 150 * 1024 * 1024;
+    const MONTHLY_EXPORT_STORAGE_KEY = 'entMonthlyRecordsExportV1';
     const CHART_DAYS = 7;
-    const RECENT_LIMIT = 8;
-    const FOLLOW_UP_PREVIEW = 6;    // how many follow-ups the card lists before "+N more"
+    const RECENT_PAGE_SIZE_DEFAULT = 10;
+    const RECENT_PAGE_SIZES = [10, 50, 100];
     // FREE-PLAN DISCIPLINE. Every refresh pulls the whole in-scope row window
     // from Postgres, which is EGRESS against the 5 GB/month cap - and an open
     // browser tab is a tab that keeps polling. These were 60s/45s; tripled to
@@ -132,6 +136,16 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                                  // 60s refresh, which would otherwise snap
                                  // the dropdown back to the live month.
     let rows = [];               // normalised record rows (newest first)
+    let cloudSummary = null;      // exact, small aggregate returned by migration 0048
+    let summaryError = '';
+    let activitySummaryError = '';
+    let activitySummaryRequestId = 0;
+    let monthlyExportBusy = false;
+    let notificationCenterWired = false;
+    let notificationPanelOpen = false;
+    let recentPage = 0;
+    let recentPageSize = RECENT_PAGE_SIZE_DEFAULT;
+    let offlineStats = null;
     let outOfScope = 0;         // rows the server returned that are NOT this
                                  // account's shelf. Should always be 0; when it
                                  // is not, the hint says so instead of the
@@ -241,44 +255,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
     // Whole days from today to the follow-up, local midnight to local
     // midnight (so "today" is 0 regardless of the hour). Negative = overdue.
-    function followUpDays(dateStr) {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const then = new Date(y, m - 1, d);
-        if (isNaN(then.getTime())) return null;
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        return Math.round((then - today) / 86400000);
-    }
-    // The human label and the urgency class for one follow-up date.
-    function followUpState(days) {
-        if (days === null) return { cls: '', label: '' };
-        if (days < 0) return { cls: 'is-overdue', label: Math.abs(days) + (Math.abs(days) === 1 ? ' day overdue' : ' days overdue') };
-        if (days === 0) return { cls: 'is-today', label: 'Today' };
-        if (days === 1) return { cls: 'is-soon', label: 'Tomorrow' };
-        if (days <= 7) return { cls: 'is-soon', label: 'In ' + days + ' days' };
-        if (days <= 30) return { cls: 'is-future', label: 'In ' + days + ' days' };
-        return { cls: 'is-future', label: 'In ' + Math.round(days / 30) + ' month' + (days >= 60 ? 's' : '') };
-    }
-    // Every in-scope row that carries a follow-up, newest-promise first is
-    // wrong here: the one you must act on soonest should lead, so this sorts
-    // by the follow-up date ascending (overdue first, then soonest future).
-    // A window of the last FOLLOW_UP_LOOKBACK days keeps a two-year-old
-    // forgotten date from riding the top of the list forever.
-    const FOLLOW_UP_LOOKBACK = 90;
-    function followUpRows() {
-        return rows.filter(function (r) {
-            const d = followUpOf(r);
-            if (!d) return false;
-            const days = followUpDays(d);
-            // Drop dates too far in the past (an un-cleared old promise) and
-            // nothing at all in the far future beyond a year - those are not
-            // actionable reminders, they are noise.
-            return days !== null && days >= -FOLLOW_UP_LOOKBACK && days <= 365;
-        }).map(function (r) {
-            const d = followUpOf(r);
-            return { row: r, date: d, days: followUpDays(d), state: followUpState(followUpDays(d)) };
-        }).sort(function (a, b) { return a.days - b.days; });
-    }
     // The small chip drawn beside a record. Nothing is drawn when the record
     // has no hospital tag (saved before this was tracked, or from a device
     // with no letterhead) - a chip that says nothing is worse than none.
@@ -504,6 +480,159 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return bucket;
     }
 
+    function dashboardSummaryWindows(now) {
+        const end = now.getTime() + 1000;
+        const today = startOfDay(now);
+        const week = weekStart(now);
+        const month = monthStart(now);
+        const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const rangeStart = new Date(end - LOOKBACK_DAYS * 86400000);
+        const windows = [
+            { key: 'today', start: today.getTime(), end: end },
+            { key: 'yesterday', start: today.getTime() - 86400000, end: today.getTime() },
+            { key: 'week', start: week.getTime(), end: end },
+            { key: 'lastWeek', start: week.getTime() - 604800000,
+                end: Math.min(end, week.getTime() - 604800000 + (end - week.getTime())) },
+            { key: 'weekFull', start: week.getTime() - 604800000, end: week.getTime() },
+            { key: 'month', start: month.getTime(), end: end },
+            { key: 'prevMonth', start: previousMonth.getTime(), end: month.getTime() },
+            { key: 'year', start: rangeStart.getTime(), end: end }
+        ];
+        const selectedYear = Number(growthPeriod && growthPeriod.y || now.getFullYear());
+        const selectedMonth = Number(growthPeriod && growthPeriod.m || now.getMonth() + 1);
+        if (selectedMonth >= 1 && selectedMonth <= 12) {
+            const selectedStart = new Date(selectedYear, selectedMonth - 1, 1);
+            const selectedEnd = new Date(selectedYear, selectedMonth, 1);
+            if (selectedStart.getTime() <= now.getTime()
+                && selectedEnd.getTime() > rangeStart.getTime()) {
+                const days = new Date(selectedYear, selectedMonth, 0).getDate();
+                for (let day = 1; day <= days; day++) {
+                    const start = new Date(selectedYear, selectedMonth - 1, day);
+                    const dayEnd = new Date(selectedYear, selectedMonth - 1, day + 1);
+                    if (start.getTime() >= end || dayEnd.getTime() <= rangeStart.getTime()) continue;
+                    windows.push({
+                        key: dayKeyOf(start),
+                        start: Math.max(start.getTime(), rangeStart.getTime()),
+                        end: Math.min(dayEnd.getTime(), end)
+                    });
+                }
+            }
+        }
+        const unique = new Map();
+        windows.forEach(function (window) {
+            unique.set(window.key, window);
+        });
+        return Array.from(unique.values()).map(function (window) {
+            return {
+                bucket_key: window.key,
+                starts_at: new Date(window.start).toISOString(),
+                ends_at: new Date(window.end).toISOString()
+            };
+        });
+    }
+
+    async function requestDashboardSummary(windows) {
+        const result = await api('rpc/ent_dashboard_summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                p_windows: windows,
+                p_doctor_id: scopeInfo && scopeInfo.doctorId || null,
+                p_scope_all: !!(scopeInfo && (scopeInfo.seeAll || scopeInfo.role === 'admin')),
+                p_username: myName || null
+            })
+        });
+        if (!Array.isArray(result)) {
+            throw new Error('The database returned an invalid dashboard summary.');
+        }
+        const summary = Object.create(null);
+        result.forEach(function (row) {
+            if (!row || typeof row.bucket_key !== 'string') return;
+            const values = {
+                reports: Number(row.reports),
+                patientCount: Number(row.patient_count),
+                endoCount: Number(row.endo_count),
+                cf4Count: Number(row.cf4_count),
+                nasal: Number(row.nasal_reports),
+                laryngeal: Number(row.laryngeal_reports),
+                cf4: Number(row.cf4_reports),
+                other: Number(row.other_reports),
+                mine: Number(row.mine)
+            };
+            if (Object.keys(values).some(function (key) {
+                return !Number.isSafeInteger(values[key]) || values[key] < 0;
+            })) {
+                throw new Error('The database returned invalid dashboard counts.');
+            }
+            summary[row.bucket_key] = values;
+        });
+        if (windows.some(function (window) { return !summary[window.bucket_key]; })) {
+            throw new Error('The database returned an incomplete dashboard summary.');
+        }
+        return summary;
+    }
+
+    async function loadCloudSummary() {
+        return requestDashboardSummary(dashboardSummaryWindows(new Date()));
+    }
+
+    function bucketFromSummary(summary, key) {
+        const value = summary && summary[key];
+        if (!value) return null;
+        return {
+            seen: Object.create(null),
+            seenEndo: Object.create(null),
+            seenCf4: Object.create(null),
+            patientCount: value.patientCount,
+            endoCount: value.endoCount,
+            cf4Count: value.cf4Count,
+            reports: value.reports,
+            mine: value.mine,
+            types: {
+                nasal: value.nasal,
+                laryngeal: value.laryngeal,
+                cf4: value.cf4,
+                other: value.other
+            }
+        };
+    }
+
+    function activitySummaryWindows(year, month) {
+        const y = Number(year);
+        const m = Number(month);
+        if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) return [];
+        const monthStart = new Date(y, m - 1, 1);
+        if (monthStart.getTime() > Date.now()) return [];
+        const rangeEnd = Date.now() + 1000;
+        const rangeStart = rangeEnd - LOOKBACK_DAYS * 86400000;
+        const days = new Date(y, m, 0).getDate();
+        const windows = [];
+        for (let day = 1; day <= days; day++) {
+            const start = new Date(y, m - 1, day);
+            const end = new Date(y, m - 1, day + 1);
+            if (start.getTime() >= rangeEnd || end.getTime() <= rangeStart) continue;
+            windows.push({
+                bucket_key: dayKeyOf(start),
+                starts_at: new Date(Math.max(start.getTime(), rangeStart)).toISOString(),
+                ends_at: new Date(Math.min(end.getTime(), rangeEnd)).toISOString()
+            });
+        }
+        return windows;
+    }
+
+    function applyActivitySummary(data) {
+        if (source !== 'cloud' || !cloudSummary) return data;
+        const apply = function (item) {
+            return {
+                key: item.key,
+                bucket: bucketFromSummary(cloudSummary, item.key) || item.bucket
+            };
+        };
+        data.monthSeries = data.monthSeries.map(apply);
+        data.series = data.series.map(apply);
+        return data;
+    }
+
     /* --------------------------- data load --------------------------- */
     function encounterMs(row) {
         /* WHEN THE RECORD WAS SAVED TO THE DATABASE - not the visit date.
@@ -561,6 +690,38 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 };
             })
             .sort(function (a, b) { return b._ts - a._ts; });
+    }
+
+    function isValidVisitDate(value) {
+        const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || '').trim());
+        if (!parts) return false;
+        const date = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
+        return !isNaN(date.getTime())
+            && date.getFullYear() === Number(parts[1])
+            && date.getMonth() === Number(parts[2]) - 1
+            && date.getDate() === Number(parts[3]);
+    }
+
+    function refreshOfflineStats() {
+        const store = window.EntOfflineStore;
+        if (!store || typeof store.stats !== 'function') {
+            offlineStats = { engine: 'unavailable', records: 0, pending: 0, unsynced: 0 };
+            renderActionSummary();
+            return;
+        }
+        store.stats().then(function (stats) {
+            offlineStats = stats && typeof stats === 'object'
+                && typeof stats.engine === 'string'
+                && typeof stats.pending === 'number' && isFinite(stats.pending)
+                && typeof stats.unsynced === 'number' && isFinite(stats.unsynced)
+                ? stats
+                : { engine: 'unavailable', records: 0, pending: 0, unsynced: 0 };
+            renderActionSummary();
+        }, function (error) {
+            console.warn('[Dashboard] Could not read offline sync status:', error);
+            offlineStats = { engine: 'unavailable', records: 0, pending: 0, unsynced: 0 };
+            renderActionSummary();
+        });
     }
 
     // Same scoping as dbRecords.js: never read another doctor's rows.
@@ -658,6 +819,61 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             else dropped += 1;
         }
         return { kept, dropped };
+    }
+
+    function monthlyExportMonth() {
+        const now = new Date();
+        return now.getFullYear() + '-' + pad(now.getMonth() + 1);
+    }
+
+    function monthlyExportState() {
+        if (!me || (me.role !== 'doctor' && me.role !== 'secretary') || !me.id) return {};
+        const key = MONTHLY_EXPORT_STORAGE_KEY + ':' + String(me.id);
+        try {
+            const raw = window.localStorage.getItem(key);
+            if (!raw) return {};
+            const state = JSON.parse(raw);
+            return state && typeof state === 'object' ? state : {};
+        } catch (error) {
+            console.warn('[Dashboard] Could not read monthly export reminder status:', error);
+            return {};
+        }
+    }
+
+    function saveMonthlyExportState(state) {
+        if (!me || !me.id) return false;
+        const key = MONTHLY_EXPORT_STORAGE_KEY + ':' + String(me.id);
+        try {
+            window.localStorage.setItem(key, JSON.stringify(state));
+            return true;
+        } catch (error) {
+            console.warn('[Dashboard] Could not save monthly export reminder status:', error);
+            return false;
+        }
+    }
+
+    function monthlyExportIsDue() {
+        if (!me || (me.role !== 'doctor' && me.role !== 'secretary') || !me.id) return false;
+        const state = monthlyExportState();
+        if (state.completedMonth === monthlyExportMonth()) return false;
+        return !(Number(state.snoozedUntil) > Date.now());
+    }
+
+    function snoozeMonthlyExport() {
+        const state = monthlyExportState();
+        state.snoozedUntil = Date.now() + 7 * 86400000;
+        if (saveMonthlyExportState(state)) renderNotices();
+    }
+
+    function completeMonthlyExport() {
+        const state = monthlyExportState();
+        state.completedMonth = monthlyExportMonth();
+        delete state.snoozedUntil;
+        if (saveMonthlyExportState(state)) renderNotices();
+        else {
+            renderNotices();
+            window.alert('The download started, but this browser could not remember it. The monthly reminder may appear again.');
+        }
     }
 
     // Device history (written by patientRecords.js) - the offline safety net.
@@ -779,11 +995,16 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     async function refresh(options) {
         const opts = options || {};
         if (busy) return;
+        activitySummaryRequestId += 1;
         setBusy(true);
         try {
             if (opts.push) await pushPendingRecords();
             if (navigator.onLine && window.EntSupabase && window.EntSupabase.isConfigured()) {
                 try {
+                    const summaryRequest = loadCloudSummary().then(
+                        function (summary) { return { summary: summary }; },
+                        function (error) { return { error: error }; }
+                    );
                     // Scoped BEFORE anything is counted. This is the fix for a
                     // new doctor seeing the whole database: RLS is supposed to
                     // hand back only their own rows, and if it ever does not,
@@ -793,7 +1014,28 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     outOfScope = split.dropped;
                     source = 'cloud';
                     loadError = '';
+                    const summaryResult = await summaryRequest;
+                    if (summaryResult.error) {
+                        cloudSummary = null;
+                        activitySummaryError = '';
+                        const message = String(summaryResult.error && summaryResult.error.message
+                            || summaryResult.error || '');
+                        summaryError = /404|PGRST202|function .* does not exist/i.test(message)
+                            ? 'Apply migration 0048; until then, counts use only the newest '
+                                + ROW_LIMIT.toLocaleString() + ' loaded records.'
+                            : 'The summary request failed; check the connection and refresh. Until it succeeds, counts use only the newest '
+                                + ROW_LIMIT.toLocaleString() + ' loaded records.';
+                        console.warn('[Dashboard] Exact count summary unavailable; using the bounded row counts.',
+                            summaryResult.error);
+                    } else {
+                        cloudSummary = summaryResult.summary;
+                        summaryError = '';
+                        activitySummaryError = '';
+                    }
                 } catch (error) {
+                    cloudSummary = null;
+                    summaryError = '';
+                    activitySummaryError = '';
                     loadError = (error && error.message) || 'Could not reach the cloud database.';
                     // Fallback to device + offline records
                     const device = normalise(loadDeviceRows());
@@ -804,6 +1046,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 }
             } else {
                 // Offline or not configured: load from device localStorage AND IndexedDB
+                cloudSummary = null;
+                summaryError = '';
+                activitySummaryError = '';
                 const device = normalise(loadDeviceRows());
                 const offline = normalise(await loadOfflineRows());
                 rows = [...device, ...offline];
@@ -817,6 +1062,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             lastLoadedAt = Date.now();
             setBusy(false);
             renderAll();
+            refreshOfflineStats();
             refreshQueue();
             // The admin's per-clinic card reads two directories the regular
             // dashboard never asks for. Kicked here (not awaited) so a slow
@@ -843,7 +1089,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             series.push({ key: dayKeyOf(day), bucket: bucketBetween(from, from + 86400000) });
         }
 
-        return {
+        const data = {
             now: now,
             today: bucketBetween(t0, end),
             yesterday: bucketBetween(t0 - 86400000, t0),
@@ -857,6 +1103,20 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             seriesEndo: seriesFor('endo'),
             seriesCf4: seriesFor('cf4')
         };
+        if (source === 'cloud' && cloudSummary) {
+            ['today', 'yesterday', 'week', 'lastWeek', 'weekFull', 'month', 'prevMonth', 'year']
+                .forEach(function (key) {
+                    const bucket = bucketFromSummary(cloudSummary, key);
+                    if (bucket) data[key] = bucket;
+                });
+            data.series = data.series.map(function (item) {
+                return {
+                    key: item.key,
+                    bucket: bucketFromSummary(cloudSummary, item.key) || item.bucket
+                };
+            });
+        }
+        return data;
     }
 
     /* --------------------------- rendering --------------------------- */
@@ -1018,8 +1278,60 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     function renderNotices() {
         const box = byId('dashNotices');
-        if (!box) return;
+        const notificationCenter = byId('dashNotificationCenter');
+        function positionNotificationPanel() {
+            if (!notificationPanelOpen || !notificationCenter) return;
+            const toggle = notificationCenter.querySelector('.ent-notification-toggle');
+            const panel = notificationCenter.querySelector('.ent-notification-panel');
+            if (!toggle || !panel) return;
+            const panelTop = toggle.getBoundingClientRect().bottom + 10;
+            panel.style.setProperty('--ent-notification-panel-top', Math.max(12, Math.round(panelTop)) + 'px');
+        }
+        if (!notificationCenterWired) {
+            notificationCenterWired = true;
+            if (notificationCenter) {
+                notificationCenter.addEventListener('click', function (event) {
+                    const target = event.target && typeof event.target.closest === 'function'
+                        ? event.target.closest('[data-notification-toggle], [data-monthly-export-action]')
+                        : null;
+                    const clicked = target || (event && event.target);
+                    if (!clicked || !clicked.dataset) return;
+                    if (clicked.dataset.notificationToggle !== undefined) {
+                        notificationPanelOpen = !notificationPanelOpen;
+                        renderNotices();
+                        const toggle = notificationCenter.querySelector('.ent-notification-toggle');
+                        if (toggle && typeof toggle.focus === 'function') toggle.focus();
+                        return;
+                    }
+                    if (clicked.dataset.monthlyExportAction === 'download') {
+                        return exportMonthlyRecords(clicked);
+                    }
+                    if (clicked.dataset.monthlyExportAction === 'later') {
+                        return snoozeMonthlyExport();
+                    }
+                });
+                window.addEventListener('resize', positionNotificationPanel);
+                window.addEventListener('scroll', positionNotificationPanel, true);
+            }
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && notificationPanelOpen) {
+                    notificationPanelOpen = false;
+                    renderNotices();
+                }
+            });
+            document.addEventListener('click', function (event) {
+                if (!notificationPanelOpen || !notificationCenter) return;
+                const target = event.target;
+                if (target && typeof target.closest === 'function'
+                    && target.closest('[data-notification-toggle], [data-monthly-export-action]')) return;
+                if (notificationCenter.contains && !notificationCenter.contains(event.target)) {
+                    notificationPanelOpen = false;
+                    renderNotices();
+                }
+            });
+        }
         const notices = [];
+        const notifications = [];
         const params = new URLSearchParams(window.location.search || '');
 
         if (params.get('denied')) {
@@ -1062,16 +1374,81 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     + 'If you can see them at all, tell your administrator.'
             });
         }
-        if (rows.length >= ROW_LIMIT) {
+        if (summaryError) {
+            notifications.push({
+                kind: 'is-warn',
+                html: '<strong>Counts may be incomplete.</strong> ' + esc(summaryError)
+            });
+        }
+        if (activitySummaryError) {
+            notifications.push({
+                kind: 'is-warn',
+                html: '<strong>Activity chart may be incomplete.</strong> ' + esc(activitySummaryError)
+            });
+        }
+        if (source === 'cloud' && cloudSummary && rows.length >= ROW_LIMIT) {
+            notices.push({
+                kind: 'is-info',
+                html: '<strong>Long history.</strong> Summary counts use all matching records. '
+                    + 'Recent-patient and follow-up panels show the newest '
+                    + ROW_LIMIT.toLocaleString() + ' records.'
+            });
+        } else if (rows.length >= ROW_LIMIT && !cloudSummary && !summaryError) {
             notices.push({
                 kind: 'is-info',
                 html: '<strong>Long history.</strong> The counters cover the newest '
                     + ROW_LIMIT.toLocaleString() + ' records of the last ' + LOOKBACK_DAYS + ' days.'
             });
         }
-        box.innerHTML = notices.map(function (n) {
-            return '<div class="ent-dash-notice ' + n.kind + '"><span>' + n.html + '</span></div>';
-        }).join('');
+        if (monthlyExportIsDue()) {
+            const canDownload = source === 'cloud' && !monthlyExportBusy;
+            notifications.push({
+                kind: 'is-info',
+                html: '<strong>Monthly records download.</strong> Save a dated copy of the saved reports '
+                    + 'your account can access. This JSON is sensitive patient data; store it securely. '
+                    + 'It does not include deleted reports, separately stored photo files, or account data. '
+                    + 'It is not a full system backup.',
+                actions: '<div class="ent-notification-actions">'
+                    + '<button type="button" class="ent-btn is-primary" data-monthly-export-action="download"'
+                    + (canDownload ? '' : ' disabled')
+                    + '>' + (monthlyExportBusy ? 'Preparing download\u2026'
+                        : (source === 'cloud' ? 'Download monthly records' : 'Connect to download')) + '</button>'
+                    + '<button type="button" class="ent-btn ent-dash-ghost" data-monthly-export-action="later">'
+                    + 'Remind me in 7 days</button></div>'
+            });
+        }
+        if (box) {
+            box.innerHTML = notices.map(function (n) {
+                return '<div class="ent-dash-notice ' + n.kind + '"><span>' + n.html + '</span></div>';
+            }).join('');
+        }
+        if (notificationCenter) {
+            const count = notifications.length;
+            const notificationItems = count
+                ? notifications.map(function (n) {
+                    return '<article class="ent-notification-item ' + n.kind
+                        + (n.actions ? ' is-monthly' : '') + '" role="status">'
+                        + '<div>' + n.html + '</div>' + (n.actions || '') + '</article>';
+                }).join('')
+                : '<p class="ent-notification-empty">You\u2019re all caught up.</p>';
+            notificationCenter.innerHTML = '<button type="button" class="ent-notification-toggle"'
+                + ' data-notification-toggle aria-label="Notifications'
+                + (count ? ', ' + count + ' active' : '') + '"'
+                + ' aria-expanded="' + (notificationPanelOpen ? 'true' : 'false') + '"'
+                + ' aria-controls="dashNotificationPanel" title="Notifications">'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+                + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                + '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>'
+                + '</svg>'
+                + (count ? '<span class="ent-notification-count" aria-hidden="true">'
+                    + count + '</span>' : '')
+                + '</button>'
+                + '<section class="ent-notification-panel" id="dashNotificationPanel"'
+                + ' aria-label="Notifications"' + (notificationPanelOpen ? '' : ' hidden') + '>'
+                + '<h2>Notifications</h2><div class="ent-notification-list">'
+                + notificationItems + '</div></section>';
+            positionNotificationPanel();
+        }
     }
 
     // Plain and simple: one number per period, one patient counted once -
@@ -1362,8 +1739,33 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
     function renderActivityPeriod(year, month) {
         const filtered = activityRowsForPeriod(rows, year, month);
-        const data = computeActivityData(filtered, year, month);
-        renderActivityCharts(data);
+        const draw = function () {
+            renderActivityCharts(applyActivitySummary(
+                computeActivityData(filtered, year, month)
+            ));
+        };
+        draw();
+        if (source !== 'cloud') return;
+
+        const windows = activitySummaryWindows(year, month).filter(function (window) {
+            return !cloudSummary || !cloudSummary[window.bucket_key];
+        });
+        if (!windows.length) return;
+        const requestId = ++activitySummaryRequestId;
+        activitySummaryError = '';
+        requestDashboardSummary(windows).then(function (summary) {
+            if (requestId !== activitySummaryRequestId || source !== 'cloud') return;
+            cloudSummary = cloudSummary || Object.create(null);
+            Object.keys(summary).forEach(function (key) { cloudSummary[key] = summary[key]; });
+            activitySummaryError = '';
+            draw();
+            renderNotices();
+        }).catch(function (error) {
+            if (requestId !== activitySummaryRequestId) return;
+            activitySummaryError = 'Activity Growth could not load exact counts for the selected month.';
+            console.warn('[Dashboard] Exact activity-month summary unavailable.', error);
+            renderNotices();
+        });
     }
     // Activity data for BOTH views: `series` is the 7-day week the three
     // split charts draw (the month's last week when it is over, today's
@@ -1753,12 +2155,63 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
+    function recentFilterState() {
+        const search = String((byId('dashRecentSearch') || {}).value || '').trim().toLowerCase();
+        const from = String((byId('dashRecentFrom') || {}).value || '').trim();
+        const to = String((byId('dashRecentTo') || {}).value || '').trim();
+        const type = String((byId('dashRecentType') || {}).value || '').trim();
+        const site = String((byId('dashRecentSite') || {}).value || '').trim();
+        const active = !!(search || from || to || type || site);
+        const filtered = rows.filter(function (row) {
+            const name = String(row.patient_name || '').toLowerCase();
+            const id = String(row.patient_id || '').toLowerCase();
+            const rawDate = String(row.procedure_date || '').slice(0, 10);
+            const visitDate = isValidVisitDate(rawDate) ? rawDate : '';
+            return (!search || name.indexOf(search) !== -1 || id.indexOf(search) !== -1)
+                && (!from || (visitDate && visitDate >= from))
+                && (!to || (visitDate && visitDate <= to))
+                && (!type || typeKey(row) === type)
+                && (!site || siteOf(row) === site);
+        });
+        return { active: active, filtered: filtered };
+    }
+
     function renderRecent() {
         const box = byId('dashRecent');
         if (!box) return;
-        const list = rows.slice(0, RECENT_LIMIT);
+        const result = recentFilterState();
+        const matching = result.filtered;
+        const adminView = isAdminView();
+        const displayItems = adminView ? matching : buildGroupedRows(matching);
+        const pageCount = Math.max(1, Math.ceil(displayItems.length / recentPageSize));
+        recentPage = Math.min(recentPage, pageCount - 1);
+        const start = recentPage * recentPageSize;
+        const list = displayItems.slice(start, start + recentPageSize);
+        const end = start + list.length;
+        const unit = adminView ? 'reports' : 'patient rows';
+        const pageInfo = byId('dashRecentPageInfo');
+        if (pageInfo) {
+            pageInfo.textContent = displayItems.length
+                ? (start + 1) + '\u2013' + end + ' of ' + displayItems.length + ' ' + unit + ' \u00b7 Page '
+                    + (recentPage + 1) + ' of ' + pageCount
+                : '0 ' + unit;
+        }
+        const previous = byId('dashRecentPrev');
+        const next = byId('dashRecentNext');
+        if (previous) previous.disabled = recentPage === 0;
+        if (next) next.disabled = recentPage >= pageCount - 1;
+        const resultLabel = byId('dashRecentResult');
+        if (resultLabel) {
+            resultLabel.textContent = result.active
+                ? matching.length + ' matching report(s)'
+                : rows.length
+                    ? matching.length + ' report(s)'
+                    : 'No reports loaded';
+        }
         if (!list.length) {
-            box.innerHTML = '<div class="ent-empty">No patient yet. Start a report with a quick action above and it shows up here right away.</div>';
+            box.innerHTML = result.active
+                ? '<div class="ent-empty">No reports match these filters. Try changing or clearing the filters.</div>'
+                : '<div class="ent-empty">No patient yet. Start a report with a quick action above and it shows up here right away.</div>';
             return;
         }
         // The avatar's is-<type> class carries the report-type hue now, so
@@ -1769,7 +2222,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         // records - each row naming the patient, the report, the save time and
         // the secretary or doctor who created it. Non-admins keep the flat
         // "latest records" list (single clinic), so their view is unchanged.
-        if (isAdminView()) {
+        if (adminView) {
             // Group by clinic_id in first-seen order (rows are newest first, so
             // the first row of each clinic is that clinic's newest patient).
             // Rows with no clinic at all (the device fallback stamps none) are
@@ -1846,7 +2299,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             return;
         }
 
-        const groups = buildGroupedRows(list);
+        const groups = list;
         box.innerHTML = groups.map(function (g) {
             const members = g.rows;
             const t = typeKey(members[0]);
@@ -1899,84 +2352,48 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
 
 
-    /* --------------------------- follow-ups ------------------------- */
-    /* THE FOLLOW-UP CARD + THE DUE-TODAY BADGE.
-     *
-     * A scope today often promises a re-scope or a re-check in two weeks.
-     * Nothing in the app remembered that, so a "come back on the 25th" lived
-     * only in someone's head or on a sticky note. The date now rides on
-     * payload.followUpDate (set from the Save-to-Database dialog), and this
-     * card is where it becomes a reminder instead of a forgotten field.
-     *
-     * Two surfaces, both driven by the SAME followUpRows() list so the badge
-     * count and the card can never disagree:
-     *   · a red "N due today" pill in the hero (#dashFollowUpBadge) - only
-     *     shown when something is actually due (overdue or today), because a
-     *     permanent zero is noise, exactly like the new-work badge.
-     *   · the card itself (#dashFollowUpCard): every in-window follow-up,
-     *     soonest first, colour-coded overdue / today / soon / future.
-     *
-     * Doctor/secretary only: an admin sees the whole clinic and works from
-     * the console, so the personal reminder is not his surface. The admin
-     * clinic-wide tracker lives in admin.js instead. */
-    function renderFollowUps() {
-        const badge = byId('dashFollowUpBadge');
-        const card = byId('dashFollowUpCard');
-        const role = (me && me.role) || '';
-        const list = followUpRows();
-        // Due = overdue OR today. This is the only thing that raises the badge,
-        // and it is what the hero pill answers: "is there anyone waiting?".
-        const due = list.filter(function (f) { return f.days <= 0; });
-        const dueToday = list.filter(function (f) { return f.days === 0; });
-
-        if (badge) {
-            const n = due.length;
-            badge.hidden = n === 0;
-            if (n) {
-                const num = byId('dashFollowUpN');
-                if (num) num.textContent = String(n);
-                badge.title = n === 1
-                    ? '1 patient is due (or overdue) for a follow-up visit'
-                    : n + ' patients are due (or overdue) for a follow-up visit';
-            }
+    function renderActionSummary() {
+        const host = byId('dashActionItems');
+        if (!host) return;
+        const queueKnown = queueLoaded && !queueError;
+        const review = queueKnown ? queueLists().review.length : null;
+        const offlineKnown = !!offlineStats && offlineStats.engine !== 'unavailable';
+        const pending = offlineKnown
+            ? Math.max(Number(offlineStats.pending) || 0, Number(offlineStats.unsynced) || 0)
+            : null;
+        function item(label, value, detail, href, kind) {
+            const state = value === null ? 'is-unknown' : value > 0 ? 'is-action' : 'is-clear';
+            const count = value === null ? '—' : String(value);
+            const contents = '<span class="ent-action-count">' + esc(count) + '</span>'
+                + '<span class="ent-action-copy"><b>' + esc(label) + '</b>'
+                + '<small>' + esc(detail) + '</small></span>';
+            const classes = 'ent-action-item ' + state + (kind ? ' is-' + kind : '');
+            return href && value !== 0
+                ? '<a class="' + classes + '" href="' + esc(href) + '">' + contents + '</a>'
+                : '<div class="' + classes + '">' + contents + '</div>';
         }
 
-        if (!card) return;
-        // The personal card is for the people who actually see these patients.
-        if (role !== 'doctor' && role !== 'secretary') { card.hidden = true; return; }
-        card.hidden = false;
-
-        const box = byId('dashFollowUp');
-        if (!box) return;
-        const hint = byId('dashFollowUpHint');
+        const offlineDetail = pending === null
+            ? 'Device sync status unavailable'
+            : pending
+                ? 'Saved on this device; waiting for cloud sync'
+                : 'No unsynced reports on this device';
+        const reviewDetail = review === null
+            ? 'Team review status unavailable'
+            : review
+                ? 'Teammate reports waiting for your review'
+                : 'No reports waiting for review';
+        host.innerHTML = [
+            item('Team review', review, reviewDetail, '#dashQueueCard', 'review'),
+            item('Offline sync', pending, offlineDetail, pageUrl('offlineWorkspace.html'), 'offline')
+        ].join('');
+        const hint = byId('dashActionHint');
         if (hint) {
-            hint.textContent = due.length
-                ? dueToday.length + ' due today &middot; ' + (due.length - dueToday.length) + ' overdue'
-                : 'Nothing due in the next few days';
+            const known = review !== null && pending !== null;
+            hint.textContent = known
+                ? 'Walk-in workflow \u00b7 counts use records visible to this account'
+                : 'Some checks need an online connection or a local sync-status read';
         }
-        if (!list.length) {
-            box.innerHTML = '<div class="ent-empty">No follow-up visits are due. '
-                + 'Set one when you save a report and it will appear here.</div>';
-            return;
-        }
-        const preview = list.slice(0, FOLLOW_UP_PREVIEW);
-        const hidden = list.length - preview.length;
-        box.innerHTML = preview.map(function (f) {
-            const t = typeKey(f.row);
-            const meta = TYPES[t] || { label: 'Report', icon: '\u2022' };
-            return '<div class="ent-followup-row ' + f.state.cls + '">'
-                + '<span class="ent-followup-date">' + esc(f.date) + '</span>'
-                + '<span class="ent-followup-main"><span class="ent-followup-name">'
-                + esc(displayNameOf(f.row)) + '</span>'
-                + '<span class="ent-followup-meta">' + esc(meta.icon + ' ' + meta.label)
-                + (f.row.procedure_date ? ' &middot; seen ' + esc(f.row.procedure_date) : '')
-                + '</span></span>'
-                + '<span class="ent-followup-state">' + esc(f.state.label) + '</span>'
-                + '</div>';
-        }).join('')
-            + (hidden > 0
-                ? '<p class="ent-queue-subempty">+' + hidden + ' more follow-up' + (hidden === 1 ? '' : 's') + ' further out</p>'
-                : '');
     }
 
 
@@ -1989,6 +2406,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     let queueTab = 'review';
     let queueRows = [];
     let queueError = '';
+    let queueLoaded = false;
     let showAllPatients = false;     // secretary: reveal the saved patients on tap
     /* HOW MANY ROWS BEFORE "View all".
        This was 30, which is not a preview - it is nearly the whole list, and
@@ -2502,18 +2920,24 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             loadQueueRows().then(function (list) {
                 queueRows = list;
                 queueError = '';
+                queueLoaded = true;
                 renderQueue();
+                renderActionSummary();
             }, function (e) {
                 queueRows = [];
                 queueError = (e && e.message) || String(e);
+                queueLoaded = true;
                 renderQueue();
+                renderActionSummary();
             });
         } else {
             queueRows = [];
             queueError = navigator.onLine
                 ? 'The cloud database is not configured on this device.'
                 : 'No internet connection right now.';
+            queueLoaded = true;
             renderQueue();
+            renderActionSummary();
         }
     }
 
@@ -2572,6 +2996,97 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return '"' + s.replace(/"/g, '""') + '"';
     }
 
+    async function exportMonthlyRecords(button) {
+        if (monthlyExportBusy) return;
+        if (source !== 'cloud' || !navigator.onLine) {
+            window.alert('Connect to the cloud database before downloading the monthly records.');
+            return;
+        }
+        monthlyExportBusy = true;
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Preparing download\u2026';
+        }
+
+        try {
+            const exportedAt = new Date().toISOString();
+            const scope = dashScopeLabel();
+            const prefix = '{"format":"ent-system-records-export","version":1'
+                + ',"exported_at":' + JSON.stringify(exportedAt)
+                + ',"scope":' + JSON.stringify(scope)
+                + ',"consistency_note":"For the most consistent export, pause new saves and edits until the download finishes."'
+                + ',"records":[';
+            const parts = [prefix];
+            const encoder = new TextEncoder();
+            let bytes = encoder.encode(prefix).length;
+            let count = 0;
+            let offset = 0;
+            const seenIds = new Set();
+
+            while (true) {
+                const endpoint = 'reports?is_draft=eq.false&deleted_at=is.null'
+                    + '&select=*&order=created_at.asc,id.asc'
+                    + '&limit=' + EXPORT_PAGE_SIZE + '&offset=' + offset;
+                const page = await api(endpoint);
+                if (!Array.isArray(page)) {
+                    throw new Error('The database returned an invalid records page.');
+                }
+                if (offset >= MAX_MONTHLY_EXPORT_ROWS && page.length) {
+                    throw new Error('This export exceeds the safe limit of '
+                        + MAX_MONTHLY_EXPORT_ROWS.toLocaleString()
+                        + ' records. Ask the administrator to create a full backup.');
+                }
+
+                for (const row of page) {
+                    if (!row || typeof row.id !== 'string' || !row.id) {
+                        throw new Error('A report is missing its record ID; the export was stopped to avoid an unreliable file.');
+                    }
+                    if (seenIds.has(row.id)) {
+                        throw new Error('The report list changed during export. Pause saves and edits, then try again.');
+                    }
+                    seenIds.add(row.id);
+                    const serialized = JSON.stringify(row);
+                    const separator = count ? ',' : '';
+                    const size = encoder.encode(separator + serialized).length;
+                    if (bytes + size > MAX_MONTHLY_EXPORT_BYTES) {
+                        throw new Error('This export is larger than the safe browser limit (150 MB). Ask the administrator to create a full backup.');
+                    }
+                    parts.push(separator, serialized);
+                    bytes += size;
+                    count++;
+                }
+                if (page.length < EXPORT_PAGE_SIZE) break;
+                offset += EXPORT_PAGE_SIZE;
+            }
+
+            parts.push(']}');
+            const blob = new Blob(parts, { type: 'application/json;charset=utf-8' });
+            if (blob.size > MAX_MONTHLY_EXPORT_BYTES) {
+                throw new Error('This export is larger than the safe browser limit (150 MB). Ask the administrator to create a full backup.');
+            }
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'ent-records-' + dayKeyOf(new Date()) + '.json';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+                link.remove();
+            }, 30000);
+
+            monthlyExportBusy = false;
+            completeMonthlyExport();
+            if (!count) window.alert('The dated export was downloaded. No saved reports were visible to this account.');
+        } catch (error) {
+            monthlyExportBusy = false;
+            console.error('[Dashboard] Monthly records export failed:', error);
+            renderNotices();
+            window.alert('The monthly records download did not finish. ' + String(error && error.message || error));
+        }
+    }
+
     function exportDashboardCsv() {
         if (!rows.length) {
             window.alert('There is nothing to export yet. Save a report first and it will appear here.');
@@ -2623,9 +3138,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const monthName = data.now.toLocaleDateString(undefined, { month: 'long' });
         renderMix(data.month, 'Report mix so far in ' + monthName + ' \u00b7 counted by save date.');
         renderRecent();
+        renderActionSummary();
         renderActivitySelector(new Date().getFullYear(), new Date().getMonth() + 1);
         renderTeam();
-        renderFollowUps();
         renderQueue();
         tickClock();
     }
@@ -2795,6 +3310,53 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
          * a number that lingers after that is a lie. ticketForm announces it. */
         document.addEventListener('ticketform:unread', function () { refreshTicketReplies(); });
 
+        ['dashRecentSearch', 'dashRecentFrom', 'dashRecentTo', 'dashRecentType',
+            'dashRecentSite'].forEach(function (id) {
+            const control = byId(id);
+            if (!control) return;
+            control.addEventListener(control.type === 'search' ? 'input' : 'change', function () {
+                recentPage = 0;
+                renderRecent();
+            });
+        });
+        const clearRecent = byId('dashRecentReset');
+        if (clearRecent) clearRecent.addEventListener('click', function () {
+            ['dashRecentSearch', 'dashRecentFrom', 'dashRecentTo', 'dashRecentType',
+                'dashRecentSite'].forEach(function (id) {
+                const control = byId(id);
+                if (control) control.value = '';
+            });
+            recentPage = 0;
+            renderRecent();
+        });
+        const pageSize = byId('dashRecentPageSize');
+        if (pageSize) pageSize.addEventListener('change', function () {
+            const selected = Number(pageSize.value);
+            if (RECENT_PAGE_SIZES.indexOf(selected) === -1) {
+                pageSize.value = String(recentPageSize);
+                return;
+            }
+            recentPageSize = selected;
+            recentPage = 0;
+            renderRecent();
+        });
+        const previousPage = byId('dashRecentPrev');
+        if (previousPage) previousPage.addEventListener('click', function () {
+            if (recentPage > 0) {
+                recentPage -= 1;
+                renderRecent();
+            }
+        });
+        const nextPage = byId('dashRecentNext');
+        if (nextPage) nextPage.addEventListener('click', function () {
+            const filtered = recentFilterState().filtered;
+            const displayCount = isAdminView() ? filtered.length : buildGroupedRows(filtered).length;
+            const totalPages = Math.max(1, Math.ceil(displayCount / recentPageSize));
+            if (recentPage < totalPages - 1) {
+                recentPage += 1;
+                renderRecent();
+            }
+        });
         const refreshBtn = byId('dashRefreshBtn');
         if (refreshBtn) refreshBtn.addEventListener('click', function () {
             refresh({ push: true });
@@ -2912,6 +3474,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             refresh({ push: true });
             retryTeam();               // the card's own reconnect path
         });
+        window.addEventListener('offline', function () { refresh({}); });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden && Date.now() - lastLoadedAt > STALE_MS) refresh({});
         });

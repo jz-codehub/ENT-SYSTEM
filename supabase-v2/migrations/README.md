@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0046_rename_main_clinic_doc_jess.sql`). Isa-isa; hintayin ang
+   (ngayon: `0048_dashboard_summary_counts.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -48,11 +48,23 @@ separate files, walang all-in-one.
    `../scripts/backup_v2.mjs` at `../scripts/restore_v2.mjs`
    (tingnan ang `../README.md` §2 para sa buong runbook ng bagong project).
 
+7. Ang `0047_bounded_patient_record_reads.sql` ay nagbibigay ng RLS-scoped,
+   100-row DB Records page at patient visit aggregates. I-apply muna ito bago
+   i-deploy ang browser code na gumagamit sa mga bagong RPC; hindi nito
+   binabago ang table data o RLS policies.
+
+8. Ang `0048_dashboard_summary_counts.sql` ay nagdaragdag ng RLS-scoped
+   dashboard summary. Numero lang ang ibinabalik nito para sa mga period at
+   araw na kailangan ng dashboard; hindi nito dina-download ang lahat ng
+   patient records. I-apply muna ito bago i-deploy ang matching browser build.
+   Mananatiling tig-3,000-row bounded ang recent-patient at follow-up panels.
+
 ## Mga tuntunin
 
 - Ang folder NA ITO ang **source of truth** — dito mag-edit, walang kopyahin.
 - Idinodoble ng `../scripts/check_migrations.mjs` ang mga file dito
-  (350 checks), at ang `../scripts/validate_migrations.mjs` ang nagpapatunay
-  na ang set ay kumpleto at tama ang order (kasama ang 0023 gap).
+  (bilangin ang checks mula sa aktuwal na output; nagbabago ito habang
+  nadaragdagan ang migrations), at ang `../scripts/validate_migrations.mjs`
+  ang nagpapatunay na ang set ay kumpleto at tama ang order (kasama ang 0023 gap).
 - Ang order ay **lexicographic** sa pamamagitan ng filename — kaya ang
   4-digit prefix ay hindi decorasyon: huwag baguhin ang mga numero.

@@ -54,13 +54,14 @@ inside a function's own folder.
 
 ---
 
-## 1. The database — already done ✅
+## 1. The database — verify the live migration state first
 
-The numbered migrations in `supabase-v2/migrations/` (0001 through 0041,
-0023 removed as superseded). They must be run in order, in the Supabase SQL
-Editor — the folder is the ONE source of truth (the old `fresh-setup/`
-mirror and its copy builder were removed 2026-10-11), so paste them one
-by one, same order:
+The checked-in migration chain currently runs through `0048`; `0023` is
+intentionally superseded. The files in `supabase-v2/migrations/` are the
+source of truth, but the repository cannot establish which migrations have
+already been applied to a live Supabase project. For a new, empty test project,
+apply them in order. For an existing project, compare its actual schema and
+migration history first—do not paste the whole chain blindly.
 
 ```
 0001_extensions_enums_helpers.sql
@@ -104,11 +105,24 @@ by one, same order:
 0039_recycle_bin_doctor_and_secretary.sql  ← the bin widens to doctors + secretaries
 0040_missing_grants.sql               ← grant-gap repair: 2 tables + 5 EXECUTE grants
 0041_duplicate_patient_guard.sql      ← patient-day uniqueness (hospital ID) + read-only duplicate review RPC
+0042_fix_secretary_save.sql
+0043_fix_delete_recycle_bin.sql
+0044_recreate_delete_policy.sql
+0045_delete_restore_rpc.sql
+0046_rename_main_clinic_doc_jess.sql
+0047_bounded_patient_record_reads.sql
+0048_dashboard_summary_counts.sql
 ```
 
-**Check it:** `node supabase-v2/scripts/check_migrations.mjs`
+The browser uses the bounded patient-record reads from `0047` and the exact
+dashboard aggregates from `0048`. Apply both before deploying the matching
+frontend; without `0048`, dashboard counts fall back to the bounded loaded
+rows.
 
-Re-running an applied migration is safe — they are written to be idempotent.
+**Check it:** `node supabase-v2/scripts/check_migrations.mjs`
+This is a static check, not proof that the migration has run successfully on
+the live database. Do not rerun applied SQL or make schema changes in production
+without confirming the migration state and taking a restorable backup.
 
 ---
 

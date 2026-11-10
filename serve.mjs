@@ -89,7 +89,7 @@ const server = createServer((req, res) => {
   createReadStream(target).pipe(res)
 })
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log('')
   console.log('  ENT Records v2 - local server')
   console.log('  ----------------------------')

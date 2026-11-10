@@ -163,24 +163,74 @@
     }
 
     .ent-login-page {
-        min-height: 100vh;
         min-height: 100svh;
-        padding: 18px 14px;
+        justify-content: flex-start;
+        padding: 24px 16px 14px;
     }
 
     .ent-login-card {
-        width: min(100%, 440px);
+        grid-template-columns: minmax(0, 1fr);
+        width: min(100%, 520px);
+        min-height: 0;
         margin: auto;
-        padding: 24px 20px;
+    }
+
+    .ent-login-brand {
+        min-height: 0;
+        padding: 30px 32px 26px;
+    }
+
+    .ent-login-mark {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 22px;
+        border-radius: 17px;
+    }
+
+    .ent-login-brand img {
+        width: 50px;
+        height: 50px;
+    }
+
+    .ent-login-brand h1 {
+        max-width: none;
+        margin-top: 9px;
+        font-size: 1.8rem;
+    }
+
+    .ent-login-brand-rule {
+        margin: 20px 0 16px;
+    }
+
+    .ent-login-brand-foot {
+        padding-top: 20px;
+    }
+
+    .ent-login-content {
+        padding: 32px;
+    }
+
+    .ent-login-heading {
+        margin-bottom: 23px;
     }
 
     .ent-login-card input,
     .ent-login-submit {
-        min-height: 46px;
+        min-height: 50px;
     }
 
     .settings-page .main-content {
         padding-inline: 12px;
+    }
+
+    @media screen and (max-width: 420px) {
+        .ent-login-page { padding: 12px 10px 10px; }
+        .ent-login-card { border-radius: 21px; }
+        .ent-login-brand { padding: 24px 22px 20px; }
+        .ent-login-content { padding: 26px 22px 22px; }
+        .ent-login-heading h2 { font-size: 1.55rem; }
+        .ent-login-brand h1 { font-size: 1.65rem; }
+        body.ent-login-page .ent-copy { padding: 8px 8px 0; }
     }
 
     .settings-page .settings-card {
@@ -962,8 +1012,7 @@
         font-size: 0.74rem;
     }
 
-    .ent-dash-page .header-meta .theme-switch-wrapper {
-        grid-column: 3;
+    .ent-dash-page .header-meta .header-user-controls .theme-switch-wrapper {
         box-sizing: border-box;
         min-width: 44px;
         min-height: 40px;
@@ -972,10 +1021,29 @@
         background: rgba(255, 255, 255, 0.12);
     }
 
-    .ent-dash-page .header-meta .header-user-slot {
+    .ent-dash-page .header-meta .header-user-controls {
         grid-column: 1 / -1;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
         width: 100%;
         min-width: 0;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .ent-dash-page .header-meta .header-user-slot {
+        grid-column: auto;
+        flex: 1 1 180px;
+        width: auto;
+        min-width: min(180px, 100%);
+    }
+
+    .ent-dash-page .header-user-controls .ent-notification-toggle {
+        width: 24px;
+        height: 24px;
+        min-width: 0;
+        min-height: 0;
     }
 
     body.ent-dash-page:not(.has-colored-header) .header-user-slot #entUserChip {
@@ -2024,5 +2092,124 @@
     body.ent-tk-page .ent-tk-layout:has(#tkReport:not([hidden])) .ent-tf-row {
         grid-template-columns: minmax(0, 1fr);
         gap: 0;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    .ent-dash-page .header-meta .header-user-controls {
+        align-items: center;
+        justify-content: flex-end;
+        width: auto;
+        margin-left: auto;
+        flex-wrap: nowrap;
+    }
+
+    .ent-dash-page .header-meta .header-user-slot {
+        flex: 0 1 auto;
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip {
+        display: grid;
+        grid-template-columns: minmax(64px, clamp(64px, 10vw, 96px)) repeat(3, auto);
+        grid-template-rows: 30px auto;
+        align-items: center;
+        justify-items: center;
+        column-gap: 6px;
+        row-gap: 1px;
+        box-sizing: border-box;
+        width: max-content;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        margin-left: 0;
+        padding: 4px 7px;
+        border-radius: 14px;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-avatar {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-meta {
+        grid-column: 1;
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-meta strong {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        font-size: 0.58rem;
+        line-height: 1.15;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-name {
+        display: block;
+        width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-role,
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-scope {
+        display: none;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-admin,
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-settings,
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-switch,
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-logout {
+        grid-row: 1 / span 2;
+        box-sizing: border-box;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        min-height: 34px;
+        flex: 0 0 34px;
+        margin: 0;
+        padding: 0;
+        border-radius: 10px;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-admin {
+        justify-content: center;
+        gap: 0;
+        font-size: 0;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-admin::after {
+        content: "\2699";
+        font-size: 0.95rem;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-switch {
+        justify-content: center;
+        font-size: 0;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-switch-text {
+        display: none;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-logout-text {
+        display: none;
+    }
+
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-switch span[aria-hidden="true"],
+    .ent-dash-page .header-user-slot #entUserChip .ent-user-logout .ent-user-logout-icon {
+        font-size: 1rem;
     }
 }

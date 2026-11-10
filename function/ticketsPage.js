@@ -1,5 +1,5 @@
 /* ============================================================
- * ticketsPage.js - "Your tickets", on pages/tickets.html
+ * ticketsPage.js - support reports, on pages/reportProblem.html
  * A doctor or secretary reports here; an admin answers in
  * the admin console. Migrated from ticketForm.js (old
  * dashboard pop-up). Same data contract: clinic_id,
@@ -362,5 +362,4 @@ scopeLabel: scopeLabel,
 unreadCount: unreadCount,
 notify: notifyUnread };
 })(window);
-
 

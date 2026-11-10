@@ -2210,3 +2210,142 @@ body.dark-mode .ent-cca-overview .ent-cca-stat.is-ok .ent-cca-stat-n {
     .ent-cca-header .ent-cca-iconbtn { padding: 7px 8px; font-size: 0; }
     .ent-cca-header .ent-cca-iconbtn span { font-size: 1rem; }
 }
+
+body.ent-cca-page .ent-cca-overview {
+    border-color: rgba(125, 211, 252, .24);
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(56, 189, 248, .24), transparent 32rem),
+        linear-gradient(125deg, #082f49 0%, #0c4a6e 68%, #075985 100%);
+    box-shadow: 0 16px 38px rgba(8, 47, 73, .18);
+}
+
+body.ent-cca-page .ent-cca-overview-kicker {
+    color: #7dd3fc;
+}
+
+body.ent-cca-page .ent-cca-overview-copy h2 {
+    color: #f8fafc;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+    border-color: rgba(186, 230, 253, .3);
+    border-left-color: #38bdf8;
+    background: rgba(8, 47, 73, .42);
+    color: #e0f2fe;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line::before {
+    color: #bae6fd;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+    border-color: rgba(255, 255, 255, .76);
+    transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
+    background: #f0f9ff;
+    box-shadow: 0 9px 22px rgba(2, 6, 23, .18);
+}
+
+body.ent-cca-page .ent-cca-toolbar {
+    border-color: rgba(148, 163, 184, .35);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .055);
+}
+
+body.ent-cca-page .ent-cca-search:focus,
+body.ent-cca-page .ent-cca-select:focus-visible,
+body.ent-cca-page .ent-cca-toggle:focus-within {
+    outline: 3px solid rgba(14, 165, 233, .2);
+    outline-offset: 2px;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview {
+    border-color: rgba(125, 211, 252, .2);
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(56, 189, 248, .2), transparent 32rem),
+        linear-gradient(125deg, #071f33 0%, #0b3854 68%, #0c4263 100%);
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
+    background: #e0f2fe;
+    color: #082f49;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+        transition: none;
+    }
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+    min-height: 82px;
+    gap: 14px;
+    padding: 14px 16px;
+    border-color: var(--border-color);
+    border-radius: 14px;
+    background: #fff;
+    color: #111;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .07);
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
+    transform: translateY(-1px);
+    border-color: var(--primary-color);
+    background: #fff;
+    color: #111;
+    box-shadow: 0 7px 16px rgba(15, 23, 42, .1);
+}
+
+body.ent-cca-page .cca-reqbtn-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    border-radius: 11px;
+    background: #f1f5f9;
+    color: #111;
+}
+
+body.ent-cca-page .cca-reqbtn-icon svg {
+    width: 21px;
+    height: 21px;
+    color: #111;
+}
+
+body.ent-cca-page .cca-reqbtn-copy > span,
+body.ent-cca-page .cca-reqbtn-copy small,
+body.ent-cca-page .cca-reqbtn-arrow {
+    color: #111;
+}
+
+body.ent-cca-page .cca-reqbtn-copy > span {
+    font-size: .88rem;
+}
+
+body.ent-cca-page .cca-reqbtn-copy small {
+    color: #475569;
+    font-size: .72rem;
+}
+
+body.ent-cca-page .cca-reqbtn-arrow {
+    font-size: 1.05rem;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .cca-reqbtn,
+body.dark-mode.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
+    background: #fff;
+    color: #111;
+}
+
+@media (max-width: 560px) {
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+        min-height: 70px;
+        padding: 11px 12px;
+    }
+
+    body.ent-cca-page .cca-reqbtn-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+    }
+}

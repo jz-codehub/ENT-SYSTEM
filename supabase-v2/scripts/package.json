@@ -20,7 +20,7 @@
     "serve": "node ../../serve.mjs",
     "serve-test": "node test_serve.mjs",
     "preflight": "node probe_preflight.mjs",
-    "test": "node check_migrations.mjs && node test_frontend_v2.mjs && node test_admin_console.mjs && node test_photo_validation.mjs"
+    "test": "node check_migrations.mjs && node test_frontend_v2.mjs && node test_admin_console.mjs && node test_photo_validation.mjs && node test_backup_restore_safety.mjs && node test_db_records_card.mjs && node test_dashboard_team.mjs && node test_offline_queue.mjs"
   },
   "dependencies": {
     "acorn": "^8.18.0"

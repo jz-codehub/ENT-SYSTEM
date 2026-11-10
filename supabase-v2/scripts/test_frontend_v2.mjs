@@ -578,17 +578,20 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
      !/streak >= 2/.test(dashJs),
      'one save today must render "1-day streak", as reported')
 
-  /* The worker cache owns the offline release version. Individual dashboard
-     asset query versions may legitimately differ when an unrelated offline
-     workspace change bumps the app shell. */
-  const hasOfflineReleaseCache = /CACHE_NAME = 'ent-report-system-v\d+-(?:offline-workspace|form-exit-guard(?:-[a-z-]+)?)'/.test(sw)
+  /* The worker cache owns the offline release version. Keep this assertion
+     independent of the reason-specific suffix so future releases stay covered. */
+  const cacheName = /\bconst\s+CACHE_NAME\s*=\s*['"](ent-report-system-v\d+-[^'"]+)['"]/.exec(sw)?.[1] || ''
+  const cacheFilesMatch = /\bconst\s+FILES_TO_CACHE\s*=\s*\[([\s\S]*?)\n\];/.exec(sw)
+  const cachedFiles = new Set(
+    cacheFilesMatch
+      ? [...cacheFilesMatch[1].matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1].replace(/^\.\//, ''))
+      : []
+  )
   is('D81', 'the offline workspace and shell are included in a versioned cache',
-     hasOfflineReleaseCache
-  && sw.includes("'pages/offlineWorkspace.html'")
-  && sw.includes("'style/offlineWorkspace.css'")
-  && sw.includes("'function/offlineWorkspace.js'")
-  && sw.includes("'function/auth.js'")
-  && sw.includes("'function/formExitGuard.js'"),
+     /^ent-report-system-v\d+-/.test(cacheName)
+  && ['pages/offlineWorkspace.html', 'style/offlineWorkspace.css',
+      'function/offlineWorkspace.js', 'function/auth.js',
+      'function/formExitGuard.js'].every((file) => cachedFiles.has(file)),
      'workspace resources and auth.js are precached by the offline release')
 
   const exitGuard = readFileSync(join(APP, 'function', 'formExitGuard.js'), 'utf8')
@@ -662,6 +665,136 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        && repeatedSaveBranch.includes("kind: 'saved'")
        && repeatedSaveBranch.includes('REPEAT REPORT'),
      'repeat information and database success are shown together')
+}
+
+/* ---- D89-D94: walk-in dashboard actions and health signals ----------- */
+{
+  const idx = readFileSync(join(APP, 'index.html'), 'utf8')
+  const dashJs = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
+  const dashCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
+  const adminHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
+  const adminJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const adminCss = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  const sw = readFileSync(join(APP, 'sw.js'), 'utf8')
+  const loginHtml = readFileSync(join(APP, 'pages', 'login.html'), 'utf8')
+  const authCss = readFileSync(join(APP, 'style', 'auth.css'), 'utf8')
+  const mobileCss = readFileSync(join(APP, 'style', 'mobile.css'), 'utf8')
+  const offlineReadyJs = readFileSync(join(APP, 'function', 'offlineReady.js'), 'utf8')
+
+  is('D89', 'dashboard keeps action list and removes report reminders',
+     ['dashActionItems', 'dashRecentSearch', 'dashRecentFrom',
+       'dashRecentTo', 'dashRecentType', 'dashRecentSite']
+       .every(id => idx.includes(`id="${id}"`))
+       && !idx.includes('dashFollowUpCard')
+       && !idx.includes('dashFollowUpBadge')
+       && !dashJs.includes('function renderFollowUps')
+       && !idx.includes('Report reminders')
+       && !dashJs.includes("api('rpc/ent_possible_duplicates'")
+       && idx.indexOf('id="dashActionSummary"') > idx.indexOf('id="dashNewWork"')
+       && idx.indexOf('id="dashActionSummary"') < idx.indexOf('id="dashQueueCard"')
+       && !/appointment|booking/i.test(idx),
+     'no follow-up or data-quality panel remains')
+
+  is('D90', 'recent-record filters apply to loaded rows and report honest match counts',
+     dashJs.includes('function recentFilterState()')
+       && ['dashRecentSearch', 'dashRecentFrom', 'dashRecentTo', 'dashRecentType',
+         'dashRecentSite'].every(id => dashJs.includes(id))
+       && dashJs.includes('function isValidVisitDate')
+       && dashJs.includes('matching report(s)')
+       && dashCss.includes('.ent-recent-filters'),
+     'search, visit dates, report type and site')
+
+  is('D94', 'latest patients pagination defaults to 10 and supports 50 or 100 rows',
+     ['dashRecentPagination', 'dashRecentPageSize', 'dashRecentPageInfo',
+       'dashRecentPrev', 'dashRecentNext'].every(id => idx.includes(`id="${id}"`))
+       && /const RECENT_PAGE_SIZE_DEFAULT = 10/.test(dashJs)
+       && /const RECENT_PAGE_SIZES = \[10, 50, 100\]/.test(dashJs)
+       && dashJs.includes('adminView ? matching : buildGroupedRows(matching)')
+       && dashJs.includes('displayItems.slice(start, start + recentPageSize)')
+       && dashJs.includes("const unit = adminView ? 'reports' : 'patient rows'")
+       && dashJs.includes('recentPage = Math.min(recentPage, pageCount - 1)')
+       && dashJs.includes('recentPage = 0')
+       && dashCss.includes('.ent-recent-pagination')
+       && dashCss.includes('height: 42px;')
+       && dashCss.includes('align-self: end;')
+       && dashCss.includes('margin: 0;')
+       && dashCss.includes('.ent-recent-reset:hover,\n.ent-recent-reset:active { transform: none; }')
+       && dashCss.includes('.ent-recent-filter-row > :nth-child(4) { grid-column: 1; }')
+       && dashCss.includes('.ent-recent-reset { grid-column: 2; width: auto; }'),
+     'next/previous, page-size selection and page clamping')
+
+  is('D91', 'admin capacity notes use measured thresholds and disclaim unverified backups',
+     adminJs.includes('reading.pct >= 90')
+       && adminJs.includes('reading.pct >= 70')
+       && adminHtml.includes('Not verified by this dashboard')
+       && adminHtml.includes('No backup time or restore status is available here')
+       && adminCss.includes('#dbCapacityNote.is-danger'),
+     'storage/DB warnings and backup status stay truthful')
+
+  is('D92', 'dashboard scripts and styles use refreshed cache-busting versions',
+     /dashboard\.css\?v=[^'"]+/.test(idx)
+       && /dashboard\.js\?v=[^'"]+/.test(idx)
+       && /ent-report-system-v\d+-[^'"]+/.test(sw),
+     'changed dashboard assets arrive after deploy')
+  const controlsStart = idx.indexOf('<div class="header-user-controls">')
+  const togglePosition = idx.indexOf('class="theme-switch-wrapper"', controlsStart)
+  const bellPosition = idx.indexOf('id="dashNotificationCenter"', controlsStart)
+  const namePosition = idx.indexOf('id="headerUserSlot"', controlsStart)
+  is('D92a', 'dashboard header orders theme toggle, notifications, then user name',
+     controlsStart >= 0 && togglePosition > controlsStart
+       && bellPosition > togglePosition && namePosition > bellPosition
+       && dashCss.includes('.ent-dash-page .header-user-controls')
+       && mobileCss.includes('flex-wrap: wrap;'),
+     'controls stay together on wider screens and wrap when mobile space is tight')
+
+  is('D93', 'recent-record filters show clear labels and responsive groups',
+     idx.includes('Search patient')
+       && idx.includes('Visit date from')
+       && dashCss.includes('.ent-recent-filter-row')
+       && dashCss.includes('.ent-recent-filter-row > :nth-child(-n+2) { grid-column: 1 / -1; }'),
+     'visible field labels and mobile-friendly layout')
+
+  is('D95', 'login refresh keeps authentication controls intact and adapts to mobile',
+     ['loginForm', 'username', 'password', 'rememberDevice', 'loginError',
+       'changePwSection', 'confirmPwSection', 'loginBtn'].every(id =>
+       loginHtml.includes(`id="${id}"`))
+       && loginHtml.includes('ent-login-content')
+       && loginHtml.includes('Remember on this device')
+       && /auth\.css\?v=v36h/.test(loginHtml)
+       && authCss.includes('grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr)')
+       && mobileCss.includes('grid-template-columns: minmax(0, 1fr)')
+       && /ent-report-system-v\d+-[^'"]+/.test(sw),
+     'desktop brand panel, mobile stack and unchanged sign-in controls')
+
+  is('D96', 'offline-ready status stays compact while details and retry remain available',
+     ['ent-or-details', 'ent-or-more', 'aria-expanded',
+       'Show offline access details', 'Offline-ready \\u2713'].every(value =>
+       offlineReadyJs.includes(value))
+       && offlineReadyJs.includes('#entOfflineReady [hidden]{display:none!important}')
+       && offlineReadyJs.includes('min-width:0;min-height:0;')
+       && offlineReadyJs.includes('detailsEl.textContent = text')
+       && offlineReadyJs.includes('detailsEl.hidden = !expanded')
+       && offlineReadyJs.includes('report.total')
+       && /offlineReady\.js\?v=v36e/.test(idx)
+       && /offlineReady\.js\?v=v36e/.test(loginHtml)
+       && /ent-report-system-v\d+-[^'"]+/.test(sw),
+     'compact success label, expandable file count/expiry and unchanged cache verification')
+
+  const offlineHtml = readFileSync(join(APP, 'pages', 'offlineWorkspace.html'), 'utf8')
+  const offlineCss = readFileSync(join(APP, 'style', 'offlineWorkspace.css'), 'utf8')
+  is('D97', 'offline workspace redesign preserves all three report routes and responsive layout',
+     ['nasalEndoscopy.html', 'laryngealEndoscopy.html', 'cf4Form.html'].every(page =>
+       offlineHtml.includes(`data-page="${page}"`))
+       && offlineHtml.includes('id="offlineConnectionTitle"')
+       && offlineHtml.includes('id="offlineConnectionMessage"')
+       && offlineHtml.includes('id="offlineLogout"')
+       && offlineHtml.includes('Start or continue a nasal report')
+       && offlineHtml.includes('Prepare a CF4 medical form')
+       && /offlineWorkspace\.css\?v=v3/.test(offlineHtml)
+       && offlineCss.includes('.offline-workspace-actions button:hover')
+       && offlineCss.includes('@media (max-width: 520px)')
+       && /ent-report-system-v\d+-[^'"]+/.test(sw),
+     'report actions, connection status, logout behavior and mobile-friendly cards')
 }
   console.log(`==== ${failed === 0 ? 'ALL FUNCTIONAL TESTS PASSED' : failed + ' FAILED'} · ${passed + failed} tests ====`)
   console.log('')

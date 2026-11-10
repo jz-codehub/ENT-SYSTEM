@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0ea5e9">
+    <title>Report a Problem - ENT Endoscopy System</title>
+    <link rel="icon" href="../image/ent-logo.webp">
+    <link rel="manifest" href="../manifest.json">
+    <link rel="stylesheet" href="../style/index.css?v=v33ak">
+    <link rel="stylesheet" href="../style/auth.css?v=v33am">
+    <link rel="stylesheet" href="../style/tickets.css?v=v35-primary-support-redesign">
+    <link rel="stylesheet" href="../style/mobile.css?v=v15">
+    <link rel="stylesheet" href="../style/reportProblem.css?v=v1">
+</head>
+<body class="ent-tk-page report-problem-page">
+    <header class="report-header no-print ent-tk-header">
+        <div class="header-bar">
+            <a class="header-brand" href="../index.html" aria-label="ENT Endoscopy System home">
+                <img src="../image/cumc-logo.png" alt="Capitol University Medical Center" class="logo">
+                <span class="header-titles">
+                    <span class="header-hospital">CAPITOL UNIVERSITY MEDICAL CENTER</span>
+                    <h1>CLINIC SUPPORT</h1>
+                </span>
+            </a>
+            <div class="header-meta">
+                <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">connecting&hellip;</span></span>
+                <div class="header-user-slot" id="headerUserSlot"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="rp-main">
+        <nav class="rp-topbar" aria-label="Page navigation">
+            <a class="rp-back" href="../index.html">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/><path d="M9 12h11"/></svg>
+                <span>Back to menu</span>
+            </a>
+            <span class="rp-topbar-label">SUPPORT CENTER</span>
+        </nav>
+
+        <section class="rp-hero" aria-labelledby="tkHeroTitle">
+            <div class="rp-hero-copy">
+                <span class="rp-hero-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><path d="M12 8v4M12 16h.01"/></svg>
+                </span>
+                <div>
+                    <span class="rp-eyebrow">WE’RE HERE TO HELP</span>
+                    <h2 id="tkHeroTitle">Report a problem</h2>
+                    <p>Let your clinic administrator know what needs attention. You can follow every report and reply here.</p>
+                </div>
+            </div>
+            <button type="button" class="rp-create" id="tkNew">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span>New report</span>
+            </button>
+        </section>
+
+        <section class="rp-stats" aria-label="Your report summary" role="status">
+            <article class="rp-stat">
+                <span class="rp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                <span><strong id="tkStatActive">&mdash;</strong><small>Active</small></span>
+            </article>
+            <article class="rp-stat">
+                <span class="rp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                <span><strong id="tkStatNew">&mdash;</strong><small>New replies</small></span>
+            </article>
+            <article class="rp-stat">
+                <span class="rp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>
+                <span><strong id="tkStatDone">&mdash;</strong><small>Resolved</small></span>
+            </article>
+            <article class="rp-stat">
+                <span class="rp-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v13H3zM3 7l2-4h14l2 4"/><path d="M8 11h8"/></svg></span>
+                <span><strong id="tkStatAll">&mdash;</strong><small>Total reports</small></span>
+            </article>
+        </section>
+
+        <p class="ent-tk-notice" id="tkPageNotice" role="status"></p>
+
+        <div class="ent-tk-layout rp-workspace">
+            <section class="ent-tk-pane ent-tk-listpane rp-list" aria-labelledby="tkListTitle">
+                <div class="rp-panel-heading">
+                    <div>
+                        <span class="rp-kicker">YOUR SUPPORT HISTORY</span>
+                        <h2 id="tkListTitle">Your reports</h2>
+                        <p>Choose a report to see the full conversation.</p>
+                    </div>
+                    <span class="rp-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H7l-3 3V5z"/><path d="M8 9h8M8 13h5"/></svg></span>
+                </div>
+                <div class="ent-tk-tools rp-tools">
+                    <label class="rp-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                        <input type="search" id="tkSearch" placeholder="Search your reports" aria-label="Search your reports" autocomplete="off">
+                    </label>
+                    <div class="ent-tk-chips rp-filters" role="tablist" aria-label="Filter reports by status">
+                        <button type="button" class="ent-tk-chip is-on" data-tkfilter="" role="tab" aria-selected="true">All</button>
+                        <button type="button" class="ent-tk-chip" data-tkfilter="open" role="tab" aria-selected="false">Open</button>
+                        <button type="button" class="ent-tk-chip" data-tkfilter="in_progress" role="tab" aria-selected="false">In progress</button>
+                        <button type="button" class="ent-tk-chip" data-tkfilter="resolved" role="tab" aria-selected="false">Resolved</button>
+                    </div>
+                </div>
+                <div class="ent-tk-list rp-report-list" id="tkList">
+                    <div class="ent-tk-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>
+                        <b>Loading your reports&hellip;</b>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ent-tk-pane ent-tk-detail rp-detail" id="tkDetail" aria-label="Report details">
+                <div class="ent-tk-viewbody rp-welcome" id="tkWelcome">
+                    <div class="rp-empty-state">
+                        <span class="rp-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>
+                        <h3>How can we help?</h3>
+                        <p>Pick a report from your history or start a new one. Your reports are only about the system—please don’t include patient-identifying details.</p>
+                        <button type="button" class="rp-create rp-create-inline" data-tk-new="1">Create a report</button>
+                    </div>
+                </div>
+
+                <div class="ent-tk-viewbody rp-ticket-view" id="tkView" hidden>
+                    <div class="ent-tk-viewhead rp-view-head">
+                        <button type="button" class="ent-btn ent-tk-backbtn" id="tkViewBack" aria-label="Back to reports">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                            <span>All reports</span>
+                        </button>
+                        <span class="ent-tk-viewno" id="tkViewNo">Report details</span>
+                    </div>
+                    <div class="ent-tk-detail-body rp-detail-scroll" id="tkDetailBody"></div>
+                </div>
+
+                <div class="ent-tk-viewbody rp-compose-view" id="tkReport" hidden>
+                    <div class="ent-tk-viewhead rp-view-head">
+                        <button type="button" class="ent-btn ent-tk-backbtn" id="tkReportBack" aria-label="Back to reports">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                            <span>All reports</span>
+                        </button>
+                        <span class="ent-tk-viewno">New report</span>
+                    </div>
+                    <div class="ent-tk-viewcard rp-compose-card" id="tkViewCard">
+                        <div class="ent-tk-detail-body rp-compose-scroll">
+                            <div class="rp-form-intro">
+                                <span class="rp-form-intro-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></span>
+                                <span><strong>Tell us what happened</strong><small>Choose the area first, then describe the issue. Leave out patient-identifying details.</small></span>
+                            </div>
+                            <form id="tkForm" novalidate>
+                                <input type="hidden" id="tkScope" name="scope" value="nasal">
+                                <fieldset class="ent-tf-block">
+                                    <legend>Where are you having a problem?</legend>
+                                    <div class="ent-tf-scopes">
+                                        <label class="ent-tf-scope">
+                                            <input type="radio" name="tfScopeRadio" value="nasal" checked>
+                                            <span class="ent-tf-scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6a6 6 0 0 0 6 6h4a6 6 0 0 1 6 6v2"/><path d="M9.5 7.5h5"/></svg></span>
+                                            <span class="ent-tf-scope-text"><b>Nasal endoscopy</b><small>Nose and airway report</small></span>
+                                        </label>
+                                        <label class="ent-tf-scope">
+                                            <input type="radio" name="tfScopeRadio" value="laryngeal">
+                                            <span class="ent-tf-scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg></span>
+                                            <span class="ent-tf-scope-text"><b>Laryngeal endoscopy</b><small>Voice box report</small></span>
+                                        </label>
+                                        <label class="ent-tf-scope">
+                                            <input type="radio" name="tfScopeRadio" value="cf4">
+                                            <span class="ent-tf-scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg></span>
+                                            <span class="ent-tf-scope-text"><b>CF4 claim form</b><small>PhilHealth claim form</small></span>
+                                        </label>
+                                        <label class="ent-tf-scope">
+                                            <input type="radio" name="tfScopeRadio" value="system">
+                                            <span class="ent-tf-scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.8z"/></svg></span>
+                                            <span class="ent-tf-scope-text"><b>App or sign-in</b><small>Something else in the system</small></span>
+                                        </label>
+                                    </div>
+                                </fieldset>
+                                <fieldset class="ent-tf-block">
+                                    <legend>Describe the issue</legend>
+                                    <div class="ent-field">
+                                        <label for="tkBody">What happened?</label>
+                                        <textarea id="tkBody" rows="5" maxlength="8000" placeholder="What were you doing, what did you expect, and what happened instead?"></textarea>
+                                    </div>
+                                    <div class="ent-field">
+                                        <label for="tkSubject">Add a title <span class="ent-tf-optional">optional</span></label>
+                                        <input type="text" id="tkSubject" maxlength="200" placeholder="A short summary (optional)" autocomplete="off">
+                                    </div>
+                                    <div class="ent-tf-row">
+                                        <div class="ent-field"><label for="tkCategory">Problem type</label><select id="tkCategory"></select></div>
+                                        <div class="ent-field"><label for="tkPriority">Urgency</label><select id="tkPriority"></select></div>
+                                    </div>
+                                </fieldset>
+                                <p class="ent-tf-notice" id="tkNotice" role="status"></p>
+                                <div class="ent-tf-send"><button type="submit" class="ent-btn primary" id="tkSend">Send report</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="rp-footer"><span>ENT Endoscopy System</span><span>Please don’t include patient-identifying information in support reports.</span></footer>
+
+    <script src="../function/paths.js"></script>
+    <script src="../js/lib/supabase.min.js" defer></script>
+    <script src="../function/supabaseClient.js" defer></script>
+    <script src="../function/photoStore.js?v=v31ai" defer></script>
+    <script src="../function/auth.js?v=v36h" defer></script>
+    <script src="../function/offlineStore.js"></script>
+    <script src="../function/ticketsPage.js?v=v33al" defer></script>
+</body>
+</html>

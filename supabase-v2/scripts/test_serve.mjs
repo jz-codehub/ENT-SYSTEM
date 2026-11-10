@@ -1,9 +1,10 @@
 ﻿import { connect } from 'node:net'
 // Raw HTTP so the CLIENT cannot normalise ../ away before it is sent.
+const PORT = Number(process.env.ENT_TEST_PORT) || 5500
 function raw(path) {
   return new Promise((res) => {
-    const s = connect(5500, '127.0.0.1', () => {
-      s.write('GET ' + path + ' HTTP/1.1\r\nHost: localhost:5500\r\nConnection: close\r\n\r\n')
+    const s = connect(PORT, '127.0.0.1', () => {
+      s.write('GET ' + path + ' HTTP/1.1\r\nHost: localhost:' + PORT + '\r\nConnection: close\r\n\r\n')
     })
     let buf = ''
     s.on('data', (d) => { buf += d.toString('latin1') })
@@ -15,7 +16,7 @@ function raw(path) {
   })
 }
 const CASES = [
-  ['/login.html', 'app page - must be 200'],
+  ['/pages/login.html', 'app page - must be 200'],
   ['/function/auth.js', 'app script - must be 200'],
   ['/style/auth.css', 'app css - must be 200'],
   ['/image/ent-logo.webp', 'app image - must be 200'],
