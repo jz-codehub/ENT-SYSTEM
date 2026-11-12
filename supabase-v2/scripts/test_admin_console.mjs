@@ -404,6 +404,76 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
      /flex-direction:\s*column/.test(navBlock2) &&
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
+  is('A16g', 'the admin stylesheet loads after shared mobile styles',
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v46-admin-messenger-icon/.test(adminHtml),
+     'admin-specific responsive design wins over shared page styles')
+  is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
+     /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
+     'tablet drawer, mobile header and narrow phone breakpoints are present')
+  is('A16i', 'the admin redesign keeps its own dark-mode palette',
+     /body\.dark-mode\.ent-admin-page[\s\S]*?body\.dark-mode \.ent-admin-header[\s\S]*?body\.dark-mode \.ent-overview-intro[\s\S]*?body\.dark-mode \.ent-table/.test(adminCss2),
+     'dark theme remains readable across the shell, navigation and tables')
+  is('A16j', 'the admin overview has a structured, responsive dashboard layout',
+     /id="panel-overview"[\s\S]*?class="ent-overview-intro"[\s\S]*?id="adminGreeting"[\s\S]*?class="overview-metrics"[\s\S]*?class="ent-card overview-card-snapshot"[\s\S]*?class="ent-card-grid overview-chart-grid"[\s\S]*?class="ent-card overview-card-sessions"/.test(adminHtml)
+     && /#panel-overview\.active\s*\{[\s\S]*?grid-template-columns:\s*repeat\(12/.test(adminCss2),
+     'overview greeting, metrics, analytics and activity use a dedicated layout')
+  is('A16k', 'navigation uses consistent inline icons and the clinic logo',
+     /ent-admin-brand-icon"><img src="\.\.\/image\/ent-logo\.webp"/.test(adminHtml)
+     && (adminHtml.match(/class="ent-nav-icon" aria-hidden="true"><svg/g) || []).length === 10
+     && /\.ent-nav-icon svg\s*\{[\s\S]*?stroke:\s*currentColor/.test(adminCss2),
+     'logo and ten matching scalable icons are wired')
+  is('A16l', 'the user directory cards have responsive, complete styling',
+     ['.ent-user-grid,', '.ent-user-card {', '.ent-user-av {', '.ent-user-tags {',
+      '.ent-user-meta {', '.ent-user-actions {'].every(function (rule) { return adminCss2.includes(rule); }),
+     'grouped account cards cover identity, role, access state and actions')
+  const usersPanel = (adminHtml.match(/<section class="ent-admin-panel" id="panel-users">[\s\S]*?\n        <\/section>/) || [''])[0]
+  is('A16l1', 'the Users tab introduces people and access management clearly',
+     /PEOPLE &amp; ACCESS/.test(usersPanel) && /ent-users-hero-icon[\s\S]*?<svg/.test(usersPanel)
+       && /Manage clinic accounts in one place/.test(usersPanel),
+     'a branded intro explains the purpose of the directory')
+  is('A16l2', 'the directory has labeled filters, a keyboard-accessible clear button and live result count',
+     /for="roleFilter"/.test(usersPanel) && /id="usersSearchClear"[^>]*hidden/.test(usersPanel)
+       && /id="usersResultCount" role="status"/.test(usersPanel)
+       && /clearSearch\.hidden = !needle/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
+     'search can be cleared and filtered totals are visible')
+  is('A16l3', 'the grouped user cards are responsive, readable and styled for dark mode',
+     ['#panel-users .ent-users-stats', '#panel-users .ent-user-group',
+      '#panel-users .ent-user-card', '#panel-users .ent-users-note'].every(function (rule) {
+        return adminCss2.includes(rule)
+      })
+       && /@media\s*\(max-width:\s*720px\)[\s\S]*?#panel-users[\s\S]*?body\.dark-mode #panel-users/.test(adminCss2),
+     'role groups, account cards and access guidance adapt on mobile and in dark theme')
+  is('A16l4', 'role counts stay account-wide while result counts track the active filters',
+     /userStatDoctors[\s\S]*?userStatSecretaries[\s\S]*?userStatAdmins[\s\S]*?userStatInactive/.test(usersPanel)
+       && /Showing ' \+ rows\.length \+ ' of ' \+ users\.length/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
+     'role summaries remain stable while the result line reflects search and role filtering')
+  const overviewMetricIds = [
+    'statRecords', 'statWeek', 'statTotal', 'statMonth', 'statActive', 'statLogins',
+    'statUsers', 'statDoctors', 'statSecretaries', 'statInactive', 'statClinics', 'statDb'
+  ]
+  is('A16m', 'the overview presents all key metrics in five responsive summary cards',
+     (adminHtml.match(/<article class="ent-stat overview-stat/g) || []).length === 5
+       && overviewMetricIds.every(function (id) {
+         return (adminHtml.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1
+       })
+       && /grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/.test(adminCss2)
+       && /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/.test(adminCss2)
+       && /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/.test(adminCss2),
+     'daily activity, records, staff, coverage and database stats stay visible at every size')
+  is('A16n', 'overview analytics and clinic cards have distinct reusable visual structure',
+     ['overview-card-title', 'overview-title-icon', 'overview-card-subtitle',
+      'overview-card-mix'].every(function (name) { return adminHtml.includes(name); })
+       && (adminHtml.match(/id="latestPatients"/g) || []).length === 1
+       && ['#panel-overview .ent-snapshot', '#panel-overview .ent-topclinic',
+         '#panel-overview .overview-chart-week .ent-chart',
+         '#panel-overview .ent-mix-row', '#panel-overview .ent-latest-row',
+         '#panel-overview .ent-followup-row'].every(function (rule) {
+           return adminCss2.includes(rule)
+         }),
+     'clinic snapshot, ranking, charts, latest records and reminders have scoped presentation')
+  is('A16o', 'all overview cards adapt to mobile and dark mode',
+     /@media\s*\(max-width:\s*720px\)[\s\S]*?#panel-overview \.overview-card-sessions[\s\S]*?body\.dark-mode #panel-overview \.ent-snapshot/.test(adminCss2),
+     'overview cards reflow on mobile and retain contrast in dark mode')
 
   is('A16', 'admin.html links to settings.html', /href="settings\.html"/.test(adminHtml),
      'found href="settings.html"')
@@ -620,8 +690,9 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
   const panel = (aHtml.match(/<section class="ent-admin-panel" id="panel-clinics">[\s\S]*?\n        <\/section>/) || [''])[0]
 
   is('A60', 'the tab says what it is for before listing anything',
-     /Every clinic in this account/.test(panel) && /ent-clinic-hero/.test(panel),
-     'a one-line explanation above the cards')
+     /See each clinic's activity/.test(panel) && /ent-clinic-hero/.test(panel)
+       && /ent-clinic-hero-icon/.test(panel) && /ent-clinic-kicker/.test(panel),
+     'a branded directory introduction explains the clinic and team view')
 
   is('A61', 'account totals are shown instead of having to count the cards',
      /id="clinicSummary"/.test(panel) && /function renderClinicSummary/.test(aJs),
@@ -674,6 +745,21 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
   is('A68', 'the new Clinics UI is styled',
      unstyled.length === 0,
      unstyled.length ? 'unstyled: ' + unstyled.join(', ') : 'all present')
+
+  is('A68a', 'the directory has dedicated clinic, staff and relationship-card styling',
+     ['ent-clinic-block-head', 'ent-clinic-block-stats', 'ent-clinic-block-body',
+      'ent-doc-group', 'ent-sec-list', 'ent-person-av', 'ent-clinic-sum-n']
+       .every(function (c) { return aCss.includes(c); }),
+     'clinic identity, metrics, doctor rows and secretary links have clear visual hierarchy')
+
+  is('A68b', 'the full clinic directory adapts to mobile and dark mode',
+     /@media\s*\(max-width:\s*720px\)[\s\S]*?#panel-clinics \.ent-clinic-block-body[\s\S]*?body\.dark-mode #panel-clinics \.ent-clinic-hero/.test(aCss),
+     'cards and team relationships remain readable on small screens and dark theme')
+
+  is('A68c', 'search, export and refresh controls remain available in the redesigned header',
+     /id="clinicSearch"/.test(panel) && /id="clinicSearchClear"/.test(panel)
+       && /id="exportDirectoryBtn"/.test(panel) && /id="refreshDirectoryBtn"/.test(panel),
+     'existing directory actions remain wired')
 }
 
 /* ---- A70: the clinic search X -------------------------------------
@@ -713,6 +799,203 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
   is('A74', 'the input reserves space so text never runs under the X',
      /padding:\s*8px 34px 8px 12px/.test(aCss2),
      'right padding clears the 24px button at right:7px')
+}
+
+/* ---- A75: the Growth workspace must be legible and self-explanatory -- */
+{
+  const aHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
+  const aJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const aCss = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  const panel = (aHtml.match(/<section class="ent-admin-panel" id="panel-growth">[\s\S]*?\n        <\/section>/) || [''])[0]
+
+  is('A75', 'Growth explains the purpose of its analytics before showing data',
+     /ent-growth-hero/.test(panel) && /Follow report activity over time/.test(panel),
+     'a dedicated introduction replaces the bare filter row')
+
+  is('A75a', 'the selected view has live, clearly labelled summary metrics',
+     ['growthMetricTotal', 'growthMetricClinics', 'growthMetricPeak',
+      'growthMetricAverage'].every(function (id) { return panel.includes('id="' + id + '"') })
+       && /function renderGrowthSummary/.test(aJs)
+       && /renderGrowthSummary\(series\)/.test(aJs),
+     'summary values are derived from the same series as the chart')
+
+  const summarySrc = (aJs.match(/function renderGrowthSummary\(series\) \{[\s\S]*?\n    \}/) || [''])[0]
+  const summaryValues = {}
+  let renderSummary = null
+  if (summarySrc) {
+    renderSummary = new Function('setText', 'fmtNum', summarySrc + '\nreturn renderGrowthSummary;')(
+      function (id, value) { summaryValues[id] = value },
+      function (value) { return String(value) }
+    )
+  }
+  if (renderSummary) {
+    renderSummary([
+      { total: 2, label: 'Nov 1', parts: new Map([['north', 2]]) },
+      { total: 5, label: 'Nov 2', parts: new Map([['north', 3], ['south', 2]]) }
+    ])
+  }
+  is('A75e', 'summary totals, contributing clinics, peak and average use the plotted data',
+     !!renderSummary && summaryValues.growthMetricTotal === '7'
+       && summaryValues.growthMetricClinics === '2'
+       && summaryValues.growthMetricPeak === 'Nov 2'
+       && summaryValues.growthMetricPeakNote === '5 records in this interval'
+       && summaryValues.growthMetricAverage === '4'
+       && summaryValues.growthMetricAverageNote === 'Across 2 plotted intervals',
+     JSON.stringify(summaryValues))
+
+  is('A75b', 'period, clinic, interval, export and refresh controls remain wired',
+     /id="growthRange"/.test(panel) && /id="clinicFilter"/.test(panel)
+       && /id="growthMode"/.test(panel) && /id="exportClinicsBtn"/.test(panel)
+       && /id="refreshClinicsBtn"/.test(panel),
+     'existing Growth controls retain their stable IDs')
+
+  is('A75c', 'the activity chart, comparison table and scoreboard have dedicated layouts',
+     ['ent-growth-chart-card', 'ent-growth-comparison-card', 'ent-growth-staff-card',
+      '.ent-chart-col', '.ent-staff-card'].every(function (selector) {
+        return aCss.includes(selector)
+      }),
+     'chart, clinic totals and staff ranking each have a visible hierarchy')
+
+  is('A75d', 'Growth remains responsive and readable in dark mode',
+     /@media\s*\(max-width:\s*720px\)[\s\S]*?#panel-growth[\s\S]*?body\.dark-mode #panel-growth/.test(aCss),
+     'mobile controls and cards reflow, with a matching dark palette')
+}
+
+/* ---- A76: sessions, activity and support are clear workspaces ------ */
+{
+  const html = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
+  const js = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const css = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  const panel = (id) => (html.match(new RegExp(
+    '<section class="ent-admin-panel" id="panel-' + id + '">[\\s\\S]*?\\n        </section>'
+  )) || [''])[0]
+  const sessions = panel('sessions')
+  const activity = panel('activity')
+  const tickets = panel('tickets')
+
+  is('A76', 'Active Sessions explains live access and preserves the existing session controls',
+     /ACCESS MONITOR/.test(sessions) && /id="liveChk"/.test(sessions)
+       && /id="refreshSessionsBtn"/.test(sessions) && /id="sessionsTable"/.test(sessions),
+     'live heartbeat, refresh, presence table and revoke actions stay available')
+
+  is('A76a', 'session totals distinguish online, offline and revoked records',
+     ['sessionMetricOnline', 'sessionMetricOffline', 'sessionMetricRevoked',
+      'sessionMetricTotal'].every(function (id) { return sessions.includes('id="' + id + '"') })
+       && /const online = sessions\.filter\(isActiveSession\)/.test(js)
+       && /const offline = Math\.max\(0, sessions\.length - online - revoked\)/.test(js),
+     'counters follow the same heartbeat rule as the session status pill')
+
+  is('A76b', 'Activity Logs has live KPIs and fully labeled, clearable filters',
+     /AUDIT TRAIL/.test(activity) && /id="activityKpis"/.test(activity)
+       && ['activityUser', 'activityFilter', 'activityPeriod', 'activitySearch',
+         'activitySearchClear', 'exportActivityBtn', 'refreshActivityBtn']
+         .every(function (id) { return activity.includes('id="' + id + '"') })
+       && /clearSearch\.hidden = !\(\(search && search\.value\) \|\| ''\)\.trim\(\)/.test(js),
+     'person, action, period, search, export and refresh remain functional')
+
+  is('A76b1', 'activity actor name and role map from the audit table fields',
+     /username: row\.username \|\| \(person && person\.username\) \|\| row\.actor_label/.test(js)
+       && /role: row\.role \|\| row\.actor_role \|\| \(person && person\.role\)/.test(js)
+       && /a\.actor_label \|\| a\.username/.test(js)
+       && /a\.role \|\| a\.actor_role/.test(js),
+     'Who and Role use actor_label and actor_role written by the database')
+
+  is('A76b2', 'Activity Logs covers the clinics managed by this admin',
+     /across the clinics you manage/.test(activity)
+       && /All managed clinics/.test(activity)
+       && /clinicLabel\(a\.clinic_id\)/.test(js),
+     'scope is clear while each activity row keeps its actual clinic')
+
+  is('A76c', 'filtered activity results and support queue counts update as filters change',
+     /activityResultCount/.test(activity) && /ticketResults/.test(tickets)
+       && /setText\('ticketResults', rows\.length/.test(js)
+       && /setText\('activityResultCount', rows\.length/.test(js),
+     'the event timeline and ticket queue report what is currently displayed')
+
+  is('A76d', 'support retains clinic ticket triage, status counts, queue and reply thread',
+     /STAFF SUPPORT/.test(tickets) && /ticketStatUrgent/.test(tickets)
+       && /ticketSearchClear/.test(tickets) && /ticketScopeFilter/.test(tickets)
+       && /ticketStatusFilter/.test(tickets) && /adminTicketList/.test(tickets)
+       && /adminTicketDetail/.test(tickets) && /Clinic-only inbox/.test(tickets),
+     'existing ticket data and reply workflow stay in place')
+
+  is('A76e', 'all three workspaces have responsive table and panel styling in dark mode',
+     ['.ent-ops-hero', '#panel-sessions .ent-table',
+      '#panel-activity .ent-stat-grid', '#panel-tickets .ent-admin-tickets',
+      '#panel-tickets .ent-admin-ticket', '#panel-tickets .ent-admin-ticket .ent-tk-bar']
+       .every(function (rule) { return css.includes(rule) })
+       && /@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-ops-hero[\s\S]*?body\.dark-mode \.ent-ops-hero/.test(css)
+       && /body\.dark-mode #panel-tickets \.ent-ticket-detail/.test(css),
+     'tables scroll safely on small screens and all panels preserve dark theme contrast')
+
+  is('A76f', 'admin header keeps the Messenger control icon-only',
+     /\.ent-admin-actions > \.ent-messages-link span\s*\{\s*display:\s*none;\s*\}/.test(css)
+       && /\.ent-admin-actions > \.ent-messages-link\s*\{[^}]*width:\s*36px;/.test(css),
+     'the chat icon remains accessible without its text label')
+}
+
+/* ---- A77: database, recycle bin and settings workspaces ------------- */
+{
+  const html = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
+  const js = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const css = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  const section = (id) => (html.match(new RegExp(
+    '<section class="ent-admin-panel" id="panel-' + id + '">[\\s\\S]*?\\n        </section>'
+  )) || [''])[0]
+  const database = section('database')
+  const trash = section('trash')
+  const settings = section('settings')
+
+  is('A77', 'database usage explains its metrics and retains all existing data surfaces',
+     /CAPACITY &amp; HEALTH/.test(database) && /id="quotaCards"/.test(database)
+       && /id="dbSourceNote"/.test(database) && /id="dbCapacityNote"/.test(database)
+       && /id="dbBackupNote"/.test(database) && /id="dbTable"/.test(database)
+       && /id="clinicUsageTable"/.test(database) && /id="planNote"/.test(database)
+       && /id="refreshDbBtn"/.test(database),
+     'storage, source, capacity, backup disclaimer, table detail and clinic usage remain present')
+
+  is('A77a', 'the recycle bin shows a live count and keeps its safe restore/delete flow',
+     /id="trashCount"/.test(trash) && /id="trashList"/.test(trash)
+       && /id="emptyTrashBtn"/.test(trash) && /id="refreshTrashBtn"/.test(trash)
+       && /ent_deleted_reports/.test(js) && /p_limit:\s*200/.test(js)
+       && /count\.textContent = String\(rows\.length\)/.test(js)
+       && /data-trash-action="restore"/.test(js) && /data-trash-action="purge"/.test(js),
+     'RPC read, restore and permanent delete controls are preserved and the count follows loaded rows')
+
+  is('A77b', 'settings preserves clinic identity, server-backed flags and role guidance',
+     /settingsClinicId/.test(settings) && /settingsClinicName/.test(settings)
+       && /id="clinicNameInput"/.test(settings) && /id="saveClinicNameBtn"/.test(settings)
+       && /id="flagList"/.test(settings) && /Who can see what/.test(settings)
+       && /system_flags/.test(js),
+     'clinic identity, save action, feature flags and database-enforced roles remain wired')
+
+  is('A77c', 'all three panels have responsive, dark-mode styling',
+     ['.ent-db-quota-grid', '.ent-db-health', '.ent-trash-row',
+      '.ent-settings-grid', 'body.dark-mode .ent-trash-card',
+      'body.dark-mode .ent-settings-card'].every(function (rule) { return css.includes(rule) })
+       && /@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-settings-grid[\s\S]*?body\.dark-mode \.ent-db-quota-grid/.test(css),
+     'database cards, recycle-bin rows and settings reflow with dark-theme contrast')
+
+  const operationsCss = css.slice(css.indexOf('/* ---------- Database, deleted records and settings ---------- */'))
+  is('A77e', 'the new panel accents follow the system blue/slate palette',
+     /var\(--primary-color\)/.test(operationsCss)
+       && /var\(--primary-hover-color\)/.test(operationsCss)
+       && /var\(--border-color\)/.test(operationsCss)
+       && !/#(?:16847f|24817b|29807c|5b75af|f0f3fa)\b/i.test(operationsCss),
+     'shared theme variables replace one-off teal and violet accents')
+
+  is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
+     /admin\.js\?v=v38-activity-actors/.test(html)
+       && /ent-report-system-v151-notification-panel-fix/.test(
+         readFileSync(join(APP, 'sw.js'), 'utf8')),
+     'avoid stale browser and service-worker copies of the updated panels')
+
+  const chromeCss = css.slice(css.indexOf('/* ---------- Primary-color admin header and navigation ---------- */'))
+  is('A77f', 'the admin header and sidebar use the system primary color in both themes',
+     (chromeCss.match(/linear-gradient\(135deg,\s*#0ea5e9\s+0%,\s*#0284c7\s+50%,\s*#0369a1\s+100%\)/g) || []).length === 3
+       && /body\.dark-mode \.ent-admin-header/.test(chromeCss)
+       && /\.ent-admin-nav button\.active/.test(chromeCss),
+     'header and navigation rail use the exact requested gradient in both themes')
 }
 
 /* ---- A80: a ticket must always say WHO filed it -------------------
@@ -970,9 +1253,3 @@ console.log('==== ' + (failed ? failed + ' FAILED' : 'ADMIN CONSOLE OK') + ' - '
   passed + ' passed, ' + failed + ' failed ====')
 console.log('')
 process.exitCode = failed ? 1 : 0
-
-
-
-
-
-

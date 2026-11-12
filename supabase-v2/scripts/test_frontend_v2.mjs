@@ -760,7 +760,7 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        loginHtml.includes(`id="${id}"`))
        && loginHtml.includes('ent-login-content')
        && loginHtml.includes('Remember on this device')
-       && /auth\.css\?v=v36h/.test(loginHtml)
+       && /auth\.css\?v=v36i-primary-login/.test(loginHtml)
        && authCss.includes('grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr)')
        && mobileCss.includes('grid-template-columns: minmax(0, 1fr)')
        && /ent-report-system-v\d+-[^'"]+/.test(sw),

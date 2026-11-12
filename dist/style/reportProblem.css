@@ -8,9 +8,9 @@ body.report-problem-page {
 
 .report-problem-page .ent-tk-header {
     margin: 0;
-    border: 0;
-    background: var(--primary-color);
-    box-shadow: 0 4px 18px color-mix(in srgb, var(--primary-color) 20%, transparent);
+    border-bottom: 2px solid var(--primary-color);
+    background: var(--bg-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .report-problem-page .ent-tk-header .header-bar {
@@ -22,7 +22,7 @@ body.report-problem-page {
 .report-problem-page .ent-tk-header .header-brand {
     justify-content: flex-start;
     gap: 12px;
-    color: #fff;
+    color: var(--text-color);
     text-decoration: none;
 }
 
@@ -41,7 +41,7 @@ body.report-problem-page {
 }
 
 .report-problem-page .header-hospital {
-    color: rgba(255, 255, 255, .82);
+    color: var(--primary-hover-color);
     font-size: .58rem;
     font-weight: 700;
     letter-spacing: .1em;
@@ -49,7 +49,7 @@ body.report-problem-page {
 
 .report-problem-page .header-titles h1 {
     margin: 0;
-    color: #fff;
+    color: var(--main-content-header-color);
     font-size: .88rem;
     font-weight: 800;
     letter-spacing: .1em;
@@ -614,6 +614,368 @@ body.dark-mode.report-problem-page .rp-detail {
     box-shadow: 0 6px 20px rgba(0, 0, 0, .16);
 }
 
+.contact-support-page {
+    --cs-blue: #0284c7;
+    --cs-cyan: #0891b2;
+}
+
+body.contact-support-page.ent-tk-page .ent-tk-header {
+    margin: 0;
+    border: 0;
+    border-bottom: 2px solid var(--primary-color);
+    background: var(--bg-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+}
+
+.contact-support-page .ent-tk-header .header-bar {
+    position: relative;
+    overflow: hidden;
+}
+
+.contact-support-page .ent-tk-header .header-bar::after {
+    position: absolute;
+    top: -50px;
+    right: 3%;
+    width: 180px;
+    height: 180px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 12%, transparent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 24px color-mix(in srgb, var(--primary-color) 4.5%, transparent), 0 0 0 50px color-mix(in srgb, var(--primary-color) 3.5%, transparent);
+    content: "";
+    pointer-events: none;
+}
+
+.contact-support-page .header-brand,
+.contact-support-page .cs-header-tag {
+    position: relative;
+    z-index: 1;
+}
+
+body.contact-support-page .ent-tk-header .header-hospital {
+    color: var(--primary-hover-color);
+}
+
+body.contact-support-page .ent-tk-header .header-titles h1 {
+    color: var(--main-content-header-color);
+}
+
+body.contact-support-page.ent-tk-page .ent-tk-header .ent-conn {
+    border-color: var(--border-color);
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+}
+
+.cs-header-tag {
+    padding: 7px 11px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+}
+
+.cs-main {
+    width: min(100% - 48px, 1180px);
+    margin: 0 auto;
+    padding: 24px 0 44px;
+}
+
+.cs-content-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 24px;
+}
+
+.cs-content-actions .back-button.back-button-solid {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover-color));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(100, 116, 139, .3);
+}
+
+.cs-content-actions .back-button.back-button-solid:hover {
+    background: linear-gradient(135deg, var(--secondary-hover-color), #334155);
+    box-shadow: 0 4px 10px rgba(100, 116, 139, .38);
+}
+
+.cs-content-actions .back-button.back-button-solid:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--primary-color) 38%, transparent);
+    outline-offset: 3px;
+}
+
+.cs-main .rp-topbar { margin-bottom: 20px; }
+
+.cs-hero {
+    position: relative;
+    display: flex;
+    min-height: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    overflow: hidden;
+    margin-bottom: 18px;
+    padding: 18px 24px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 25%, var(--border-color));
+    border-radius: 24px;
+    background:
+        radial-gradient(ellipse at 86% 0, rgba(14, 165, 233, .14), transparent 34rem),
+        linear-gradient(135deg, var(--panel-bg-color), var(--bg-color));
+    box-shadow: 0 12px 34px rgba(2, 132, 199, .08);
+}
+
+.cs-hero-copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    max-width: 760px;
+    align-items: center;
+    gap: 15px;
+}
+
+.cs-hero-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--border-color));
+    border-radius: 15px;
+    background: linear-gradient(145deg, var(--primary-light), var(--panel-bg-color));
+    color: var(--primary-color);
+    box-shadow: 0 8px 20px rgba(2, 132, 199, .12), inset 0 1px 0 rgba(255, 255, 255, .8);
+}
+
+.cs-hero-icon svg { width: 24px; height: 24px; }
+
+.cs-eyebrow,
+.cs-kicker {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--primary-hover-color);
+    font-size: .64rem;
+    font-weight: 850;
+    letter-spacing: .14em;
+}
+
+.cs-hero h2 {
+    margin: 0;
+    background: linear-gradient(100deg, var(--primary-hover-color), #0e7490);
+    background-clip: text;
+    color: transparent;
+    font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+    font-weight: 850;
+    letter-spacing: -.05em;
+    line-height: 1.08;
+}
+
+.cs-hero p {
+    max-width: 58ch;
+    margin: 5px 0 0;
+    color: var(--secondary-text-color);
+    font-size: .78rem;
+    line-height: 1.45;
+}
+
+.cs-hero-mark {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 74px;
+    height: 74px;
+    flex: 0 0 74px;
+    align-content: center;
+    justify-items: center;
+    border: 1px solid rgba(14, 165, 233, .2);
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(14, 165, 233, .14), rgba(8, 145, 178, .06));
+    color: var(--primary-hover-color);
+    box-shadow: 0 0 0 12px rgba(14, 165, 233, .035), inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+
+.cs-hero-mark span { font-size: 1.2rem; font-weight: 900; letter-spacing: -.04em; }
+.cs-hero-mark small { margin-top: 2px; font-size: .48rem; font-weight: 850; letter-spacing: .16em; }
+.cs-hero-orb { position: absolute; border: 1px solid rgba(14, 165, 233, .08); border-radius: 50%; pointer-events: none; }
+.cs-hero-orb-one { right: 7%; bottom: -180px; width: 330px; height: 330px; }
+.cs-hero-orb-two { right: 24%; top: -225px; width: 300px; height: 300px; }
+
+.cs-section {
+    padding: clamp(20px, 3vw, 32px);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 7px 24px rgba(15, 23, 42, .045);
+}
+
+.cs-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.cs-section-heading .cs-kicker { margin-bottom: 5px; }
+.cs-section-heading h2 { margin: 0; color: var(--text-color); font-size: 1.15rem; font-weight: 820; letter-spacing: -.025em; }
+.cs-section-heading p { margin: 0; color: var(--secondary-text-color); font-size: .76rem; }
+
+.cs-pending {
+    margin: -4px 0 14px;
+    color: var(--secondary-text-color);
+    font-size: .74rem;
+}
+
+.cs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.cs-card {
+    --cs-accent: #0284c7;
+    --cs-tint: rgba(14, 165, 233, .1);
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 112px;
+    align-items: center;
+    gap: 14px;
+    overflow: hidden;
+    padding: 18px;
+    border: 1px solid color-mix(in srgb, var(--cs-accent) 18%, var(--border-color));
+    border-radius: 15px;
+    background:
+        radial-gradient(ellipse at 100% 0, var(--cs-tint), transparent 64%),
+        var(--bg-color);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .025);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.cs-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cs-accent) 55%, var(--border-color)); box-shadow: 0 8px 20px color-mix(in srgb, var(--cs-accent) 12%, transparent); }
+.cs-card.is-phone { --cs-accent: #059669; --cs-tint: rgba(16, 185, 129, .1); }
+.cs-card.is-facebook { --cs-accent: #4f46e5; --cs-tint: rgba(99, 102, 241, .1); }
+.cs-card.is-other { --cs-accent: #d97706; --cs-tint: rgba(245, 158, 11, .11); }
+
+.cs-card-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--cs-accent) 14%, transparent);
+    border-radius: 14px;
+    background: var(--cs-tint);
+    color: var(--cs-accent);
+}
+
+.cs-card-icon svg { width: 22px; height: 22px; }
+.cs-card-copy { display: grid; min-width: 0; gap: 4px; }
+.cs-card-label { color: var(--cs-accent); font-size: .6rem; font-weight: 850; letter-spacing: .12em; }
+.cs-card-copy strong { overflow-wrap: anywhere; color: var(--text-color); font-size: .9rem; font-weight: 760; }
+.cs-card-copy small { color: var(--secondary-text-color); font-size: .7rem; line-height: 1.45; }
+.cs-contact-link {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    align-items: center;
+    min-height: 40px;
+    padding: 7px 10px;
+    border: 1px solid color-mix(in srgb, var(--cs-accent) 32%, transparent);
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--cs-accent) 10%, var(--panel-bg-color));
+    color: var(--cs-accent);
+    font-size: 1rem;
+    font-weight: 850;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.cs-contact-link:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--cs-accent) 48%, transparent);
+    background: color-mix(in srgb, var(--cs-accent) 16%, var(--panel-bg-color));
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--cs-accent) 16%, transparent);
+}
+.cs-contact-link:focus-visible { outline: 2px solid var(--cs-accent); outline-offset: 2px; }
+.cs-card-arrow { align-self: flex-start; margin-left: auto; color: var(--cs-accent); font-size: .6rem; font-weight: 850; opacity: .7; }
+
+.cs-note {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 15px 18px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 17%, var(--border-color));
+    border-radius: 14px;
+    background: linear-gradient(110deg, var(--primary-light), var(--panel-bg-color));
+}
+
+.cs-note-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 10px; background: var(--panel-bg-color); color: var(--primary-color); }
+.cs-note-icon svg { width: 18px; height: 18px; }
+.cs-note strong, .cs-note small { display: block; }
+.cs-note strong { color: var(--text-color); font-size: .76rem; }
+.cs-note small { margin-top: 3px; color: var(--secondary-text-color); font-size: .69rem; line-height: 1.45; }
+
+.cs-footer {
+    display: flex;
+    width: min(100% - 48px, 1180px);
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 auto;
+    padding: 17px 0 22px;
+    border-top: 1px solid var(--border-color);
+    color: var(--secondary-text-color);
+    font-size: .68rem;
+}
+
+body.dark-mode .contact-support-page .cs-section,
+body.dark-mode .contact-support-page .cs-card { box-shadow: 0 7px 24px rgba(0, 0, 0, .15); }
+
+@media (max-width: 640px) {
+    .contact-support-page .ent-tk-header .header-bar { padding: 8px 12px; }
+    .contact-support-page .header-hospital { font-size: .45rem; }
+    .contact-support-page .header-titles h1 { font-size: .7rem; }
+    .cs-header-tag { padding: 6px 8px; font-size: .52rem; }
+    .cs-main { width: calc(100% - 24px); padding: 15px 0 28px; }
+    .cs-content-actions { margin-bottom: 20px; }
+    .cs-main .rp-topbar { margin-bottom: 13px; }
+    .cs-hero { gap: 10px; margin-bottom: 12px; padding: 13px 14px; border-radius: 15px; }
+    .cs-hero-copy { gap: 10px; }
+    .cs-hero-icon { width: 38px; height: 38px; flex-basis: 38px; border-radius: 12px; }
+    .cs-hero-icon svg { width: 20px; height: 20px; }
+    .cs-hero h2 { font-size: clamp(1.08rem, 5vw, 1.35rem); }
+    .cs-hero p { margin-top: 4px; font-size: .69rem; line-height: 1.35; }
+    .cs-hero-mark { display: none; }
+    .cs-section { padding: 17px 14px; border-radius: 16px; }
+    .cs-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; margin-bottom: 13px; padding-bottom: 12px; }
+    .cs-section-heading p { font-size: .7rem; }
+    .cs-grid { grid-template-columns: 1fr; gap: 8px; }
+    .cs-card { min-height: 88px; gap: 11px; padding: 12px; border-radius: 13px; }
+    .cs-card-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+    .cs-card-icon svg { width: 20px; height: 20px; }
+    .cs-card-copy strong { font-size: .82rem; }
+    .cs-card-copy small { font-size: .66rem; }
+    .cs-note { align-items: flex-start; margin-top: 10px; padding: 12px; }
+    .cs-footer { width: calc(100% - 24px); flex-wrap: wrap; gap: 5px 12px; padding-top: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-card { transition: none; }
+    .cs-card:hover { transform: none; }
+}
+
 @media (max-width: 920px) {
     .rp-workspace {
         grid-template-columns: minmax(0, 1fr);
@@ -827,5 +1189,89 @@ body.dark-mode.report-problem-page .rp-detail {
     .report-problem-page *::after {
         scroll-behavior: auto !important;
         transition-duration: .01ms !important;
+    }
+}
+
+.report-problem-page .rp-hero {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(255, 255, 255, .18);
+    background: linear-gradient(120deg, #0ea5e9 0%, #0284c7 54%, #0369a1 100%);
+    box-shadow: 0 12px 30px rgba(2, 132, 199, .18);
+}
+
+.report-problem-page .rp-hero::after {
+    position: absolute;
+    top: -118px;
+    right: 7%;
+    width: 270px;
+    height: 270px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 50%;
+    box-shadow: 0 0 0 22px rgba(255, 255, 255, .055), 0 0 0 48px rgba(255, 255, 255, .035);
+    content: "";
+    pointer-events: none;
+}
+
+.report-problem-page .rp-hero-copy,
+.report-problem-page .rp-create {
+    position: relative;
+    z-index: 1;
+}
+
+.report-problem-page .rp-hero-icon {
+    border-color: rgba(255, 255, 255, .24);
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+
+.report-problem-page .rp-eyebrow {
+    color: rgba(255, 255, 255, .78);
+}
+
+.report-problem-page .rp-hero h2,
+.report-problem-page .rp-hero p {
+    color: #fff;
+}
+
+.report-problem-page .rp-hero p {
+    color: rgba(255, 255, 255, .86);
+}
+
+.report-problem-page .rp-create {
+    border-color: #fff;
+    background: #fff;
+    color: #0369a1;
+    box-shadow: 0 5px 14px rgba(3, 45, 70, .16);
+}
+
+.report-problem-page .rp-create:hover {
+    border-color: #e0f2fe;
+    background: #e0f2fe;
+    color: #075985;
+    box-shadow: 0 8px 18px rgba(3, 45, 70, .2);
+}
+
+.report-problem-page .rp-topbar-label {
+    padding: 6px 10px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--border-color));
+    border-radius: 999px;
+    background: var(--panel-bg-color);
+    color: var(--primary-hover-color);
+}
+
+body.dark-mode.report-problem-page .rp-hero {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .2);
+}
+
+@media (max-width: 640px) {
+    .report-problem-page .rp-hero {
+        border-radius: 16px;
+    }
+
+    .report-problem-page .rp-hero::after {
+        top: -135px;
+        right: -148px;
     }
 }

@@ -140,6 +140,11 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     let summaryError = '';
     let activitySummaryError = '';
     let activitySummaryRequestId = 0;
+    let reportMixPeriod = 'month';
+    let reportMixRequestId = 0;
+    let reportMixSummaryError = '';
+    let reportMixSummaryCache = Object.create(null);
+    let dashboardData = null;
     let monthlyExportBusy = false;
     let notificationCenterWired = false;
     let notificationPanelOpen = false;
@@ -317,6 +322,32 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return addDays(d, -(((d.getDay() + 6) % 7)));
     }
     function monthStart(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
+    function reportMixRange(period, now) {
+        const today = startOfDay(now);
+        const end = addDays(today, 1);
+        if (period === '7days') {
+            return {
+                key: 'week',
+                start: startOfDay(addDays(today, -6)),
+                end: end,
+                label: 'Last 7 days'
+            };
+        }
+        if (period === 'year') {
+            return {
+                key: 'year',
+                start: new Date(now.getFullYear(), 0, 1),
+                end: end,
+                label: 'This year'
+            };
+        }
+        return {
+            key: 'month',
+            start: monthStart(now),
+            end: end,
+            label: 'This month'
+        };
+    }
     function dayKeyOf(date) {
         return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
     }
@@ -996,6 +1027,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const opts = options || {};
         if (busy) return;
         activitySummaryRequestId += 1;
+        reportMixRequestId += 1;
+        reportMixSummaryCache = Object.create(null);
+        reportMixSummaryError = '';
         setBusy(true);
         try {
             if (opts.push) await pushPendingRecords();
@@ -1282,10 +1316,18 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         function positionNotificationPanel() {
             if (!notificationPanelOpen || !notificationCenter) return;
             const toggle = notificationCenter.querySelector('.ent-notification-toggle');
-            const panel = notificationCenter.querySelector('.ent-notification-panel');
+            const panel = byId('dashNotificationPanel');
             if (!toggle || !panel) return;
-            const panelTop = toggle.getBoundingClientRect().bottom + 10;
-            panel.style.setProperty('--ent-notification-panel-top', Math.max(12, Math.round(panelTop)) + 'px');
+            const panelWidth = Math.min(420, Math.max(0, window.innerWidth - 24));
+            const toggleRect = toggle.getBoundingClientRect();
+            const center = Math.max(panelWidth / 2 + 12,
+                Math.min(window.innerWidth - panelWidth / 2 - 12,
+                    toggleRect.left + toggleRect.width / 2));
+            const panelTop = Math.max(12, Math.round(toggleRect.bottom + 10));
+            panel.style.setProperty('--ent-notification-panel-top', panelTop + 'px');
+            panel.style.setProperty('--ent-notification-panel-left', Math.round(center) + 'px');
+            panel.style.setProperty('--ent-notification-panel-max-height',
+                Math.max(120, window.innerHeight - panelTop - 12) + 'px');
         }
         if (!notificationCenterWired) {
             notificationCenterWired = true;
@@ -1322,13 +1364,33 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             document.addEventListener('click', function (event) {
                 if (!notificationPanelOpen || !notificationCenter) return;
                 const target = event.target;
-                if (target && typeof target.closest === 'function'
-                    && target.closest('[data-notification-toggle], [data-monthly-export-action]')) return;
-                if (notificationCenter.contains && !notificationCenter.contains(event.target)) {
+                if (target && typeof target.closest === 'function') {
+                    if (target.closest('[data-notification-toggle]')) return;
+                    const monthlyAction = target.closest('[data-monthly-export-action]');
+                    if (monthlyAction) {
+                        if (monthlyAction.dataset.monthlyExportAction === 'download') {
+                            return exportMonthlyRecords(monthlyAction);
+                        }
+                        if (monthlyAction.dataset.monthlyExportAction === 'later') {
+                            return snoozeMonthlyExport();
+                        }
+                    }
+                    if (target.closest('[data-notification-id]')) {
+                        notificationPanelOpen = false;
+                        renderNotices();
+                        return;
+                    }
+                }
+                const panel = byId('dashNotificationPanel');
+                const insideCenter = notificationCenter.contains
+                    && notificationCenter.contains(target);
+                const insidePanel = panel && panel.contains && panel.contains(target);
+                if (!insideCenter && !insidePanel) {
                     notificationPanelOpen = false;
                     renderNotices();
                 }
             });
+            document.addEventListener('ent:notifications-updated', renderNotices);
         }
         const notices = [];
         const notifications = [];
@@ -1386,6 +1448,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 html: '<strong>Activity chart may be incomplete.</strong> ' + esc(activitySummaryError)
             });
         }
+        if (reportMixSummaryError) {
+            notifications.push({
+                kind: 'is-warn',
+                html: '<strong>Report type counts may be incomplete.</strong> ' + esc(reportMixSummaryError)
+            });
+        }
         if (source === 'cloud' && cloudSummary && rows.length >= ROW_LIMIT) {
             notices.push({
                 kind: 'is-info',
@@ -1423,14 +1491,35 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             }).join('');
         }
         if (notificationCenter) {
-            const count = notifications.length;
-            const notificationItems = count
-                ? notifications.map(function (n) {
+            const storedNotifications = window.EntNotificationCenter
+                ? window.EntNotificationCenter.getItems() : [];
+            const unreadStored = window.EntNotificationCenter
+                ? window.EntNotificationCenter.getUnreadCount() : 0;
+            const count = notifications.length + unreadStored;
+            const dashboardItems = notifications.map(function (n) {
+                return Object.assign({ isStored: false }, n);
+            });
+            storedNotifications.forEach(function (n) {
+                const href = window.EntNotificationCenter.getHref(n);
+                dashboardItems.push({
+                    kind: 'is-info' + (n.read_at ? '' : ' is-unread'),
+                    html: '<strong>' + esc(n.title) + '</strong> ' + esc(n.body),
+                    actions: '<div class="ent-notification-actions"><a class="ent-btn ent-dash-ghost"'
+                        + ' href="' + esc(href) + '" data-notification-id="' + esc(n.id) + '">Open</a></div>',
+                    isStored: true
+                });
+            });
+            const notificationItems = dashboardItems.length
+                ? dashboardItems.map(function (n) {
                     return '<article class="ent-notification-item ' + n.kind
                         + (n.actions ? ' is-monthly' : '') + '" role="status">'
                         + '<div>' + n.html + '</div>' + (n.actions || '') + '</article>';
                 }).join('')
                 : '<p class="ent-notification-empty">You\u2019re all caught up.</p>';
+            const existingPanel = byId('dashNotificationPanel');
+            if (existingPanel && existingPanel.parentNode) {
+                existingPanel.parentNode.removeChild(existingPanel);
+            }
             notificationCenter.innerHTML = '<button type="button" class="ent-notification-toggle"'
                 + ' data-notification-toggle aria-label="Notifications'
                 + (count ? ', ' + count + ' active' : '') + '"'
@@ -1445,8 +1534,13 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 + '</button>'
                 + '<section class="ent-notification-panel" id="dashNotificationPanel"'
                 + ' aria-label="Notifications"' + (notificationPanelOpen ? '' : ' hidden') + '>'
-                + '<h2>Notifications</h2><div class="ent-notification-list">'
+                + '<div class="ent-notification-heading"><h2>Notifications</h2>'
+                + '<button type="button" data-notification-read-all'
+                + (unreadStored ? '' : ' disabled') + '>Mark all read</button></div>'
+                + '<div class="ent-notification-list">'
                 + notificationItems + '</div></section>';
+            const notificationPanel = notificationCenter.querySelector('.ent-notification-panel');
+            if (notificationPanel) document.body.appendChild(notificationPanel);
             positionNotificationPanel();
         }
     }
@@ -1583,15 +1677,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
 
 
-    // One chart per family: Endoscopy (nasal + laryngeal) and CF4 each get
-    // their own 7-day growth view. valueOf picks the per-group distinct
-    // count so a CF4 backfill never inflates the Endoscopy chart. The
-    // columns spread across the whole card (space-between in CSS) instead
-    // of clustering centred with dead space at both ends, and each day
-    // carries a weekday label under its number - the same calendar
-    // language the Activity Growth month chart speaks - so a quiet
-    // weekend reads as a weekend, not as a data dip.
-    function renderChartInto(chartId, hintId, series, valueOf, color, colorDim, hintLabel) {
+    // Render one per-type daily chart. Each day carries its date in the
+    // tooltip, while weekend and today styling keep the calendar readable.
+    function renderChartInto(chartId, hintId, series, valueOf, color, colorDim, hintLabel, periodLabel) {
         const chart = byId(chartId);
         if (!chart) return;
         const todayKey = dayKeyOf(new Date());
@@ -1610,7 +1698,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 Number(s.key.slice(8, 10))
             ).getDay();
             const weekend = (dow === 0 || dow === 6) ? ' is-weekend' : '';
-            return '<div class="ent-chart-col' + weekend + '" title="' + esc(dayLabel(s.key))
+            const dayClass = 'ent-chart-col' + (isToday ? ' is-today' : '') + weekend;
+            return '<div class="' + dayClass + '" title="' + esc(dayLabel(s.key))
                 + ' \u00b7 ' + value
                 + ' patient(s) \u00b7 ' + s.bucket.reports + ' report(s)">'
                 + '<span class="ent-chart-val">' + (value || '') + '</span>'
@@ -1624,8 +1713,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         }).join('');
         const hint = byId(hintId);
         if (hint) {
-            const total = series.reduce(function (sum, s) { return sum + valueOf(s.bucket); }, 0);
-            hint.textContent = hintLabel + ' \u00b7 ' + total + ' in the shown ' + CHART_DAYS + ' days';
+            if (periodLabel) {
+                hint.textContent = periodLabel + ' \u00b7 ' + series.length + ' days';
+            } else {
+                const total = series.reduce(function (sum, s) { return sum + valueOf(s.bucket); }, 0);
+                hint.textContent = hintLabel + ' \u00b7 ' + total + ' in the shown ' + CHART_DAYS + ' days';
+            }
         }
     }
     function renderChart(series) {
@@ -1702,8 +1795,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return opts.join('');
     }
     // Attach the month/year selector to the Activity Growth card head;
-    // changing it redraws the whole-month grid + the cloud counters, and
-    // the split charts' 7-day view, for that period. The Report types card
+    // changing it redraws the whole-month grid + the cloud counters and
+    // per-type charts for that period. The Report types card
     // keeps to the live calendar month.
     function renderActivitySelector(year, month) {
         const host = byId('dashPeriod');
@@ -1767,11 +1860,10 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             renderNotices();
         });
     }
-    // Activity data for BOTH views: `series` is the 7-day week the three
-    // split charts draw (the month's last week when it is over, today's
-    // week while it runs, its first week when not yet started), and
-    // `monthSeries` is EVERY day of the selected month - 28/29/30/31
-    // columns - which the Activity Growth card draws in full. Everything is
+    // Activity data for BOTH views: `series` remains the compact 7-day
+    // fallback, and `monthSeries` is EVERY day of the selected month -
+    // 28/29/30/31 columns - used by the activity charts and Activity Growth.
+    // Everything is
     // scoped to the selected month, so choosing October shows October, not
     // today's dates rendered all-zero through a month filter.
     function computeActivityData(rows, year, month) {
@@ -1787,14 +1879,14 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const emptyDay = function () {
             return { types: { nasal: 0, laryngeal: 0, cf4: 0 }, reports: 0 };
         };
-        // The whole month, day 1 to the last - the Growth card's columns.
+        // The whole month, day 1 to the last - used by all activity charts.
         const monthBuckets = activityBuckets(rows, monthStart, monthEdge);
         const monthSeries = [];
         for (let d = 1; d <= daysInMonth; d++) {
             const key = dayKeyOf(new Date(selY, selM - 1, d));
             monthSeries.push({ key: key, bucket: monthBuckets[key] || emptyDay() });
         }
-        // The 7 days the split charts show, anchored inside that month.
+        // Retain a 7-day fallback for legacy callers without a month picker.
         const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
         let to;                                    // exclusive upper bound
         if (monthStart >= tomorrow) to = new Date(selY, selM - 1, 8).getTime();
@@ -1822,25 +1914,29 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         };
     }
     function renderActivityCharts(data) {
-        // One chart per report type, in the same order and hues as the Report
-        // types card: nasal = sky, laryngeal = indigo, CF4 = green. Nasal and
+        // One full-month chart per report type, in the same order and hues as
+        // the Report types card: nasal = sky, laryngeal = indigo, CF4 = green. Nasal and
         // laryngeal used to share one combined chart - split, a quiet week on
         // one form can no longer hide a busy one on the other.
-        renderChartInto('dashChartNasal', 'dashChartHintNasal', data.series,
+        const monthSeries = data.monthSeries || data.series;
+        const firstKey = monthSeries[0] && monthSeries[0].key;
+        const periodLabel = firstKey
+            ? MONTH_NAMES[Number(firstKey.slice(5, 7)) - 1] + ' ' + firstKey.slice(0, 4)
+            : '';
+        renderChartInto('dashChartNasal', 'dashChartHintNasal', monthSeries,
             function (b) { return b.types.nasal; },
-            'var(--primary-color)', 'rgba(14, 165, 233, 0.45)', 'Nasal patients per day');
-        renderChartInto('dashChartLaryngeal', 'dashChartHintLaryngeal', data.series,
+            'var(--primary-color)', 'rgba(14, 165, 233, 0.45)', 'Nasal patients per day', periodLabel);
+        renderChartInto('dashChartLaryngeal', 'dashChartHintLaryngeal', monthSeries,
             function (b) { return b.types.laryngeal; },
-            '#6366f1', 'rgba(99, 102, 241, 0.45)', 'Laryngeal patients per day');
-        renderChartInto('dashChartCf4', 'dashChartHintCf4', data.series,
+            '#6366f1', 'rgba(99, 102, 241, 0.45)', 'Laryngeal patients per day', periodLabel);
+        renderChartInto('dashChartCf4', 'dashChartHintCf4', monthSeries,
             function (b) { return b.types.cf4; },
-            'var(--success-color)', 'rgba(39, 174, 96, 0.45)', 'CF4 patients per day');
+            'var(--success-color)', 'rgba(39, 174, 96, 0.45)', 'CF4 patients per day', periodLabel);
         // The combined Activity Growth card draws the WHOLE selected month:
         // one stacked column per day (28..31) in the three type hues, with
         // the cloud counters above totalling the same month. monthSeries
         // is absent only on the pre-selector paint (computeAll data), where
         // the 7-day series stands in until the picker fires.
-        const monthSeries = data.monthSeries || data.series;
         renderGrowthStats(monthSeries);
         renderGrowthChart({ series: monthSeries });
     }
@@ -1985,7 +2081,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         renderActivityCharts(data);
     }
 
-    function renderMix(bucket, note) {
+    function renderMix(bucket, periodLabel) {
         const box = byId('dashMix');
         if (!box) return;
         // One hue per report type - the same sky / indigo / green the
@@ -1994,32 +2090,36 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const colors = {
             nasal: '#0ea5e9',
             laryngeal: '#6366f1',
-            cf4: '#27ae60'
+            cf4: '#27ae60',
+            abstract: '#f59e0b',
+            medicalCertificate: '#64748b'
         };
         const tints = {
             nasal: 'rgba(14, 165, 233, 0.15)',
             laryngeal: 'rgba(99, 102, 241, 0.15)',
-            cf4: 'rgba(39, 174, 96, 0.15)'
+            cf4: 'rgba(39, 174, 96, 0.15)',
+            abstract: 'rgba(245, 158, 11, 0.15)',
+            medicalCertificate: 'rgba(100, 116, 139, 0.13)'
         };
         const types = bucket.types || {};
-        // This card only ever shows these three types, so the shares add
+        // The shares add
         // up over their own sum - not over bucket.reports, which also
         // carries "other" rows this dashboard has no tile for.
         const total = TYPE_ORDER.reduce(function (s, t) { return s + (types[t] || 0); }, 0);
         const hint = byId('dashMixHint');
         if (hint) {
-            hint.textContent = 'This month \u00b7 ' + total
+            hint.textContent = periodLabel + ' \u00b7 ' + total
                 + ' report' + (total === 1 ? '' : 's');
         }
         if (!total) {
-            box.innerHTML = '<p class="ent-empty">No reports saved this month yet.</p>';
+            box.innerHTML = '<p class="ent-empty">No reports saved ' + esc(periodLabel.toLowerCase()) + ' yet.</p>';
             return;
         }
         // Proportion bar first: one glance shows the month's SHAPE (mostly
-        // laryngeal? balanced?) before the eye commits to reading three
-        // separate rows. Same hues as the bars below, so the summary and
+        // laryngeal? balanced?) before the eye commits to reading the
+        // individual cards. Same hues as the bars below, so the summary and
         // the detail are visibly the same data.
-        const mixBar = '<div class="ent-mix-summary" title="Share of this month\'s reports">'
+        const mixBar = '<div class="ent-mix-summary" title="Share of ' + esc(periodLabel.toLowerCase()) + ' reports">'
             + TYPE_ORDER.filter(function (t) { return (types[t] || 0) > 0; }).map(function (t) {
                 return '<span class="ent-mix-summary-seg" style="flex:' + (types[t] || 0)
                     + ';background:' + colors[t] + '"></span>';
@@ -2030,18 +2130,67 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const pct = Math.round((n / total) * 100);
             // The type's own hue rides along as --ent-hue so CSS can tint
             // the hover and the % badge without a class per type.
-            return '<div class="ent-mix-item" style="--ent-hue:' + colors[t] + ';--ent-tint:'
+            return '<div class="ent-mix-item' + (n ? '' : ' is-empty') + '" style="--ent-hue:' + colors[t] + ';--ent-tint:'
                 + tints[t] + '">'
                 + '<div class="ent-mix-head">'
                 + '<span class="ent-mix-ic" style="background:' + tints[t]
                 + ';color:' + colors[t] + '">' + TYPES[t].icon + '</span>'
                 + '<span class="ent-mix-label">' + esc(TYPES[t].label) + '</span>'
-                + '<span class="ent-mix-val"><b>' + n + '</b><i>' + pct + '%</i></span>'
+                + '</div>'
+                + '<div class="ent-mix-stats">'
+                + '<span class="ent-mix-val"><b>' + n + '</b><small>reports</small></span>'
+                + '<i class="ent-mix-share">' + pct + '%</i>'
                 + '</div>'
                 + '<div class="ent-mix-bar"><span style="width:' + pct
                 + '%;background:' + colors[t] + '"></span></div>'
                 + '</div>';
-        }).join('') + '<div class="ent-mix-note">' + esc(note) + '</div>';
+        }).join('') + '<div class="ent-mix-note">Counted by save date.</div>';
+    }
+
+    function renderReportMixPeriod(period) {
+        const selected = period === '7days' || period === 'year' ? period : 'month';
+        reportMixPeriod = selected;
+        const select = byId('dashMixPeriod');
+        if (select) select.value = selected;
+        const requestId = ++reportMixRequestId;
+        reportMixSummaryError = '';
+        const range = reportMixRange(selected, new Date());
+        const localBucket = selected === 'month' && dashboardData
+            ? dashboardData.month
+            : bucketBetween(range.start.getTime(), range.end.getTime());
+        const label = range.label;
+
+        if (selected === 'month' && source === 'cloud' && cloudSummary) {
+            renderMix(bucketFromSummary(cloudSummary, 'month') || localBucket, label);
+            return;
+        }
+        if (reportMixSummaryCache[selected]) {
+            renderMix(reportMixSummaryCache[selected], label);
+            return;
+        }
+        renderMix(localBucket, label);
+        if (source !== 'cloud') return;
+
+        requestDashboardSummary([{
+            bucket_key: range.key,
+            starts_at: range.start.toISOString(),
+            ends_at: range.end.toISOString()
+        }]).then(function (summary) {
+            if (requestId !== reportMixRequestId || selected !== reportMixPeriod) return;
+            const exact = bucketFromSummary(summary, range.key);
+            if (!exact) throw new Error('The database returned no report type counts for the selected period.');
+            reportMixSummaryCache[selected] = exact;
+            reportMixSummaryError = '';
+            renderMix(exact, label);
+            renderNotices();
+        }).catch(function (error) {
+            if (requestId !== reportMixRequestId || selected !== reportMixPeriod) return;
+            reportMixSummaryError = 'The exact counts could not be loaded. Showing counts from the newest '
+                + ROW_LIMIT.toLocaleString() + ' loaded records.';
+            console.warn('[Dashboard] Exact report type summary unavailable.', error);
+            renderMix(localBucket, label);
+            renderNotices();
+        });
     }
 
     // Patients list (dashRecent): one visual row per patient, and up to
@@ -3123,20 +3272,22 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
 
     function wireDashActions() {
-        const printBtn = byId('dashPrintBtn');
-        if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
         const exportBtn = byId('dashExportBtn');
         if (exportBtn) exportBtn.addEventListener('click', exportDashboardCsv);
+        const mixPeriod = byId('dashMixPeriod');
+        if (mixPeriod) mixPeriod.addEventListener('change', function () {
+            renderReportMixPeriod(mixPeriod.value);
+        });
     }
 
     function renderAll() {
         const data = computeAll();
+        dashboardData = data;
         renderHero(data);
         renderNotices();
         renderTiles(data);
         renderSplitCharts(data);
-        const monthName = data.now.toLocaleDateString(undefined, { month: 'long' });
-        renderMix(data.month, 'Report mix so far in ' + monthName + ' \u00b7 counted by save date.');
+        renderReportMixPeriod(reportMixPeriod);
         renderRecent();
         renderActionSummary();
         renderActivitySelector(new Date().getFullYear(), new Date().getMonth() + 1);

@@ -521,10 +521,10 @@
     /* --------------------------- mount --------------------------- */
     function wire() {
         // The form and the ticket list now live on pages/reportProblem.html
-        // (ticketsPage.js). This file stays on index.html only so the
-        // dashboard badge can read unreadCount(), so every element lookup
-        // here is GUARDED: on the dashboard none of these ids exist, and an
-        // unguarded addEventListener would throw and kill the rest of boot.
+        // (ticketsPage.js). This file stays on index.html so the dashboard
+        // badge can read unreadCount() and the support link can be hidden
+        // for admins. Element lookups are guarded because the report form
+        // itself does not exist on the dashboard.
         const form = byId('tfForm');
         if (form) form.addEventListener('submit', file);
 
@@ -538,20 +538,8 @@
             });
         });
 
-        // The "Report a problem" card in the quick-action grid. It has no
-        // data-report-type, so dashboard.js ignores the click and this owns
-        // it. Reporting is a POP-UP: the dashboard stays exactly as it was,
-        // so the doctor goes straight back to their patients.
-        function openModal() {
-            if (!modal) return;
-            modal.classList.add('open');
-            // Open on the LIST, not the form. Checking whether the
-            // administrator answered is what people come back for; filing a
-            // new report is the rare occasion.
-            closeView();
-            switchTab('mine');
-            loadMine().catch(function (err) { say(friendly(err), true); });
-        }
+        // Reporting is a regular link to pages/reportProblem.html. Do not
+        // intercept it here: navigation should work even if this script fails.
         function closeModal() {
             // The one-ticket pop-up lives inside this dialog, so closing the
             // dialog must take it with it rather than leave it to reappear on
@@ -562,8 +550,6 @@
         function setOpen(open) {
             if (modal) modal.classList.toggle('open', !!open);
         }
-
-        if (card) card.addEventListener('click', openModal);
 
         const close = byId('tfClose');
         if (close) close.addEventListener('click', closeModal);
@@ -632,12 +618,9 @@
         if (!session || !session.user) return;
         me = session.user;
 
-        // An admin answers tickets, they do not file them. The markup stays
-        // in index.html unconditionally and is simply hidden here, so there
-        // is one page to maintain rather than two role variants.
+        // An admin answers tickets, they do not file them. Hide the dashboard
+        // report link for admins; they use the admin console to answer tickets.
         if (me.role === 'admin') {
-            // The pop-up is for staff to report with. An admin answers the
-            // queue from the admin console, so there is nothing here to open.
             if (card) card.hidden = true;
             return;
         }

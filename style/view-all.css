@@ -107,7 +107,7 @@ body.ent-cca-page {
 .ent-cca-main .ent-page-nav {
     display: flex;
     justify-content: flex-start;
-    margin: 0 0 12px;
+    margin: 0 0 24px;
 }
 .ent-cca-main .ent-page-nav .ent-page-back {
     padding: 8px 14px;
@@ -2347,5 +2347,299 @@ body.dark-mode.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
         width: 36px;
         height: 36px;
         flex-basis: 36px;
+    }
+}
+
+/* Keep the access overview on the app's primary blue, while making room for
+   the patient directory in the first viewport. */
+body.ent-cca-page .ent-cca-main {
+    gap: 12px;
+    padding: 12px clamp(12px, 2vw, 20px) 32px;
+}
+
+body.ent-cca-page .ent-cca-main > .ent-page-nav {
+    margin: 0 0 20px;
+}
+
+body.ent-cca-page .ent-cca-overview {
+    gap: 10px;
+    margin: 0;
+    padding: 14px 16px;
+    border-color: color-mix(in srgb, var(--primary-color) 38%, var(--border-color));
+    border-radius: 17px;
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(255, 255, 255, .16), transparent 28rem),
+        linear-gradient(125deg, var(--primary-color), var(--primary-hover-color));
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+body.ent-cca-page .ent-cca-overview-head {
+    gap: 12px;
+}
+
+body.ent-cca-page .ent-cca-overview-kicker {
+    margin-bottom: 4px;
+    color: #e0f2fe;
+    font-size: .62rem;
+}
+
+body.ent-cca-page .ent-cca-overview-copy h2 {
+    color: #fff;
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    line-height: 1.15;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+    margin-top: 6px;
+    padding: 5px 9px;
+    border-color: rgba(255, 255, 255, .3);
+    border-left-color: #bae6fd;
+    border-radius: 8px;
+    background: rgba(2, 132, 199, .32);
+    color: #f0f9ff;
+    font-size: .74rem;
+    line-height: 1.3;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line::before {
+    color: #bae6fd;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-reqbar {
+    gap: 8px;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+    min-height: 54px;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: 11px;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 10px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-icon svg {
+    width: 19px;
+    height: 19px;
+    color: var(--primary-hover-color);
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy > span {
+    font-size: .8rem;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy small {
+    font-size: .66rem;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stats {
+    gap: 8px;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat {
+    min-height: 58px;
+    gap: 2px;
+    padding: 8px 12px;
+    border-top-width: 3px;
+    border-radius: 11px;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat-n {
+    font-size: 1.35rem;
+    line-height: 1.1;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat-l {
+    font-size: .64rem;
+    line-height: 1.2;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview {
+    border-color: rgba(125, 211, 252, .32);
+    background:
+        radial-gradient(ellipse at 100% 0, rgba(125, 211, 252, .18), transparent 28rem),
+        linear-gradient(125deg, var(--primary-hover-color), #075985);
+    box-shadow: 0 8px 22px rgba(2, 6, 23, .28);
+}
+
+@media screen and (max-width: 900px) {
+    body.ent-cca-page .ent-cca-overview-head {
+        gap: 9px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-reqbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.ent-cca-page .ent-cca-toolbar {
+        grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    body.ent-cca-page .ent-cca-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    body.ent-cca-page .ent-cca-filter {
+        min-width: 0;
+        justify-content: space-between;
+    }
+
+    body.ent-cca-page .ent-cca-select {
+        min-width: 0;
+        max-width: 68%;
+        flex: 0 1 68%;
+    }
+
+    body.ent-cca-page .ent-cca-toggle,
+    body.ent-cca-page .ent-cca-count {
+        grid-column: 1 / -1;
+    }
+}
+
+@media screen and (max-width: 560px) {
+    body.ent-cca-page .ent-cca-overview {
+        gap: 6px;
+        padding: 8px;
+        border-radius: 14px;
+    }
+
+    body.ent-cca-page .ent-cca-overview-head {
+        gap: 6px;
+    }
+
+    body.ent-cca-page .ent-cca-overview-kicker {
+        display: none;
+    }
+
+    body.ent-cca-page .ent-cca-overview-copy h2 {
+        font-size: 1rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+        margin-top: 4px;
+        padding: 4px 7px;
+        font-size: .64rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+        min-height: 44px;
+        gap: 5px;
+        padding: 5px 6px;
+        border-radius: 10px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-reqbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy > span {
+        font-size: .72rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy small {
+        font-size: .6rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-arrow {
+        font-size: .9rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat {
+        min-height: 46px;
+        padding: 5px 4px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat-n {
+        font-size: 1.08rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat-l {
+        font-size: .52rem;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy small {
+        display: none;
+    }
+
+    body.ent-cca-page .ent-cca-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+        padding: 7px;
+    }
+
+    body.ent-cca-page .ent-cca-searchrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    body.ent-cca-page .ent-cca-search-label {
+        flex: 0 0 auto;
+        margin: 0;
+        font-size: .64rem;
+        text-transform: none;
+    }
+
+    body.ent-cca-page .ent-cca-search {
+        min-height: 36px;
+        min-width: 0;
+        padding: 8px 10px;
+        font-size: .8rem;
+    }
+
+    body.ent-cca-page .ent-cca-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    body.ent-cca-page .ent-cca-filter {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    body.ent-cca-page .ent-cca-filter > label {
+        font-size: .62rem;
+    }
+
+    body.ent-cca-page .ent-cca-select {
+        width: 100%;
+        max-width: none;
+        min-height: 36px;
+        flex: 1 1 auto;
+        padding: 6px 8px;
+        font-size: .72rem;
+    }
+
+    body.ent-cca-page .ent-cca-toggle {
+        grid-column: 1;
+        min-height: 28px;
+        width: auto;
+        justify-content: flex-start;
+        font-size: .66rem;
+    }
+
+    body.ent-cca-page .ent-cca-count {
+        grid-column: 2;
+        width: auto;
+        font-size: .62rem;
+        text-align: right;
     }
 }

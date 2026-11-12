@@ -8,8 +8,10 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v32c">
     <link rel="stylesheet" href="../style/auth.css?v=v33am">
-    <link rel="stylesheet" href="../style/admin.css?v=v34ac">
+    <link rel="stylesheet" href="../style/notifications.css?v=v3-notification-panel">
+    <link rel="stylesheet" href="../style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
+    <link rel="stylesheet" href="../style/admin.css?v=v46-admin-messenger-icon">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -21,10 +23,10 @@
                 <span class="ent-burger" aria-hidden="true"></span>
             </button>
             <div class="ent-admin-brand">
-                <span class="ent-admin-brand-icon">&#9881;</span>
+                <span class="ent-admin-brand-icon"><img src="../image/ent-logo.webp" alt=""></span>
                 <span class="ent-admin-brand-text">
-                    <h1>Admin Console</h1>
-                    <small id="adminGreeting">Clinic activity, growth &amp; database usage</small>
+                    <h1>ENT Clinic</h1>
+                    <small>ADMIN WORKSPACE</small>
                 </span>
             </div>
             <div class="ent-admin-actions">
@@ -55,7 +57,7 @@
             <div class="ent-nav-cluster">
                 <span class="ent-nav-group-label">Workspace</span>
                 <button type="button" data-panel="overview" data-title="Overview" class="active" aria-current="true" title="Overview">
-                    <span class="ent-nav-icon" aria-hidden="true">&#9636;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="13" width="7" height="8" rx="1.5"/></svg></span>
                     <span class="ent-nav-text">Overview</span>
                 </button>
             </div>
@@ -63,15 +65,15 @@
             <div class="ent-nav-cluster">
                 <span class="ent-nav-group-label">Management</span>
                 <button type="button" data-panel="clinics" data-title="Clinics" title="Clinics - doctors and their secretaries">
-                    <span class="ent-nav-icon" aria-hidden="true">&#127974;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg></span>
                     <span class="ent-nav-text">Clinics</span>
                 </button>
                 <button type="button" data-panel="growth" data-title="Records growth" title="Records growth per clinic">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128200;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 4 3 6-7"/><path d="M16 6h5v5"/></svg></span>
                     <span class="ent-nav-text">Growth</span>
                 </button>
                 <button type="button" data-panel="users" data-title="Users" title="Doctors, secretaries, access">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128101;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
                     <span class="ent-nav-text">Users</span>
                 </button>
             </div>
@@ -79,15 +81,15 @@
             <div class="ent-nav-cluster">
                 <span class="ent-nav-group-label">Operations</span>
                 <button type="button" data-panel="sessions" data-title="Active sessions" title="Who is online right now">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128250;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 9h.01M11 9h.01"/></svg></span>
                     <span class="ent-nav-text">Active sessions</span>
                 </button>
                 <button type="button" data-panel="activity" data-title="Activity log" title="Every sign-in and record">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128203;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h11a2 2 0 0 1 2 2v15H5V6a2 2 0 0 1 2-2"/><path d="M9 2h6v4H9zM9 11h7M9 15h7M9 19h4"/></svg></span>
                     <span class="ent-nav-text">Activity log</span>
                 </button>
                 <button type="button" data-panel="tickets" data-title="Tickets" title="Problems your staff reported about the app">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128221;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg></span>
                     <span class="ent-nav-text">Tickets</span>
                     <span class="ent-nav-count" id="ticketNavCount" hidden>0</span>
                 </button>
@@ -96,16 +98,16 @@
             <div class="ent-nav-cluster">
                 <span class="ent-nav-group-label">System</span>
                 <button type="button" data-panel="trash" data-title="Deleted records" title="Records a doctor deleted by mistake - restore them here">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128465;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg></span>
                     <span class="ent-nav-text">Deleted records</span>
                     <span class="ent-nav-count" id="trashNavCount" hidden>0</span>
                 </button>
                 <button type="button" data-panel="database" data-title="Database usage" title="Tables, size and plan limits">
-                    <span class="ent-nav-icon" aria-hidden="true">&#128190;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
                     <span class="ent-nav-text">Database usage</span>
                 </button>
                 <button type="button" data-panel="settings" data-title="Settings" title="Clinic name and capability switches">
-                    <span class="ent-nav-icon" aria-hidden="true">&#9881;&#65039;</span>
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.8Z"/></svg></span>
                     <span class="ent-nav-text">Settings</span>
                 </button>
             </div>
@@ -120,53 +122,56 @@
         <div class="ent-admin-body">
 
         <div class="ent-admin-bar">
-            <h2 class="ent-admin-bar-title" id="panelTitle">Overview</h2>
-            <span class="ent-live-refresh" id="lastRefresh"></span>
+            <div class="ent-admin-page-title">
+                <span class="ent-admin-page-kicker">CLINIC WORKSPACE</span>
+                <h2 class="ent-admin-bar-title" id="panelTitle">Overview</h2>
+            </div>
         </div>
 
         <!-- ---------------------------- OVERVIEW --------------------------- -->
         <section class="ent-admin-panel active" id="panel-overview">
-            <div class="ent-stat-groups">
-                <section class="ent-stat-group">
-                    <header class="ent-stat-group-head"><span class="ent-group-dot live"></span>Right now</header>
-                    <div class="ent-stat-grid">
-                        <div class="ent-stat"><div class="ent-stat-value" id="statActive">-</div><div class="ent-stat-label">Active now</div></div>
-                        <div class="ent-stat"><div class="ent-stat-value" id="statLogins">-</div><div class="ent-stat-label">Logins today</div></div>
-                        <div class="ent-stat ok"><div class="ent-stat-value" id="statRecords">-</div><div class="ent-stat-label">Records today</div></div>
-                    </div>
-                </section>
-
-                <section class="ent-stat-group">
-                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>People</header>
-                    <div class="ent-stat-grid">
-                        <div class="ent-stat"><div class="ent-stat-value" id="statUsers">-</div><div class="ent-stat-label">Total users</div></div>
-                        <div class="ent-stat ok"><div class="ent-stat-value" id="statDoctors">-</div><div class="ent-stat-label">Doctors</div></div>
-                        <div class="ent-stat warn"><div class="ent-stat-value" id="statSecretaries">-</div><div class="ent-stat-label">Secretaries</div></div>
-                        <div class="ent-stat danger"><div class="ent-stat-value" id="statInactive">-</div><div class="ent-stat-label">Deactivated</div></div>
-                    </div>
-                </section>
-
-                <section class="ent-stat-group">
-                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>Records</header>
-                    <div class="ent-stat-grid">
-                        <div class="ent-stat"><div class="ent-stat-value" id="statWeek">-</div><div class="ent-stat-label">This week</div></div>
-                        <div class="ent-stat"><div class="ent-stat-value" id="statMonth">-</div><div class="ent-stat-label">This month</div></div>
-                        <div class="ent-stat"><div class="ent-stat-value" id="statTotal">-</div><div class="ent-stat-label">All records</div></div>
-                    </div>
-                </section>
-
-                <section class="ent-stat-group">
-                    <header class="ent-stat-group-head"><span class="ent-group-dot"></span>Coverage</header>
-                    <div class="ent-stat-grid">
-                        <div class="ent-stat"><div class="ent-stat-value" id="statClinics">-</div><div class="ent-stat-label">Clinics reporting</div></div>
-                        <div class="ent-stat warn"><div class="ent-stat-value" id="statDb">-</div><div class="ent-stat-label">DB used</div></div>
-                    </div>
-                </section>
+            <header class="ent-overview-intro">
+                <div>
+                    <span class="ent-overview-eyebrow">AT A GLANCE</span>
+                    <h2>Welcome back</h2>
+                    <p id="adminGreeting">Clinic activity, growth &amp; database usage</p>
+                </div>
+                <span class="ent-overview-updated"><span class="ent-group-dot live"></span><span id="lastRefresh"></span></span>
+            </header>
+            <div class="overview-metrics" aria-label="Clinic summary">
+                <article class="ent-stat overview-stat overview-stat-records">
+                    <div class="overview-stat-heading"><span class="overview-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H5V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M8 13h8M8 17h8"/></svg></span><span class="ent-stat-label">Records today</span></div>
+                    <div class="ent-stat-value" id="statRecords">-</div>
+                    <div class="overview-stat-meta">This week <strong id="statWeek">-</strong></div>
+                </article>
+                <article class="ent-stat overview-stat overview-stat-total">
+                    <div class="overview-stat-heading"><span class="overview-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-6"/><path d="M16 7h4v4"/></svg></span><span class="ent-stat-label">All patient records</span></div>
+                    <div class="ent-stat-value" id="statTotal">-</div>
+                    <div class="overview-stat-meta">This month <strong id="statMonth">-</strong></div>
+                </article>
+                <article class="ent-stat overview-stat overview-stat-active">
+                    <div class="overview-stat-heading"><span class="overview-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="ent-stat-label">Active staff</span></div>
+                    <div class="ent-stat-value" id="statActive">-</div>
+                    <div class="overview-stat-meta">Logins today <strong id="statLogins">-</strong></div>
+                </article>
+                <article class="ent-stat overview-stat overview-stat-team">
+                    <div class="overview-stat-heading"><span class="overview-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></span><span class="ent-stat-label">Clinic team</span></div>
+                    <div class="ent-stat-value" id="statUsers">-</div>
+                    <div class="overview-stat-meta"><span><strong id="statDoctors">-</strong> doctors</span><span><strong id="statSecretaries">-</strong> secretaries</span><span><strong id="statInactive">-</strong> inactive</span></div>
+                </article>
+                <article class="ent-stat overview-stat overview-stat-clinics">
+                    <div class="overview-stat-heading"><span class="overview-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M10 21v-5h4v5M9 10h.01M15 10h.01M9 13h.01M15 13h.01"/></svg></span><span class="ent-stat-label">Clinics reporting</span></div>
+                    <div class="ent-stat-value" id="statClinics">-</div>
+                    <div class="overview-stat-meta">Database used <strong id="statDb">-</strong></div>
+                </article>
             </div>
 
-            <div class="ent-card">
+            <div class="ent-card overview-card-snapshot">
                 <div class="ent-card-head">
-                    <h3>Clinic snapshot</h3>
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-teal" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg></span>
+                        <span><h3>Clinic snapshot</h3><span class="overview-card-subtitle">A quick look at today's activity</span></span>
+                    </div>
                     <span class="ent-hint" id="snapshotHint">Today vs yesterday, per consultation room / branch</span>
                 </div>
                 <div class="ent-snapshot-grid" id="clinicSnapshot">
@@ -178,9 +183,12 @@
                  ranked on the ALL-TIME record count (periodTotals().total),
                  not today's - a clinic that is quiet this morning is still
                  the one that has done the most work. -->
-            <div class="ent-card">
+            <div class="ent-card overview-card-top">
                 <div class="ent-card-head">
-                    <h3>Top clinics by records</h3>
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 12 3 3 5-6M5 4h14l2 3-2 3v10H5V10L3 7l2-3Z"/><path d="M9 4V2h6v2"/></svg></span>
+                        <span><h3>Top clinics</h3><span class="overview-card-subtitle">Ranked by records on file</span></span>
+                    </div>
                     <span class="ent-hint" id="topClinicsHint">The three clinics that have recorded the most patients</span>
                 </div>
                 <div class="ent-topclinics" id="topClinics">
@@ -188,28 +196,25 @@
                 </div>
             </div>
 
-            <div class="ent-card-grid">
-                <div class="ent-card">
+            <div class="ent-card-grid overview-chart-grid">
+                <div class="ent-card overview-chart-week">
                     <div class="ent-card-head">
-                        <h3>Last 7 days &mdash; all clinics</h3>
+                        <div class="overview-card-title">
+                            <span class="overview-title-icon is-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 4 3 6-7"/><path d="M16 6h5v5"/></svg></span>
+                            <span><h3>Records over time</h3><span class="overview-card-subtitle">Daily activity across all clinics &middot; last 7 days</span></span>
+                        </div>
                         <span class="ent-hint" id="weekTrendHint"></span>
                     </div>
                     <div class="ent-chart" id="overviewChart"><div class="ent-empty">Loading&hellip;</div></div>
                 </div>
-                <div class="ent-card">
-                    <div class="ent-card-head"><h3>Report mix (30 days)</h3></div>
+                <div class="ent-card overview-card-mix">
+                    <div class="ent-card-head">
+                        <div class="overview-card-title">
+                            <span class="overview-title-icon is-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v9h9A9 9 0 1 1 12 3Z"/><path d="M16 3.7A9 9 0 0 1 20.3 8H16V3.7Z"/></svg></span>
+                            <span><h3>Report mix</h3><span class="overview-card-subtitle">Report types &middot; last 30 days</span></span>
+                        </div>
+                    </div>
                     <div id="typeMix"><div class="ent-empty">Loading&hellip;</div></div>
-                </div>
-            </div>
-
-            <div class="ent-card">
-                <div class="ent-card-head">
-                    <h3>Live sessions</h3></div>
-                <div class="ent-table-wrap">
-                    <table class="ent-table">
-                        <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Seen</th><th>Status</th></tr></thead>
-                        <tbody id="overviewSessions"><tr><td colspan="5" class="ent-empty">Loading&hellip;</td></tr></tbody>
-                    </table>
                 </div>
             </div>
 
@@ -220,25 +225,47 @@
                  hallway and otherwise has to open DB Records to answer.
                  Newest first, one block per clinic, capped at the five newest
                  rows each so one busy clinic cannot push the rest off screen. -->
+            <div class="ent-card overview-card-latest">
+                <div class="ent-card-head">
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H5V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></span>
+                        <span><h3>Latest patient records</h3><span class="overview-card-subtitle">Recent submissions grouped by clinic</span></span>
+                    </div>
+                    <span class="ent-hint" id="latestPatientsHint">Newest first &middot; grouped by clinic</span>
+                </div>
+                <div class="ent-latest" id="latestPatients">
+                    <div class="ent-empty">Loading&hellip;</div>
+                </div>
+            </div>
+
+            <div class="ent-card overview-card-sessions">
+                <div class="ent-card-head">
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                        <span><h3>Live sessions</h3><span class="overview-card-subtitle">Staff currently signed in</span></span>
+                    </div>
+                </div>
+                <div class="ent-table-wrap">
+                    <table class="ent-table">
+                        <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Seen</th><th>Status</th></tr></thead>
+                        <tbody id="overviewSessions"><tr><td colspan="5" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Clinic-wide follow-up tracker: every patient across the whole
                  clinic who was told to come back, soonest (overdue) first.
                  Reads payload.followUpDate, so it needs no migration and is
                  empty until a record is saved with a follow-up date. -->
-            <div class="ent-card">
+            <div class="ent-card overview-card-followups">
                 <div class="ent-card-head">
-                    <h3>&#128197; Follow-ups due</h3>
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-rose" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h2"/></svg></span>
+                        <span><h3>Follow-ups due</h3><span class="overview-card-subtitle">Upcoming clinic reminders</span></span>
+                    </div>
                     <span class="ent-hint" id="followUpHint">&mdash;</span>
                 </div>
                 <div class="ent-followup" id="adminFollowUp">
-                    <div class="ent-empty">Loading&hellip;</div>
-                </div>
-            </div>
-            <div class="ent-card">
-                <div class="ent-card-head">
-                    <h3>Latest patients records</h3>
-                    <span class="ent-hint" id="latestPatientsHint">Newest first &middot; grouped by clinic</span>
-                </div>
-                <div class="ent-latest" id="latestPatients">
                     <div class="ent-empty">Loading&hellip;</div>
                 </div>
             </div>
@@ -249,9 +276,12 @@
                  identifier, and only a human may decide. Patient-ID
                  duplicates never reach here - 0041's unique indexes stop
                  them at the database. -->
-            <div class="ent-card">
+            <div class="ent-card overview-card-duplicates">
                 <div class="ent-card-head">
-                    <h3>&#128269; Possible duplicates</h3>
+                    <div class="overview-card-title">
+                        <span class="overview-title-icon is-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10.3 4.3 2.8 17.2A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.8L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 16h.01"/></svg></span>
+                        <span><h3>Possible duplicates</h3><span class="overview-card-subtitle">For staff review · no automatic changes</span></span>
+                    </div>
                     <span class="ent-hint" id="dupHint">&mdash;</span>
                 </div>
                 <div class="ent-followup" id="adminDuplicates">
@@ -262,23 +292,33 @@
         <!-- ----------------------------- CLINICS ---------------------------- -->
         <section class="ent-admin-panel" id="panel-clinics">
             <header class="ent-clinic-hero">
-                <div>
-                    <h2>Clinics</h2>
-                    <p>Every clinic in this account, who works where, and how much each one has recorded.
-                       Each doctor is listed with the secretaries linked to them.</p>
+                <div class="ent-clinic-hero-main">
+                    <span class="ent-clinic-hero-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg>
+                    </span>
+                    <div class="ent-clinic-hero-text">
+                        <span class="ent-clinic-kicker">DIRECTORY &amp; ACTIVITY</span>
+                        <h2>Clinics</h2>
+                        <p>See each clinic's activity and how doctors and secretaries work together.</p>
+                    </div>
                 </div>
                 <div class="ent-clinic-hero-actions">
                     <button type="button" class="ent-btn" id="exportDirectoryBtn">
-                        <span aria-hidden="true">&#8681;</span> Export CSV
+                        <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 17v3h16v-3"/></svg></span> Export CSV
                     </button>
                     <button type="button" class="ent-btn" id="refreshDirectoryBtn">
-                        <span aria-hidden="true">&#8635;</span> Refresh
+                        <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 17 6.5L20 12M4 12l3 5.5A7 7 0 0 0 18.4 15"/></svg></span> Refresh
                     </button>
                 </div>
             </header>
 
             <div class="ent-admin-toolbar">
+                <div class="ent-clinic-toolbar-copy">
+                    <h3>Clinic directory</h3>
+                    <p>Search by clinic, doctor, or secretary</p>
+                </div>
                 <div class="ent-clinic-searchwrap">
+                    <svg class="ent-clinic-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
                     <input type="search" id="clinicSearch"
                            placeholder="Search a clinic, doctor or secretary&hellip;"
                            aria-label="Search clinics">
@@ -300,53 +340,135 @@
 
         <!-- ----------------------------- GROWTH ----------------------------- -->
         <section class="ent-admin-panel" id="panel-growth">
-            <div class="ent-admin-toolbar">
-                <select id="growthRange" title="How far back to look">
-                    <option value="30" selected>Last 30 days</option>
-                    <option value="90">Last 90 days</option>
-                    <option value="180">Last 6 months</option>
-                    <option value="365">Last 12 months</option>
-                </select>
-                <select id="clinicFilter"><option value="">All clinics</option></select>
-                <span class="spacer"></span>
-                <button type="button" class="ent-btn" id="exportClinicsBtn">&#8681; Export CSV</button>
-                <button type="button" class="ent-btn" id="refreshClinicsBtn">&#8635; Refresh</button>
+            <header class="ent-growth-hero">
+                <div class="ent-growth-hero-main">
+                    <span class="ent-growth-hero-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M3 19V5M3 19h18M6 15l4-4 3 3 6-7"/><path d="M15 7h4v4"/></svg>
+                    </span>
+                    <div class="ent-growth-hero-copy">
+                        <span class="ent-growth-kicker">CLINIC INSIGHTS</span>
+                        <h2>Records growth</h2>
+                        <p>Follow report activity over time, compare clinics, and see how your team is contributing.</p>
+                    </div>
+                </div>
+                <div class="ent-growth-hero-note">
+                    <span class="ent-growth-status-dot" aria-hidden="true"></span>
+                    <span><b>Clinic analytics</b><small>Record activity at a glance</small></span>
+                </div>
+            </header>
+
+            <div class="ent-growth-summary" id="growthSummary" aria-live="polite">
+                <article class="ent-growth-metric is-teal">
+                    <span class="ent-growth-metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
+                    </span>
+                    <span class="ent-growth-metric-copy"><span>Records in view</span><b id="growthMetricTotal">&mdash;</b><small>Within the selected view</small></span>
+                </article>
+                <article class="ent-growth-metric is-blue">
+                    <span class="ent-growth-metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
+                    </span>
+                    <span class="ent-growth-metric-copy"><span>Clinics contributing</span><b id="growthMetricClinics">&mdash;</b><small>With records in this view</small></span>
+                </article>
+                <article class="ent-growth-metric is-amber">
+                    <span class="ent-growth-metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-7"/></svg>
+                    </span>
+                    <span class="ent-growth-metric-copy"><span>Peak interval</span><b id="growthMetricPeak">&mdash;</b><small id="growthMetricPeakNote">Waiting for records</small></span>
+                </article>
+                <article class="ent-growth-metric is-violet">
+                    <span class="ent-growth-metric-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>
+                    </span>
+                    <span class="ent-growth-metric-copy"><span>Average per interval</span><b id="growthMetricAverage">&mdash;</b><small id="growthMetricAverageNote">Across plotted intervals</small></span>
+                </article>
             </div>
 
-            <div class="ent-card">
+            <div class="ent-growth-toolbar">
+                <div class="ent-growth-toolbar-heading">
+                    <span class="ent-growth-toolbar-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                    </span>
+                    <span><b>Explore activity</b><small>Choose a period and clinic</small></span>
+                </div>
+                <div class="ent-growth-filters">
+                    <label class="ent-growth-filter" for="growthRange">
+                        <span>Time period</span>
+                        <select id="growthRange" title="How far back to look">
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="180">Last 6 months</option>
+                            <option value="365">Last 12 months</option>
+                        </select>
+                    </label>
+                    <label class="ent-growth-filter" for="clinicFilter">
+                        <span>Clinic</span>
+                        <select id="clinicFilter"><option value="">All clinics</option></select>
+                    </label>
+                </div>
+                <div class="ent-growth-actions">
+                    <button type="button" class="ent-btn" id="exportClinicsBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg>
+                        Export CSV
+                    </button>
+                    <button type="button" class="ent-btn" id="refreshClinicsBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="ent-card ent-growth-chart-card">
                 <div class="ent-card-head">
-                    <h3>Records growth</h3>
-                    <div class="ent-segmented" id="growthMode">
+                    <div class="ent-growth-card-title">
+                        <span class="ent-growth-card-icon is-teal" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-7"/></svg>
+                        </span>
+                        <span><h3>Records over time</h3><small>Compare activity across your clinics</small></span>
+                    </div>
+                    <div class="ent-segmented" id="growthMode" aria-label="Chart interval">
                         <button type="button" data-mode="day" class="active">Daily</button>
                         <button type="button" data-mode="week">Weekly</button>
                         <button type="button" data-mode="month">Monthly</button>
                     </div>
                 </div>
-                <div class="ent-chart" id="growthChart"><div class="ent-empty">Loading&hellip;</div></div>
+                <div class="ent-growth-chart-scroll">
+                    <div class="ent-chart" id="growthChart" aria-label="Clinic record activity chart"><div class="ent-empty">Loading&hellip;</div></div>
+                </div>
                 <div class="ent-legend" id="growthLegend"></div>
-                <p class="ent-hint" id="growthCaption"></p>
+                <p class="ent-hint ent-growth-caption" id="growthCaption"></p>
             </div>
 
-            <div class="ent-card">
+            <div class="ent-card ent-growth-comparison-card">
                 <div class="ent-card-head">
-                    <h3>Clinic comparison</h3>
-                    <span class="ent-hint">Today &middot; this week &middot; this month &middot; all time</span>
+                    <div class="ent-growth-card-title">
+                        <span class="ent-growth-card-icon is-blue" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16M9 10v9M15 10v9"/></svg>
+                        </span>
+                        <span><h3>Clinic comparison</h3><small>Daily, weekly, monthly, and all-time totals for every clinic</small></span>
+                    </div>
                 </div>
-                <div class="ent-table-wrap">
-                    <table class="ent-table">
-                        <thead><tr>
-                            <th>Clinic</th><th>Today</th><th>This week</th><th>This month</th>
-                            <th>All records</th><th>Staff active</th><th>Last record</th>
-                        </tr></thead>
-                        <tbody id="clinicTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
-                    </table>
+                <div class="ent-growth-table-body">
+                    <div class="ent-table-wrap">
+                        <table class="ent-table">
+                            <thead><tr>
+                                <th>Clinic</th><th>Today</th><th>This week</th><th>This month</th>
+                                <th>All records</th><th>Staff active</th><th>Last record</th>
+                            </tr></thead>
+                            <tbody id="clinicTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <div class="ent-card">
+            <div class="ent-card ent-growth-staff-card">
                 <div class="ent-card-head">
-                    <h3>Staff scoreboard</h3>
-                    <span class="ent-hint">One card per person &middot; biggest producer first</span>
+                    <div class="ent-growth-card-title">
+                        <span class="ent-growth-card-icon is-violet" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11a3.5 3.5 0 0 0 0-7M17 15h1a3 3 0 0 1 3 3v2"/></svg>
+                        </span>
+                        <span><h3>Staff scoreboard</h3><small>Ranked by total records created</small></span>
+                    </div>
                 </div>
                 <div class="ent-staff-grid" id="staffCards">
                     <div class="ent-empty">Loading&hellip;</div>
@@ -361,16 +483,23 @@
              refreshUsersBtn, addUserBtn, usersGrid). -->
         <section class="ent-admin-panel" id="panel-users">
             <header class="ent-users-hero">
-                <span class="ent-users-hero-icon" aria-hidden="true">&#128101;</span>
+                <span class="ent-users-hero-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11a3.5 3.5 0 0 0 0-7M17 15h1a3 3 0 0 1 3 3v2"/></svg>
+                </span>
                 <div class="ent-users-hero-text">
-                    <span class="ent-users-kicker">People</span>
+                    <span class="ent-users-kicker">PEOPLE &amp; ACCESS</span>
                     <h2>Users</h2>
-                    <p>Doctors, secretaries and admins in your clinic. Edit a card to change
-                       a role, set a new password, or deactivate an account.</p>
+                    <p>Manage clinic accounts in one place. Review roles and access, update account details, or help a teammate sign back in.</p>
                 </div>
                 <div class="ent-users-hero-actions">
-                    <button type="button" class="ent-btn" id="refreshUsersBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
-                    <button type="button" class="ent-btn primary" id="addUserBtn"><span aria-hidden="true">&#10133;</span> Add user</button>
+                    <button type="button" class="ent-btn" id="refreshUsersBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>
+                        Refresh
+                    </button>
+                    <button type="button" class="ent-btn primary" id="addUserBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        Add user
+                    </button>
                 </div>
             </header>
             <div class="ent-users-stats" role="status" aria-label="User totals">
@@ -392,106 +521,219 @@
                 </div>
             </div>
             <div class="ent-admin-toolbar ent-users-toolbar">
-                <div class="ent-users-searchwrap">
-                    <span class="ent-users-searchic" aria-hidden="true">&#128269;</span>
-                    <input type="search" id="userSearch" placeholder="Search name or username&hellip;" aria-label="Search users">
+                <div class="ent-users-toolbar-copy">
+                    <b>Account directory</b>
+                    <small>Search for a teammate or narrow the list by role.</small>
                 </div>
-                <select id="roleFilter" aria-label="Filter by role">
-                    <option value="">All roles</option>
-                    <option value="admin">Admin</option>
-                    <option value="doctor">Doctor</option>
-                    <option value="secretary">Secretary</option>
-                </select>
+                <div class="ent-users-filters">
+                <div class="ent-users-searchwrap">
+                    <svg class="ent-users-searchic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+                    <input type="search" id="userSearch" placeholder="Search name or username&hellip;" aria-label="Search users">
+                    <button type="button" class="ent-users-searchclear" id="usersSearchClear" aria-label="Clear user search" title="Clear search" hidden>&times;</button>
+                </div>
+                <label class="ent-users-role-filter" for="roleFilter">
+                    <span>Role</span>
+                    <select id="roleFilter" aria-label="Filter by role">
+                        <option value="">All roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="secretary">Secretary</option>
+                    </select>
+                </label>
+                </div>
+            </div>
+            <div class="ent-users-resultline">
+                <span class="ent-users-result-dot" aria-hidden="true"></span>
+                <span id="usersResultCount" role="status" aria-live="polite">Loading accounts&hellip;</span>
+                <span class="ent-users-result-hint">Role groups keep access and responsibilities easy to compare.</span>
             </div>
             <div class="ent-user-grid" id="usersGrid">
                 <div class="ent-empty">Loading users&hellip;</div>
             </div>
-            <p class="ent-hint">Secretaries can only open the patients of their assigned doctor. Deactivating a user blocks the next sign-in and revokes that user&rsquo;s open sessions.</p>
+            <div class="ent-users-note">
+                <span class="ent-users-note-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 5 3.2 8.3 7.5 10 4.3-1.7 7.5-5 7.5-10V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <p><b>Access note</b><span>Secretaries can only open the patients of their assigned doctor. Deactivating an account blocks the next sign-in and revokes that user&rsquo;s open sessions.</span></p>
+            </div>
         </section>
 
         <!-- ---------------------------- SESSIONS --------------------------- -->
         <section class="ent-admin-panel" id="panel-sessions">
-            <div class="ent-admin-toolbar">
-                <label class="ent-hint" style="font-size:.85rem;"><input type="checkbox" id="liveChk" checked style="width:auto;"> Auto-refresh every 15&nbsp;s</label>
-                <span class="spacer"></span>
-                <button type="button" class="ent-btn" id="refreshSessionsBtn">&#8635; Refresh</button>
+            <header class="ent-ops-hero ent-sessions-hero">
+                <div class="ent-ops-hero-main">
+                    <span class="ent-ops-hero-icon is-blue" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3M3 8v8M21 8v8"/></svg>
+                    </span>
+                    <div class="ent-ops-hero-copy">
+                        <span class="ent-ops-kicker">ACCESS MONITOR</span>
+                        <h2>Active sessions</h2>
+                        <p>See who is signed in, which device they are using, and end a session when access needs to be revoked.</p>
+                    </div>
+                </div>
+                <div class="ent-ops-hero-actions">
+                    <label class="ent-live-toggle" for="liveChk">
+                        <input type="checkbox" id="liveChk" checked>
+                        <span class="ent-live-switch" aria-hidden="true"></span>
+                        <span><b>Live updates</b><small>Every 15 seconds</small></span>
+                    </label>
+                    <button type="button" class="ent-btn" id="refreshSessionsBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </header>
+            <div class="ent-ops-summary" id="sessionsSummary" aria-live="polite">
+                <article class="ent-ops-metric is-green"><span class="ent-ops-metric-label">Online now</span><b id="sessionMetricOnline">—</b><small>Heartbeat is current</small></article>
+                <article class="ent-ops-metric is-blue"><span class="ent-ops-metric-label">Sessions listed</span><b id="sessionMetricTotal">—</b><small>Latest presence records</small></article>
+                <article class="ent-ops-metric is-amber"><span class="ent-ops-metric-label">Offline</span><b id="sessionMetricOffline">—</b><small>Not recently active</small></article>
+                <article class="ent-ops-metric is-slate"><span class="ent-ops-metric-label">Revoked</span><b id="sessionMetricRevoked">—</b><small>Access ended</small></article>
             </div>
-            <div class="ent-table-wrap">
-                <table class="ent-table">
-                    <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Signed in</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
-                    <tbody id="sessionsTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
-                </table>
+            <div class="ent-card ent-ops-table-card ent-sessions-card">
+                <div class="ent-card-head ent-ops-card-head">
+                    <div class="ent-ops-card-title">
+                        <span class="ent-ops-card-icon is-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16M9 10v9M15 10v9"/></svg></span>
+                        <span><h3>Session activity</h3><small id="sessionsResultCount">The newest sign-ins and devices</small></span>
+                    </div>
+                    <span class="ent-ops-card-note">Revoking a session signs that device out.</span>
+                </div>
+                <div class="ent-table-wrap ent-sessions-tablewrap">
+                    <table class="ent-table">
+                        <thead><tr><th>Who</th><th>Role</th><th>Device</th><th>Signed in</th><th>Last seen</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="sessionsTable"><tr><td colspan="7" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <!-- ---------------------------- ACTIVITY --------------------------- -->
         <section class="ent-admin-panel" id="panel-activity">
-            <div class="ent-stat-grid ent-stat-grid-slim" id="activityKpis"></div>
-            <div class="ent-admin-toolbar">
-                <select id="activityUser"><option value="">Everyone</option></select>
-                <select id="activityFilter">
-                    <option value="">All actions</option>
-                    <option value="LOGIN">Login</option>
-                    <option value="LOGOUT">Logout</option>
-                    <option value="SAVE_RECORD">Record saved</option>
-                    <option value="OPEN_RECORD">Record opened</option>
-                    <option value="USER_CREATED">User created</option>
-                    <option value="USER_UPDATED">User updated</option>
-                    <option value="USER_ACTIVATED">User activated</option>
-                    <option value="USER_DEACTIVATED">User deactivated</option>
-                    <option value="PASSWORD_RESET">Password reset</option>
-                    <option value="SESSION_REVOKED">Session revoked</option>
-                </select>
-                <select id="activityPeriod">
-                    <option value="1">Today</option>
-                    <option value="7" selected>Last 7 days</option>
-                    <option value="30">Last 30 days</option>
-                    <option value="0">Everything loaded</option>
-                </select>
-                <input type="search" id="activitySearch" placeholder="Search detail, patient, clinic&hellip;">
-                <span class="spacer"></span>
-                <button type="button" class="ent-btn" id="exportActivityBtn">&#8681; Export CSV</button>
-                <button type="button" class="ent-btn" id="refreshActivityBtn">&#8635; Refresh</button>
+            <header class="ent-ops-hero ent-activity-hero">
+                <div class="ent-ops-hero-main">
+                    <span class="ent-ops-hero-icon is-violet" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/><path d="M3 8v8M21 8v8"/></svg>
+                    </span>
+                    <div class="ent-ops-hero-copy">
+                        <span class="ent-ops-kicker">AUDIT TRAIL</span>
+                        <h2>Activity logs</h2>
+                        <p>Review sign-ins, record activity, and account changes across the clinics you manage.</p>
+                    </div>
+                </div>
+                <div class="ent-ops-hero-badge"><span aria-hidden="true"></span>All managed clinics</div>
+            </header>
+            <div class="ent-stat-grid ent-stat-grid-slim ent-activity-kpis" id="activityKpis" aria-live="polite"></div>
+            <div class="ent-admin-toolbar ent-ops-toolbar ent-activity-toolbar">
+                <div class="ent-ops-toolbar-heading">
+                    <b>Filter timeline</b><small>Choose who, what, and when</small>
+                </div>
+                <div class="ent-activity-filters">
+                    <label class="ent-ops-filter" for="activityUser"><span>Person</span>
+                        <select id="activityUser"><option value="">Everyone</option></select>
+                    </label>
+                    <label class="ent-ops-filter" for="activityFilter"><span>Action</span>
+                        <select id="activityFilter">
+                            <option value="">All actions</option>
+                            <option value="LOGIN">Login</option>
+                            <option value="LOGOUT">Logout</option>
+                            <option value="SAVE_RECORD">Record saved</option>
+                            <option value="OPEN_RECORD">Record opened</option>
+                            <option value="USER_CREATED">User created</option>
+                            <option value="USER_UPDATED">User updated</option>
+                            <option value="USER_ACTIVATED">User activated</option>
+                            <option value="USER_DEACTIVATED">User deactivated</option>
+                            <option value="PASSWORD_RESET">Password reset</option>
+                            <option value="SESSION_REVOKED">Session revoked</option>
+                        </select>
+                    </label>
+                    <label class="ent-ops-filter" for="activityPeriod"><span>Time range</span>
+                        <select id="activityPeriod">
+                            <option value="1">Today</option>
+                            <option value="7" selected>Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="0">Everything loaded</option>
+                        </select>
+                    </label>
+                    <div class="ent-ops-searchwrap ent-activity-searchwrap">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+                        <input type="search" id="activitySearch" placeholder="Search events&hellip;" aria-label="Search activity details, person, or clinic">
+                        <button type="button" id="activitySearchClear" aria-label="Clear activity search" title="Clear search" hidden>&times;</button>
+                    </div>
+                </div>
+                <div class="ent-ops-toolbar-actions">
+                    <button type="button" class="ent-btn" id="exportActivityBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg>Export CSV</button>
+                    <button type="button" class="ent-btn" id="refreshActivityBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>Refresh</button>
+                </div>
             </div>
-            <div class="ent-table-wrap">
-                <table class="ent-table">
-                    <thead><tr><th>When</th><th>Who</th><th>Role</th><th>Clinic</th><th>Action</th><th>Detail</th></tr></thead>
-                    <tbody id="activityTable"><tr><td colspan="6" class="ent-empty">Loading&hellip;</td></tr></tbody>
-                </table>
+            <div class="ent-card ent-ops-table-card ent-activity-card">
+                <div class="ent-card-head ent-ops-card-head">
+                    <div class="ent-ops-card-title">
+                        <span class="ent-ops-card-icon is-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v5l3 2M20.2 15A8.5 8.5 0 1 1 21 9"/><path d="M16 5h5v5"/></svg></span>
+                        <span><h3>Event timeline</h3><small id="activityResultCount">Latest events grouped by day</small></span>
+                    </div>
+                    <span class="ent-ops-card-note">Newest activity appears first.</span>
+                </div>
+                <div class="ent-table-wrap ent-activity-tablewrap">
+                    <table class="ent-table">
+                        <thead><tr><th>When</th><th>Who</th><th>Role</th><th>Clinic</th><th>Action</th><th>Detail</th></tr></thead>
+                        <tbody id="activityTable"><tr><td colspan="6" class="ent-empty">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+                <p class="ent-hint ent-activity-foot" id="activityFoot"></p>
             </div>
-            <p class="ent-hint" id="activityFoot"></p>
         </section>
 
         <!-- --------------------------- DATABASE ---------------------------- -->
         <section class="ent-admin-panel" id="panel-database">
-            <div class="ent-admin-toolbar">
-                <span class="ent-hint" id="dbSourceNote">Reading usage straight from Postgres&hellip;</span>
-                <span class="spacer"></span>
-                <button type="button" class="ent-btn" id="refreshDbBtn">&#8635; Refresh</button>
-            </div>
+            <header class="ent-ops-hero ent-database-hero">
+                <div class="ent-ops-hero-main">
+                    <span class="ent-ops-hero-icon is-blue" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3 .7 0 1.4 0 2-.1M20 5v7M4 12v7c0 1.7 3.6 3 8 3"/><path d="M20 16v5m-2.5-2.5h5"/></svg>
+                    </span>
+                    <div class="ent-ops-hero-copy">
+                        <span class="ent-ops-kicker">CAPACITY &amp; HEALTH</span>
+                        <h2>Database usage</h2>
+                        <p>Monitor storage, database size and account usage. Measurements are labeled when estimates or external checks are needed.</p>
+                    </div>
+                </div>
+                <div class="ent-database-hero-actions">
+                    <span class="ent-database-source" id="dbSourceNote">Reading usage straight from Postgres&hellip;</span>
+                    <button type="button" class="ent-btn" id="refreshDbBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </header>
 
-            <div class="ent-quota-grid" id="quotaCards">
+            <div class="ent-quota-grid ent-db-quota-grid" id="quotaCards">
                 <div class="ent-empty">Loading usage&hellip;</div>
             </div>
 
-            <div class="ent-card ent-database-health">
-                <div>
-                    <h3>Capacity signals</h3>
-                    <p class="ent-hint" id="dbCapacityNote">Waiting for the latest usage readings&hellip;</p>
+            <div class="ent-card ent-database-health ent-db-health">
+                <div class="ent-db-health-item is-capacity">
+                    <span class="ent-db-health-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-7"/></svg></span>
+                    <div>
+                        <h3>Capacity signals</h3>
+                        <p class="ent-hint" id="dbCapacityNote">Waiting for the latest usage readings&hellip;</p>
+                    </div>
                 </div>
-                <div>
-                    <h3>Backup status</h3>
-                    <p class="ent-hint" id="dbBackupNote">
-                        Not verified by this dashboard. An authorized operator must run the documented backup, protect its sensitive output outside the web root, and verify recovery with a restore test. No backup time or restore status is available here.
-                    </p>
+                <div class="ent-db-health-item is-backup">
+                    <span class="ent-db-health-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 5 3.2 8.3 7.5 10 4.3-1.7 7.5-5 7.5-10V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                    <div>
+                        <h3>Backup status</h3>
+                        <p class="ent-hint" id="dbBackupNote">
+                            Not verified by this dashboard. An authorized operator must run the documented backup, protect its sensitive output outside the web root, and verify recovery with a restore test. No backup time or restore status is available here.
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <div class="ent-card-grid">
-                <div class="ent-card">
-                    <div class="ent-card-head">
-                        <h3>Where the space goes</h3>
-                        <span class="ent-hint" id="dbTablesHint"></span>
+            <div class="ent-card-grid ent-db-details-grid">
+                <div class="ent-card ent-db-detail-card">
+                    <div class="ent-card-head ent-ops-card-head">
+                        <div class="ent-ops-card-title">
+                            <span class="ent-ops-card-icon is-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3M20 5v8M4 12c0 1.7 3.6 3 8 3M4 18c0 1.7 3.6 3 8 3"/><path d="M16 17h6m-3-3v6"/></svg></span>
+                            <span><h3>Where the space goes</h3><small id="dbTablesHint">Table sizes across the public schema</small></span>
+                        </div>
                     </div>
                     <div class="ent-table-wrap">
                         <table class="ent-table">
@@ -500,8 +742,13 @@
                         </table>
                     </div>
                 </div>
-                <div class="ent-card">
-                    <div class="ent-card-head"><h3>Records &amp; weight per clinic</h3></div>
+                <div class="ent-card ent-db-detail-card">
+                    <div class="ent-card-head ent-ops-card-head">
+                        <div class="ent-ops-card-title">
+                            <span class="ent-ops-card-icon is-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></span>
+                            <span><h3>Records &amp; weight per clinic</h3><small>Compare record counts and share</small></span>
+                        </div>
+                    </div>
                     <div class="ent-table-wrap">
                         <table class="ent-table">
                             <thead><tr><th>Clinic</th><th>Records (window)</th><th>Share</th></tr></thead>
@@ -521,16 +768,40 @@
              hides deleted rows from everyone including this console, which is
              what stops them leaking through any other screen. -->
         <section class="ent-admin-panel" id="panel-trash">
-            <div class="ent-admin-toolbar">
-                <span class="ent-hint" id="trashHint">Deleted records stay here until an administrator restores them - or erases them for good with "Delete forever".</span>
-                <span class="spacer"></span>
-                <button type="button" class="ent-btn danger" id="emptyTrashBtn" title="Erase every record deleted more than 90 days ago. Live records are never touched.">&#128465; Empty old bin</button>
-                <button type="button" class="ent-btn" id="refreshTrashBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
+            <header class="ent-ops-hero ent-trash-hero">
+                <div class="ent-ops-hero-main">
+                    <span class="ent-ops-hero-icon is-amber" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6M14 11v6"/></svg>
+                    </span>
+                    <div class="ent-ops-hero-copy">
+                        <span class="ent-ops-kicker">RECOVERY &amp; RETENTION</span>
+                        <h2>Deleted records</h2>
+                        <p>Review soft-deleted reports, restore records that were removed by mistake, or permanently erase old items when appropriate.</p>
+                    </div>
+                </div>
+                <div class="ent-trash-hero-actions">
+                    <span class="ent-trash-count"><b id="trashCount">—</b><small>in recycle bin</small></span>
+                    <button type="button" class="ent-btn danger" id="emptyTrashBtn" title="Erase every record deleted more than 90 days ago. Live records are never touched.">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 11v6M14 11v6"/></svg>
+                        Empty old items
+                    </button>
+                    <button type="button" class="ent-btn" id="refreshTrashBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </header>
+            <div class="ent-trash-notice">
+                <span class="ent-trash-notice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 5 3.2 8.3 7.5 10 4.3-1.7 7.5-5 7.5-10V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+                <span><b>Safe by default</b><small id="trashHint">Deleted records can be restored. Permanent erasure only applies to records already in this bin.</small></span>
             </div>
-            <div class="ent-card">
-                <div class="ent-card-head">
-                    <h3>Deleted records</h3>
-                    <span class="ent-hint">Nothing here has been erased unless you press "Delete forever". Restoring puts the record back exactly where it was.</span>
+            <div class="ent-card ent-trash-card">
+                <div class="ent-card-head ent-ops-card-head">
+                    <div class="ent-ops-card-title">
+                        <span class="ent-ops-card-icon is-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14"/></svg></span>
+                        <span><h3>Recycle bin</h3><small>Restore a report or permanently delete it</small></span>
+                    </div>
+                    <span class="ent-ops-card-note">Permanent deletion cannot be undone.</span>
                 </div>
                 <div class="ent-trash-list" id="trashList">
                     <div class="ent-empty">Loading&hellip;</div>
@@ -548,12 +819,20 @@
              adminTicketDetail. -->
         <section class="ent-admin-panel" id="panel-tickets">
             <header class="ent-tickets-hero">
-                <div class="ent-tickets-hero-text">
-                    <h2>Support inbox</h2>
-                    <p>Problems your staff reported about the app itself.
-                       Pick a ticket on the left, read the thread, reply on the right.</p>
+                <div class="ent-ops-hero-main">
+                    <span class="ent-ops-hero-icon is-amber" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M5 4h14v12H9l-4 4V4Z"/><path d="M8 8h8M8 12h5"/></svg>
+                    </span>
+                    <div class="ent-tickets-hero-text">
+                        <span class="ent-ops-kicker">STAFF SUPPORT</span>
+                        <h2>Support inbox</h2>
+                        <p>Review app problems reported by staff. Choose a ticket to read the conversation and reply.</p>
+                    </div>
                 </div>
-                <button type="button" class="ent-btn" id="refreshTicketsBtn"><span aria-hidden="true">&#8635;</span> Refresh</button>
+                <div class="ent-tickets-hero-actions">
+                    <span class="ent-tickets-privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5c0 5 3.2 8.3 7.5 10 4.3-1.7 7.5-5 7.5-10V6L12 3Z"/><path d="m9 12 2 2 4-4"/></svg>Clinic-only inbox</span>
+                    <button type="button" class="ent-btn" id="refreshTicketsBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg>Refresh</button>
+                </div>
             </header>
             <div class="ent-tickets-stats" role="status" aria-label="Ticket totals">
                 <div class="ent-ticket-stat is-open">
@@ -574,25 +853,34 @@
                 </div>
             </div>
             <div class="ent-admin-toolbar ent-tickets-toolbar">
+                <div class="ent-tickets-toolbar-copy"><b>Find a ticket</b><small>Search the subject, then narrow by area or status.</small></div>
+                <div class="ent-tickets-filters">
                 <div class="ent-tickets-searchwrap">
-                    <span class="ent-tickets-searchic" aria-hidden="true">&#128269;</span>
+                    <svg class="ent-tickets-searchic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
                     <input type="search" id="ticketSearch" placeholder="Search subject or reporter&hellip;" aria-label="Search tickets">
+                    <button type="button" id="ticketSearchClear" aria-label="Clear ticket search" title="Clear search" hidden>&times;</button>
                 </div>
-                <select id="ticketScopeFilter" title="Which part of the app" aria-label="Filter by area">
-                    <option value="">All areas</option>
-                    <option value="nasal">Nasal</option>
-                    <option value="laryngeal">Laryngeal</option>
-                    <option value="cf4">CF4</option>
-                    <option value="system">The app itself</option>
-                </select>
-                <select id="ticketStatusFilter" title="Only show these" aria-label="Filter by status">
-                    <option value="">All statuses</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In progress</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                </select>
+                <label class="ent-tickets-filter" for="ticketScopeFilter"><span>Area</span>
+                    <select id="ticketScopeFilter" title="Which part of the app" aria-label="Filter by area">
+                        <option value="">All areas</option>
+                        <option value="nasal">Nasal</option>
+                        <option value="laryngeal">Laryngeal</option>
+                        <option value="cf4">CF4</option>
+                        <option value="system">The app itself</option>
+                    </select>
+                </label>
+                <label class="ent-tickets-filter" for="ticketStatusFilter"><span>Status</span>
+                    <select id="ticketStatusFilter" title="Only show these" aria-label="Filter by status">
+                        <option value="">All statuses</option>
+                        <option value="open">Open</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </label>
+                </div>
             </div>
+            <div class="ent-tickets-resultline"><span class="ent-users-result-dot" aria-hidden="true"></span><span id="ticketResults" role="status" aria-live="polite">Loading tickets&hellip;</span><span class="ent-users-result-hint">Open and urgent tickets rise to the top.</span></div>
             <p class="ent-ticket-notice" id="adminTicketNotice"></p>
             <div class="ent-admin-tickets">
                 <div class="ent-ticket-queuewrap">
@@ -620,7 +908,9 @@
              "Who can see what") - only the shell around them is new. -->
         <section class="ent-admin-panel" id="panel-settings">
             <header class="ent-settings-hero">
-                <span class="ent-settings-hero-icon" aria-hidden="true">&#9881;</span>
+                <span class="ent-settings-hero-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2Z" transform="translate(-1 -1) scale(.96)"/></svg>
+                </span>
                 <div class="ent-settings-hero-text">
                     <span class="ent-settings-kicker">Control room</span>
                     <h2>Settings</h2>
@@ -644,15 +934,15 @@
                     </div>
                 </div>
                 <dl class="ent-settings-facts">
-                    <div>
+                    <div class="ent-settings-fact">
                         <dt>Staff accounts</dt>
                         <dd id="settingsStaffCount">&mdash;</dd>
                     </div>
-                    <div>
+                    <div class="ent-settings-fact">
                         <dt>Doctors</dt>
                         <dd id="settingsDoctorCount">&mdash;</dd>
                     </div>
-                    <div>
+                    <div class="ent-settings-fact">
                         <dt>Secretaries</dt>
                         <dd id="settingsSecretaryCount">&mdash;</dd>
                     </div>
@@ -795,7 +1085,9 @@
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/auth.js?v=v36h" defer></script>
+    <script src="../function/notificationCenter.js?v=v3-notification-panel" defer></script>
+    <script src="../function/messagesPage.js?v=v9-responsive" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v34b" defer></script>
+    <script src="../function/admin.js?v=v38-activity-actors" defer></script>
 </body>
 </html>

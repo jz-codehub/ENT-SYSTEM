@@ -1,9 +1,9 @@
 // =====================================================================
 //  test_growth_month.mjs
 //
-//  Proves the Activity Growth card: the WHOLE selected month (28/29/30/31
-//  columns) with a visible day number under every column, and a month
-//  picker that actually re-renders it. The functions are lifted OUT of
+//  Proves the activity charts and Activity Growth card: the WHOLE selected
+//  month (28/29/30/31 columns) with a visible day number under every
+//  column, and a month picker that actually re-renders them. The functions are lifted OUT of
 //  the real dashboard.js and executed here, so these tests break if the
 //  shipped code changes - they do not test a copy.
 //
@@ -46,6 +46,8 @@ function need(re, label) {
 const selSrc = need(/function renderActivitySelector\(year, month\) \{[\s\S]*?\n    \}/, 'renderActivitySelector')
 const optsSrc = need(/function buildPeriodOptions\(year, month, currentYear, currentMonth\) \{[\s\S]*?\n    \}/, 'buildPeriodOptions')
 const growthSrc = need(/function renderGrowthChart\(data\) \{[\s\S]*?\n    \}/, 'renderGrowthChart')
+const chartSrc = need(/function renderChartInto\(chartId, hintId, series, valueOf, color, colorDim, hintLabel, periodLabel\) \{[\s\S]*?\n    \}/, 'renderChartInto')
+const activitySrc = need(/function renderActivityCharts\(data\) \{[\s\S]*?\n    \}/, 'renderActivityCharts')
 const computeSrc = need(/function computeActivityData\(rows, year, month\) \{[\s\S]*?\n    \}/, 'computeActivityData')
 const bucketsSrc = need(/function activityBuckets\(rows, fromMs, toMs\) \{[\s\S]*?\n    \}/, 'activityBuckets')
 const dayKeySrc = need(/function dayKeyOf\(date\) \{[\s\S]*?\n    \}/, 'dayKeyOf')
@@ -87,6 +89,30 @@ const hintEl = { textContent: '' }
 const core = new Function('byId', coreBody)(id => (
   { dashChart: chartEl, dashChartHint: hintEl }[id] || null
 ))
+const activityCharts = {
+  dashChartNasal: { innerHTML: '' },
+  dashChartLaryngeal: { innerHTML: '' },
+  dashChartCf4: { innerHTML: '' }
+}
+const activityHints = {
+  dashChartHintNasal: { textContent: '' },
+  dashChartHintLaryngeal: { textContent: '' },
+  dashChartHintCf4: { textContent: '' }
+}
+const activityBody = [
+  'function pageUrl(p) { return p; }',
+  typesSrc, typeOrderSrc, monthNamesSrc, weekdaySrc, AUTH,
+  padSrc, startSrc, addSrc, dayKeySrc, dayLabelSrc, typeKeySrc, escSrc,
+  bucketsSrc, computeSrc,
+  chartSrc,
+  'function renderGrowthStats() {}',
+  'function renderGrowthChart() {}',
+  activitySrc,
+  'return { computeActivityData, renderActivityCharts };'
+].join('\n')
+const activityCore = new Function('byId', activityBody)(id =>
+  activityCharts[id] || activityHints[id] || null
+)
 
 console.log('')
 console.log('--- 2. computeActivityData: the WHOLE month, day by day ---')
@@ -100,13 +126,40 @@ console.log('--- 2. computeActivityData: the WHOLE month, day by day ---')
   eq('C1', 'October 2026 has 31 day columns', oct.monthSeries.length, 31)
   eq('C2', 'first column is Oct 1', oct.monthSeries[0].key, '2026-10-01')
   eq('C3', 'last column is Oct 31', oct.monthSeries[30].key, '2026-10-31')
-  eq('C4', 'split charts keep their 7-day series', oct.series.length, 7)
+  eq('C4', 'legacy 7-day fallback remains available', oct.series.length, 7)
   eq('C5', 'rows outside the month never leak in',
      oct.monthSeries.reduce((s, d) => s + d.bucket.reports, 0), 2)
   eq('C6', 'Oct 1 column carries its laryngeal save', oct.monthSeries[0].bucket.types.laryngeal, 1)
   eq('C7', 'February 2026 has 28 columns', core.computeActivityData([], 2026, 2).monthSeries.length, 28)
   eq('C8', 'February 2028 (leap) has 29 columns', core.computeActivityData([], 2028, 2).monthSeries.length, 29)
   eq('C9', 'December 2026 has 31 columns', core.computeActivityData([], 2026, 12).monthSeries.length, 31)
+}
+
+console.log('')
+console.log('--- 2b. per-type activity charts show the full selected month ---')
+{
+  const november = core.computeActivityData([], 2026, 11)
+  activityCore.renderActivityCharts(november)
+  for (const [id, label, testId] of [
+    ['dashChartNasal', 'Nasal', 'N'],
+    ['dashChartLaryngeal', 'Laryngeal', 'L'],
+    ['dashChartCf4', 'CF4', 'C']
+  ]) {
+    const markup = activityCharts[id].innerHTML
+    eq('A' + testId, label + ' draws all 30 November days',
+      (markup.match(/class="ent-chart-col/g) || []).length, 30)
+    ok('H' + testId, label + ' names the selected month and day count',
+      activityHints[id.replace('dashChart', 'dashChartHint')].textContent === 'November 2026 · 30 days',
+      activityHints[id.replace('dashChart', 'dashChartHint')].textContent)
+    ok('T' + testId, label + ' has day 01 through day 30',
+      markup.includes('>01</span>') && markup.includes('>30</span>'))
+  }
+  activityCore.renderActivityCharts(core.computeActivityData([], 2026, 2))
+  eq('A28', 'February charts use 28 days', (activityCharts.dashChartNasal.innerHTML.match(/class="ent-chart-col/g) || []).length, 28)
+  activityCore.renderActivityCharts(core.computeActivityData([], 2028, 2))
+  eq('A29', 'leap-year February charts use 29 days', (activityCharts.dashChartCf4.innerHTML.match(/class="ent-chart-col/g) || []).length, 29)
+  activityCore.renderActivityCharts(core.computeActivityData([], 2026, 12))
+  eq('A31', '31-day month charts use all 31 days', (activityCharts.dashChartLaryngeal.innerHTML.match(/class="ent-chart-col/g) || []).length, 31)
 }
 
 console.log('')

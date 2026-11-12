@@ -1,0 +1,562 @@
+(function (window) {
+    'use strict';
+
+    var Auth = window.EntAuth;
+    if (!Auth || !window.EntSupabase) return;
+
+    var me = null;
+    var conversations = [];
+    var currentId = '';
+    var currentChannel = null;
+    var searchTimer = 0;
+    var searchRequest = 0;
+    var busy = false;
+    var activeList = 'chats';
+    var listQuery = '';
+    var directoryRows = [];
+    var api = window.EntSupabase.apiRequest;
+    var widget = null;
+    var workspace = null;
+
+    function byId(id) { return document.getElementById(id); }
+    function esc(value) { return Auth.escapeHtml(String(value == null ? '' : value)); }
+    function uuid(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '')); }
+
+    function mountWidget() {
+        if (byId('entMessagesWidget')) {
+            widget = byId('entMessagesWidget');
+            workspace = byId('messagesWorkspace');
+            return;
+        }
+
+        var host = document.createElement('div');
+        host.innerHTML = '<section class="ent-messages-widget" id="entMessagesWidget" aria-label="Staff messages" hidden>'
+            + '<header class="ent-messages-widget-head"><span class="ent-messages-widget-title">'
+            + '<span class="ent-messages-widget-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8'
+            + ' 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1'
+            + ' 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
+            + '<span><strong>Messages</strong><small id="msgConnectionText">Connecting…</small></span></span>'
+            + '<button type="button" class="ent-messages-widget-close" id="messagesClose" aria-label="Close messages">&times;</button></header>'
+            + '<p class="messages-privacy">Staff coordination only · Please don’t share patient details.</p>'
+            + '<p class="messages-notice" id="messagesNotice" role="status" hidden></p>'
+            + '<section class="messages-workspace" id="messagesWorkspace" aria-label="Staff conversations">'
+            + '<aside class="messages-sidebar" id="messagesSidebar"><div class="messages-sidebar-heading">'
+            + '<div><h2>Chats</h2><p>Connect with your clinic team</p></div>'
+            + '<button type="button" class="messages-refresh" id="messagesRefresh" title="Refresh chats"'
+            + ' aria-label="Refresh chats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg></button></div>'
+            + '<form class="messages-search" id="staffSearchForm">'
+            + '<label class="sr-only" for="staffSearch">Search conversations or staff</label><div class="messages-search-field">'
+            + '<input id="staffSearch" type="search" autocomplete="off" placeholder="Search conversations">'
+            + '<span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            + ' stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span></div>'
+            + '<div class="messages-list-tabs" role="tablist" aria-label="Message lists">'
+            + '<button type="button" class="messages-list-tab is-active" id="messagesChatsTab" role="tab"'
+            + ' aria-selected="true" aria-controls="conversationList" data-message-tab="chats">Chats</button>'
+            + '<button type="button" class="messages-list-tab" id="messagesPeopleTab" role="tab"'
+            + ' aria-selected="false" aria-controls="staffDirectoryView" data-message-tab="people">People</button></div></form>'
+            + '<div class="messages-chat-list-view" id="messagesChatListView">'
+            + '<div class="messages-conversation-list" id="conversationList" aria-label="Conversation list">'
+            + '<p class="messages-empty">Loading conversations…</p></div></div>'
+            + '<div class="messages-directory-view" id="staffDirectoryView" hidden>'
+            + '<div class="messages-directory-summary"><span><strong>Active staff</strong>'
+            + '<small>Choose someone to start a private chat</small></span><span class="messages-online-count" id="onlineStaffCount"></span></div>'
+            + '<div class="messages-search-results" id="staffSearchResults" role="list" aria-label="Active staff">'
+            + '<span class="messages-search-hint">Loading staff…</span></div></div></aside>'
+            + '<section class="messages-thread" id="messagesThread" aria-label="Conversation">'
+            + '<div class="messages-thread-empty" id="threadEmpty"><span class="messages-empty-icon" aria-hidden="true">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"'
+            + ' stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7'
+            + ' 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6'
+            + ' 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
+            + '<h3>Choose a conversation</h3><p>Open your clinic group or find a staff member.</p></div>'
+            + '<div class="messages-thread-active" id="threadActive" hidden><header class="messages-thread-head">'
+            + '<button type="button" class="messages-thread-back" id="threadBack" aria-label="Back to conversations">&larr;</button>'
+            + '<span class="messages-thread-avatar" id="threadAvatar" aria-hidden="true">C</span><span class="messages-thread-heading">'
+            + '<strong id="threadTitle">Conversation</strong><small id="threadSubtitle"></small></span></header>'
+            + '<div class="messages-thread-body" id="messageList" aria-live="polite"><p class="messages-empty">'
+            + 'Select a conversation to view messages.</p></div><form class="messages-compose" id="messageForm">'
+            + '<label class="sr-only" for="messageInput">Write a message</label>'
+            + '<textarea id="messageInput" maxlength="2000" rows="1" placeholder="Write a staff message…" required></textarea>'
+            + '<button type="submit" id="messageSend" aria-label="Send message" title="Send message">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/>'
+            + '<path d="M22 2 11 13"/></svg></button></form></div></section></section>'
+            + '<p class="messages-widget-footer">Messages are stored online and are not available offline.</p></section>';
+        document.body.appendChild(host.firstChild);
+        widget = byId('entMessagesWidget');
+        workspace = byId('messagesWorkspace');
+    }
+
+    function showWidget(conversationId) {
+        if (!widget) return;
+        widget.hidden = false;
+        widget.classList.add('is-open');
+        var button = document.querySelector('[data-messages-toggle]');
+        if (button) button.setAttribute('aria-expanded', 'true');
+        if (conversationId && uuid(conversationId)) {
+            loadConversations().then(function () {
+                return openConversation(conversationId);
+            }).catch(function (error) {
+                console.error('[Messages] Could not open the requested conversation.', error);
+                notice('Could not open that conversation. Try refreshing messages.', true);
+            });
+        }
+    }
+
+    function hideWidget() {
+        if (!widget) return;
+        widget.hidden = true;
+        widget.classList.remove('is-open');
+        var button = document.querySelector('[data-messages-toggle]');
+        if (button) {
+            button.setAttribute('aria-expanded', 'false');
+            button.focus();
+        }
+    }
+
+    function notice(message, bad) {
+        var box = byId('messagesNotice');
+        if (!box) return;
+        box.textContent = message || '';
+        box.hidden = !message;
+        box.classList.toggle('is-error', !!bad);
+    }
+
+    function setConnection(online) {
+        var box = byId('msgConnection');
+        var text = byId('msgConnectionText');
+        if (box) box.classList.toggle('offline', !online);
+        if (text) text.textContent = online ? 'Online' : 'Offline';
+        var send = byId('messageSend');
+        if (send) send.disabled = !online || busy || !currentId;
+    }
+
+    function initials(value) {
+        return String(value || 'C').trim().split(/\s+/).slice(0, 2).map(function (part) {
+            return part.charAt(0).toUpperCase();
+        }).join('') || 'C';
+    }
+
+    function presenceStatus(lastSeen) {
+        var timestamp = lastSeen ? new Date(lastSeen).getTime() : NaN;
+        if (!isFinite(timestamp)) return { online: false, label: 'Last seen unavailable' };
+        var elapsed = Math.max(0, Date.now() - timestamp);
+        if (elapsed < 5 * 60 * 1000) return { online: true, label: 'Online' };
+        var minutes = Math.floor(elapsed / 60000);
+        if (minutes < 60) return { online: false, label: 'Offline · ' + minutes + ' ' + (minutes === 1 ? 'minute' : 'minutes') + ' ago' };
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return { online: false, label: 'Offline · ' + hours + ' ' + (hours === 1 ? 'hour' : 'hours') + ' ago' };
+        var days = Math.floor(hours / 24);
+        if (days < 30) return { online: false, label: 'Offline · ' + days + ' ' + (days === 1 ? 'day' : 'days') + ' ago' };
+        return { online: false, label: 'Offline · ' + new Date(timestamp).toLocaleDateString() };
+    }
+
+    function apiJson(path, body) {
+        return api(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body || {})
+        });
+    }
+
+    function renderConversations() {
+        var list = byId('conversationList');
+        if (!list) return;
+        var query = String(listQuery || '').trim().toLowerCase();
+        var visible = conversations.filter(function (item) {
+            return !query || [item.title, item.last_message, item.peer_clinic, item.kind]
+                .join(' ').toLowerCase().indexOf(query) !== -1;
+        });
+        if (!visible.length) {
+            list.innerHTML = '<p class="messages-list-empty">'
+                + (query ? 'No conversations match that search.' : 'No conversations yet. Your clinic group will appear here.')
+                + '</p>';
+            return;
+        }
+        list.innerHTML = visible.map(function (item) {
+            var unread = Number(item.unread_count || 0);
+            return '<button type="button" class="messages-conversation'
+                + (item.conversation_id === currentId ? ' is-active' : '')
+                + '" data-conversation-id="' + esc(item.conversation_id) + '">'
+                + '<span class="messages-conversation-avatar" aria-hidden="true">'
+                + esc(initials(item.title)) + '</span>'
+                + '<span class="messages-conversation-copy"><strong>' + esc(item.title) + '</strong>'
+                + '<small>' + esc(item.last_message || (item.kind === 'clinic' ? 'Clinic group chat' : item.peer_clinic || 'Direct message')) + '</small></span>'
+                + (unread ? '<span class="messages-conversation-unread" aria-label="' + unread + ' unread">'
+                    + (unread > 99 ? '99+' : unread) + '</span>' : '')
+                + '</button>';
+        }).join('');
+    }
+
+    async function loadConversations() {
+        var rows = await apiJson('/rpc/ent_my_chat_conversations');
+        conversations = Array.isArray(rows) ? rows : [];
+        renderConversations();
+        return conversations;
+    }
+
+    function displayTime(iso) {
+        var date = new Date(iso);
+        return iso && !isNaN(date.getTime()) ? date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '';
+    }
+
+    function renderMessages(rows) {
+        var list = byId('messageList');
+        if (!list) return;
+        if (!rows.length) {
+            list.innerHTML = '<p class="messages-empty">No messages yet. Start the conversation.</p>';
+            return;
+        }
+        list.innerHTML = rows.map(function (message) {
+            var own = message.sender_id === me.id;
+            return '<article class="messages-bubble' + (own ? ' is-mine' : '') + '">'
+                + (!own ? '<span class="messages-bubble-author">' + esc(message.sender_name || 'Clinic staff') + '</span>' : '')
+                + '<p>' + esc(message.body) + '</p>'
+                + '<time datetime="' + esc(message.created_at) + '">' + esc(displayTime(message.created_at)) + '</time>'
+                + '</article>';
+        }).join('');
+        list.scrollTop = list.scrollHeight;
+    }
+
+    async function loadMessages(conversationId) {
+        if (!uuid(conversationId)) throw new Error('That conversation could not be opened.');
+        var query = new URLSearchParams();
+        query.set('select', 'id,sender_id,sender_name,body,created_at');
+        query.set('conversation_id', 'eq.' + conversationId);
+        query.set('order', 'created_at.desc');
+        query.set('limit', '100');
+        var rows = await api('/staff_chat_messages?' + query.toString());
+        var messages = Array.isArray(rows) ? rows.slice().reverse() : [];
+        renderMessages(messages);
+        await apiJson('/rpc/ent_mark_chat_read', { p_conversation_id: conversationId });
+        await loadConversations();
+    }
+
+    async function openConversation(conversationId) {
+        var item = conversations.find(function (conversation) {
+            return conversation.conversation_id === conversationId;
+        });
+        if (!item) {
+            await loadConversations();
+            item = conversations.find(function (conversation) {
+                return conversation.conversation_id === conversationId;
+            });
+        }
+        if (!item) {
+            notice('This conversation is not available to your account.', true);
+            return;
+        }
+
+        currentId = conversationId;
+        renderConversations();
+        byId('threadEmpty').hidden = true;
+        byId('threadActive').hidden = false;
+        if (workspace) workspace.classList.add('has-open-thread');
+        byId('threadTitle').textContent = item.title || 'Conversation';
+        byId('threadSubtitle').textContent = item.kind === 'clinic'
+            ? 'Clinic group chat · active clinic staff'
+            : [item.peer_role, item.peer_clinic].filter(Boolean).join(' · ');
+        byId('threadAvatar').textContent = initials(item.title);
+        setConnection(navigator.onLine);
+        notice('');
+
+        try {
+            if (currentChannel) {
+                var client = window.EntSupabase.getClient();
+                if (client && client.removeChannel) await client.removeChannel(currentChannel);
+                currentChannel = null;
+            }
+            await loadMessages(conversationId);
+            var supabase = window.EntSupabase.getClient();
+            if (supabase && typeof supabase.channel === 'function') {
+                currentChannel = supabase.channel('staff-chat-' + conversationId)
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'staff_chat_messages',
+                        filter: 'conversation_id=eq.' + conversationId
+                    }, function () {
+                        loadMessages(conversationId).catch(function (error) {
+                            console.warn('[Messages] Could not refresh the conversation after a realtime update.', error);
+                        });
+                    })
+                    .subscribe(function (status) {
+                        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                            console.warn('[Messages] Realtime updates are unavailable; use refresh or wait for the next check.');
+                        }
+                    });
+            }
+        } catch (error) {
+            console.error('[Messages] Could not load the conversation.', error);
+            notice('Could not load this conversation. Check your connection and try again.', true);
+        }
+    }
+
+    function renderStaff(rows) {
+        var box = byId('staffSearchResults');
+        if (!box) return;
+        if (!rows.length) {
+            var count = byId('onlineStaffCount');
+            if (count) count.textContent = '';
+            box.innerHTML = '<div class="messages-list-empty">No staff match that search.</div>';
+            return;
+        }
+        var onlineCount = rows.filter(function (staff) {
+            return presenceStatus(staff.last_seen_at).online;
+        }).length;
+        var count = byId('onlineStaffCount');
+        if (count) count.textContent = onlineCount ? onlineCount + ' online' : '';
+        box.innerHTML = rows.map(function (staff) {
+            var presence = presenceStatus(staff.last_seen_at);
+            return '<button type="button" class="messages-staff-result"'
+                + ' data-staff-id="' + esc(staff.user_id) + '">'
+                + '<span class="messages-staff-avatar-wrap"><span class="messages-staff-avatar" aria-hidden="true">'
+                + esc(initials(staff.full_name)) + '</span><i class="messages-avatar-presence '
+                + (presence.online ? 'is-online' : '') + '" aria-hidden="true"></i></span>'
+                + '<span class="messages-staff-copy"><strong>' + esc(staff.full_name || 'Clinic staff') + '</strong>'
+                + '<small>' + esc([staff.role_name, staff.clinic_name].filter(Boolean).join(' · ')) + '</small>'
+                + '<span class="messages-staff-presence ' + (presence.online ? 'is-online' : 'is-offline') + '">'
+                + '<i aria-hidden="true"></i>' + esc(presence.label) + '</span></span>'
+                + '<span class="messages-staff-action" aria-label="Start private chat">'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+                + ' stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8'
+                + ' 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8'
+                + ' 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
+                + '</button>';
+        }).join('');
+    }
+
+    async function searchStaff(query, quiet) {
+        var box = byId('staffSearchResults');
+        var requestId = ++searchRequest;
+        if (!quiet && box) box.innerHTML = '<span class="messages-search-hint">'
+            + (query.trim() ? 'Searching staff…' : 'Loading active staff…') + '</span>';
+        try {
+            var rows = await apiJson('/rpc/ent_chat_staff_directory', { p_query: query.trim() || null });
+            if (requestId !== searchRequest) return;
+            directoryRows = Array.isArray(rows) ? rows : [];
+            renderStaff(directoryRows);
+        } catch (error) {
+            if (requestId !== searchRequest) return;
+            console.error('[Messages] Staff search failed.', error);
+            if (box) box.innerHTML = '<span class="messages-search-hint is-error">Could not search staff. Try again.</span>';
+        }
+    }
+
+    function setActiveList(listName) {
+        activeList = listName === 'people' ? 'people' : 'chats';
+        var people = activeList === 'people';
+        byId('messagesChatListView').hidden = people;
+        byId('staffDirectoryView').hidden = !people;
+        byId('messagesChatsTab').classList.toggle('is-active', !people);
+        byId('messagesPeopleTab').classList.toggle('is-active', people);
+        byId('messagesChatsTab').setAttribute('aria-selected', people ? 'false' : 'true');
+        byId('messagesPeopleTab').setAttribute('aria-selected', people ? 'true' : 'false');
+        byId('staffSearch').placeholder = people ? 'Find a person by name' : 'Search conversations';
+        byId('staffSearch').value = '';
+        listQuery = '';
+        renderConversations();
+        if (people) {
+            searchStaff('').catch(function (error) {
+                console.error('[Messages] Staff directory could not load.', error);
+                notice('Could not load active staff. Try again.', true);
+            });
+        }
+    }
+
+    async function startDirectMessage(userId) {
+        if (!uuid(userId)) return;
+        notice('');
+        try {
+            var result = await apiJson('/rpc/ent_get_or_create_direct_chat', { p_other_user: userId });
+            var conversationId = typeof result === 'string'
+                ? result
+                : (Array.isArray(result) ? result[0] : '');
+            if (!uuid(conversationId)) throw new Error('The server did not return a valid conversation.');
+            await loadConversations();
+            await openConversation(conversationId);
+            renderStaff(directoryRows);
+        } catch (error) {
+            console.error('[Messages] Could not start a direct conversation.', error);
+            notice('Could not start that direct message. The staff account may no longer be active.', true);
+        }
+    }
+
+    async function sendMessage(event) {
+        event.preventDefault();
+        if (busy || !currentId || !navigator.onLine) {
+            if (!navigator.onLine) notice('Reconnect to send a message.', true);
+            return;
+        }
+        var input = byId('messageInput');
+        var body = String(input && input.value || '').trim();
+        if (!body) return;
+        busy = true;
+        setConnection(navigator.onLine);
+        try {
+            await api('/staff_chat_messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify([{ conversation_id: currentId, body: body }])
+            });
+            input.value = '';
+            await loadMessages(currentId);
+            notice('');
+        } catch (error) {
+            console.error('[Messages] Message send failed.', error);
+            notice('Your message was not sent. Check the connection and try again.', true);
+        } finally {
+            busy = false;
+            setConnection(navigator.onLine);
+        }
+    }
+
+    function wire() {
+        document.addEventListener('ent:open-messages', function (event) {
+            showWidget(event.detail && event.detail.conversationId);
+        });
+        document.addEventListener('click', function (event) {
+            var toggle = event.target.closest('[data-messages-toggle]');
+            if (toggle) {
+                event.preventDefault();
+                if (widget.hidden) showWidget();
+                else hideWidget();
+            }
+        });
+        byId('messagesClose').addEventListener('click', hideWidget);
+        byId('messagesSidebar').addEventListener('click', function (event) {
+            var tab = event.target.closest('[data-message-tab]');
+            if (tab) setActiveList(tab.dataset.messageTab);
+        });
+        var search = byId('staffSearch');
+        byId('staffSearchForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            window.clearTimeout(searchTimer);
+            if (activeList === 'people') {
+                searchStaff(search.value).catch(function (error) {
+                    console.error('[Messages] Staff search failed.', error);
+                    notice('Could not search staff. Try again.', true);
+                });
+            } else {
+                listQuery = search.value;
+                renderConversations();
+            }
+        });
+        search.addEventListener('input', function () {
+            window.clearTimeout(searchTimer);
+            var query = search.value;
+            searchTimer = window.setTimeout(function () {
+                if (activeList === 'people') searchStaff(query);
+                else {
+                    listQuery = query;
+                    renderConversations();
+                }
+            }, 200);
+        });
+        byId('staffSearchResults').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-staff-id]');
+            if (button) startDirectMessage(button.dataset.staffId);
+        });
+        byId('conversationList').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-conversation-id]');
+            if (button) openConversation(button.dataset.conversationId);
+        });
+        byId('messageForm').addEventListener('submit', sendMessage);
+        byId('messagesRefresh').addEventListener('click', function () {
+            loadConversations().then(function () {
+                var work = currentId ? loadMessages(currentId) : Promise.resolve();
+                if (activeList === 'people') {
+                    return work.then(function () { return searchStaff(byId('staffSearch').value); });
+                }
+                return work;
+            }).catch(function (error) {
+                console.error('[Messages] Refresh failed.', error);
+                notice('Could not refresh messages. Try again.', true);
+            });
+        });
+        byId('threadBack').addEventListener('click', function () {
+            if (workspace) workspace.classList.remove('has-open-thread');
+            currentId = '';
+            byId('threadActive').hidden = true;
+            byId('threadEmpty').hidden = false;
+            if (activeList === 'people') {
+                byId('staffSearch').focus();
+                renderStaff(directoryRows);
+            } else renderConversations();
+        });
+        widget.addEventListener('click', function (event) {
+            if (event.target === widget) hideWidget();
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && widget && !widget.hidden) hideWidget();
+        });
+        window.addEventListener('online', function () { setConnection(true); });
+        window.addEventListener('offline', function () { setConnection(false); });
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) {
+                if (currentId) {
+                    loadMessages(currentId).catch(function (error) {
+                        console.warn('[Messages] Background refresh failed.', error);
+                    });
+                }
+                if (widget && !widget.hidden && activeList === 'people') {
+                    searchStaff(byId('staffSearch').value, true).catch(function (error) {
+                        console.warn('[Messages] Presence refresh failed.', error);
+                    });
+                }
+            }
+        });
+        window.setInterval(function () {
+            if (!document.hidden && widget && !widget.hidden) {
+                if (currentId) {
+                    loadMessages(currentId).catch(function (error) {
+                        console.warn('[Messages] Periodic refresh failed.', error);
+                    });
+                }
+                if (activeList === 'people') {
+                    searchStaff(byId('staffSearch').value, true).catch(function (error) {
+                        console.warn('[Messages] Presence refresh failed.', error);
+                    });
+                }
+            }
+        }, 60000);
+    }
+
+    async function boot() {
+        mountWidget();
+        var session = await Auth.guard();
+        if (!session || !session.user) return;
+        me = session.user;
+        wire();
+        setConnection(navigator.onLine);
+        try {
+            await loadConversations();
+            await searchStaff('');
+            setActiveList('chats');
+        } catch (error) {
+            console.error('[Messages] Could not load conversations.', error);
+            notice('Could not load conversations. Check your connection and try again.', true);
+            byId('conversationList').innerHTML = '<p class="messages-empty is-error">Could not load conversations.</p>';
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            boot().catch(function (error) {
+                console.error('[Messages] Page startup failed.', error);
+                notice('Messages could not start. Reload the page and try again.', true);
+            });
+        }, { once: true });
+    } else {
+        boot().catch(function (error) {
+            console.error('[Messages] Page startup failed.', error);
+            notice('Messages could not start. Reload the page and try again.', true);
+        });
+    }
+})(window);

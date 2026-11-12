@@ -423,6 +423,17 @@
         }
     }
 
+    function normaliseActivity(row) {
+        if (!row) return row;
+        const person = row.actor_id
+            ? users.find(function (u) { return String(u.id) === String(row.actor_id); }) || null
+            : null;
+        return Object.assign({}, row, {
+            username: row.username || (person && person.username) || row.actor_label || '',
+            role: row.role || row.actor_role || (person && person.role) || ''
+        });
+    }
+
     // Merging is by id, never by position. That makes it idempotent: an
     // overlapping or retried fetch hands back rows already held, and they
     // are dropped instead of appearing twice. Gaps in the sequence (a
@@ -478,7 +489,7 @@
                 : 'activity_logs?select=*&id=gt.' + activityCursorId
                     + '&order=id.desc&limit=' + ACTIVITY_WINDOW;
             const rows = await api(path);
-            const incoming = Array.isArray(rows) ? rows : [];
+            const incoming = Array.isArray(rows) ? rows.map(normaliseActivity) : [];
             if (first || incoming.length) {
                 activity = mergeActivity(incoming);
                 repaint = true;
@@ -708,9 +719,18 @@
         });
         const box = byId('usersGrid');
         if (!box) return;
+        const clearSearch = byId('usersSearchClear');
+        if (clearSearch) clearSearch.hidden = !needle;
+        const resultCount = byId('usersResultCount');
+        if (resultCount) {
+            resultCount.textContent = 'Showing ' + rows.length + ' of ' + users.length
+                + ' account' + (users.length === 1 ? '' : 's');
+        }
 
         if (!rows.length) {
-            box.innerHTML = '<div class="ent-empty">No user matches this filter.</div>';
+            box.innerHTML = '<div class="ent-empty ent-users-empty">'
+                + (users.length ? 'No accounts match your search or role filter.' : 'No user accounts yet.')
+                + '</div>';
             return;
         }
 
@@ -737,6 +757,16 @@
 
     function renderSessions() {
         const rows = sessions.slice(0, 60);
+        const online = sessions.filter(isActiveSession).length;
+        const revoked = sessions.filter(function (s) { return !!s.revoked; }).length;
+        const offline = Math.max(0, sessions.length - online - revoked);
+        setText('sessionMetricOnline', fmtNum(online));
+        setText('sessionMetricTotal', fmtNum(sessions.length));
+        setText('sessionMetricOffline', fmtNum(offline));
+        setText('sessionMetricRevoked', fmtNum(revoked));
+        setText('sessionsResultCount', rows.length
+            ? 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(sessions.length) + ' latest sessions'
+            : 'No session records to show');
         if (!rows.length) return emptyRow('sessionsTable', 7, 'No sessions recorded yet.');
         byId('sessionsTable').innerHTML = rows.map(s => {
             const live = isActiveSession(s);
@@ -761,6 +791,12 @@
         renderActivityKpis(rows);
         const shown = rows.slice(0, 200);
         const foot = byId('activityFoot');
+        const search = byId('activitySearch');
+        const clearSearch = byId('activitySearchClear');
+        if (clearSearch) clearSearch.hidden = !((search && search.value) || '').trim();
+        setText('activityResultCount', rows.length
+            ? 'Showing ' + fmtNum(shown.length) + ' of ' + fmtNum(rows.length) + ' matching events'
+            : 'No events match the current filters');
         if (!shown.length) {
             emptyRow('activityTable', 6, activityError
                 ? 'Could not read the activity log: ' + activityError
@@ -787,7 +823,13 @@
         };
         let lastDay = null;
         byId('activityTable').innerHTML = shown.map(function (a) {
-            const u = userByName(a.username);
+            const u = (a.actor_id
+                ? users.find(function (person) { return String(person.id) === String(a.actor_id); })
+                : null) || userByName(a.username);
+            const actorName = (u && displayName(u)) || a.actor_label || a.username || '\u2014';
+            const actorUsername = u ? u.username
+                : (a.username && a.username !== a.actor_label ? a.username : '');
+            const actorRole = a.role || a.actor_role || (u && u.role) || '';
             // DAY GROUPING. The log is a timeline, not a spreadsheet: rows
             // arriving as one undifferentiated stream made "when did this
             // happen" a scroll-and-count exercise. A full-width separator row
@@ -809,9 +851,9 @@
                 + '<span class="ent-act-when"><span class="ent-act-dot"></span><span>'
                 + esc(fmtDateTime(a.created_at)) + '</span></span>'
                 + '<div class="ent-hint">' + esc(relTime(a.created_at)) + '</div></td>'
-                + '<td data-label="Who"><strong>' + esc((u && prettyName(u.full_name)) || a.username || '\u2014') + '</strong>'
-                + '<div class="ent-hint">' + esc(a.username || '') + '</div></td>'
-                + '<td data-label="Role">' + (a.role ? rolePill(a.role) : '\u2014') + '</td>'
+                + '<td data-label="Who"><strong>' + esc(actorName) + '</strong>'
+                + (actorUsername ? '<div class="ent-hint">' + esc(actorUsername) + '</div>' : '') + '</td>'
+                + '<td data-label="Role">' + (actorRole ? rolePill(actorRole) : '\u2014') + '</td>'
                 + '<td data-label="Clinic">' + esc(a.clinic_id ? clinicLabel(a.clinic_id) : '\u2014') + '</td>'
                 + '<td data-label="Action">' + actionPill(a.action) + '</td>'
                 // Detail: clamped to one line with the full text in the title,
@@ -1455,6 +1497,8 @@
     function renderTrash(rows) {
         const box = byId('trashList');
         if (!box) return;
+        const count = byId('trashCount');
+        if (count) count.textContent = String(rows.length);
         const badge = byId('trashNavCount');
         if (badge) {
             badge.textContent = String(rows.length);
@@ -1946,6 +1990,8 @@
         const box = byId('adminTicketList');
         if (!box) return;
         const needle = String(byId('ticketSearch').value || '').trim().toLowerCase();
+        const clearSearch = byId('ticketSearchClear');
+        if (clearSearch) clearSearch.hidden = !needle;
         const want = byId('ticketStatusFilter').value;
         const wantScope = byId('ticketScopeFilter').value;
 
@@ -1972,6 +2018,9 @@
             return String(b.last_message_at || '').localeCompare(String(a.last_message_at || ''));
         });
 
+        setText('ticketResults', rows.length
+            ? 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(adminTickets.length) + ' tickets'
+            : 'No tickets match the current filters');
         if (!rows.length) {
             box.innerHTML = '<div class="ent-empty">'
                 + (adminTickets.length ? 'No ticket matches that filter.'
@@ -2375,7 +2424,27 @@ const FLAG_INFO = {
 
         byId('userSearch').addEventListener('input', renderUsers);
         byId('roleFilter').addEventListener('change', renderUsers);
+        const usersSearchClear = byId('usersSearchClear');
+        if (usersSearchClear) {
+            usersSearchClear.addEventListener('click', function () {
+                const search = byId('userSearch');
+                if (!search) return;
+                search.value = '';
+                renderUsers();
+                search.focus();
+            });
+        }
         byId('activityFilter').addEventListener('change', renderActivity);
+        const activitySearchClear = byId('activitySearchClear');
+        if (activitySearchClear) {
+            activitySearchClear.addEventListener('click', function () {
+                const search = byId('activitySearch');
+                if (!search) return;
+                search.value = '';
+                renderActivity();
+                search.focus();
+            });
+        }
 
         byId('refreshUsersBtn').addEventListener('click', function () { refreshAll(true); });
         byId('refreshSessionsBtn').addEventListener('click', function () { refreshAll(true); });
@@ -2496,6 +2565,16 @@ const FLAG_INFO = {
 
         // ---- tickets panel ----
         byId('ticketSearch').addEventListener('input', renderAdminTickets);
+        const ticketSearchClear = byId('ticketSearchClear');
+        if (ticketSearchClear) {
+            ticketSearchClear.addEventListener('click', function () {
+                const search = byId('ticketSearch');
+                if (!search) return;
+                search.value = '';
+                renderAdminTickets();
+                search.focus();
+            });
+        }
         byId('ticketStatusFilter').addEventListener('change', renderAdminTickets);
         byId('ticketScopeFilter').addEventListener('change', renderAdminTickets);
         byId('refreshTicketsBtn').addEventListener('click', function () {
@@ -3446,6 +3525,27 @@ const FLAG_INFO = {
         return sel ? (Number(sel.value) || 30) : 30;
     }
 
+    function renderGrowthSummary(series) {
+        let total = 0;
+        let peak = null;
+        const contributing = new Set();
+        series.forEach(function (slot) {
+            total += slot.total;
+            if (!peak || slot.total > peak.total) peak = slot;
+            slot.parts.forEach(function (count, clinic) {
+                if (count > 0) contributing.add(clinic);
+            });
+        });
+        setText('growthMetricTotal', fmtNum(total));
+        setText('growthMetricClinics', fmtNum(contributing.size));
+        setText('growthMetricPeak', peak && peak.total ? peak.label : '\u2014');
+        setText('growthMetricPeakNote', peak && peak.total
+            ? fmtNum(peak.total) + ' records in this interval'
+            : 'No records in this interval');
+        setText('growthMetricAverage', fmtNum(series.length ? Math.round(total / series.length) : 0));
+        setText('growthMetricAverageNote', 'Across ' + fmtNum(series.length) + ' plotted intervals');
+    }
+
     /* ------------------------------ panels --------------------------- */
     function renderGrowth() {
         const days = rangeDays();
@@ -3457,6 +3557,7 @@ const FLAG_INFO = {
         const series = buildSeries(scopeBuckets(selectedClinic()), growthMode,
             counts[growthMode] || 30);
         renderChart(byId('growthChart'), byId('growthLegend'), series);
+        renderGrowthSummary(series);
         const shown = series.reduce(function (s, b) { return s + b.total; }, 0);
         const totalAll = buckets.reduce(function (s, b) { return s + b.n; }, 0);
         setText('growthCaption', 'Showing ' + fmtNum(shown) + ' of ' + fmtNum(totalAll)
@@ -4127,7 +4228,8 @@ const FLAG_INFO = {
     function exportActivityCsv() {
         const rows = [['When', 'Who', 'Role', 'Clinic', 'Action', 'Detail']]
             .concat(filteredActivity().slice(0, 5000).map(function (a) {
-                return [a.created_at, a.username, a.role, a.clinic_id, a.action, a.detail];
+                return [a.created_at, a.username || a.actor_label, a.role || a.actor_role,
+                    a.clinic_id, a.action, a.detail];
             }));
         downloadCsv('activity-log-' + dayKey(new Date()) + '.csv', rows);
     }
@@ -4607,11 +4709,6 @@ const FLAG_INFO = {
     window.addEventListener('DOMContentLoaded', function () { boot(); });
 
 })(window);
-
-
-
-
-
 
 
 

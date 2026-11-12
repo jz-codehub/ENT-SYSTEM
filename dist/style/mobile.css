@@ -2213,3 +2213,438 @@
         font-size: 1rem;
     }
 }
+
+@media screen and (max-width: 900px) {
+    .ent-dash-page > .header .header-content {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ent-dash-page > .header .header-brand {
+        flex: 1 1 auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 7px;
+        width: auto;
+        min-width: 0;
+    }
+
+    .ent-dash-page > .header .header-brand .header-tagline,
+    .ent-dash-page > .header .header-brand .header-scopes {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-titles {
+        justify-content: flex-start;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-logo {
+        width: 38px;
+        height: 38px;
+        flex: 0 0 38px;
+        border-radius: 11px;
+    }
+
+    .ent-dash-page > .header .header-content h1 {
+        font-size: clamp(1rem, 2.2vw, 1.3rem);
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    .ent-dash-page > .header .header-meta {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-self: auto;
+        gap: 6px;
+        width: auto;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+
+    .ent-dash-page > .header .header-user-controls {
+        flex: 0 0 auto;
+        gap: 4px;
+        padding-left: 6px;
+        border-left: 1px solid rgba(255, 255, 255, .24);
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch-wrapper,
+    .ent-dash-page > .header .header-user-controls #dashNotificationCenter {
+        width: 34px;
+        min-width: 34px;
+        height: 34px;
+        min-height: 34px;
+        border-radius: 10px;
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch {
+        transform: scale(.72);
+    }
+
+    .ent-dash-page > .header .header-user-controls .ent-notification-toggle {
+        width: 32px;
+        height: 32px;
+    }
+
+    .ent-dash-page > .header .header-user-slot {
+        flex: 0 1 auto;
+        width: auto;
+        min-width: 0;
+        max-width: 190px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        width: auto;
+        max-width: 100%;
+        min-height: 34px;
+        gap: 4px;
+        padding: 3px 4px;
+        border-radius: 11px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-meta {
+        display: flex;
+        flex: 0 1 74px;
+        width: auto;
+        min-width: 0;
+        max-width: 74px;
+        text-align: left;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-meta strong {
+        display: block;
+        overflow: hidden;
+        font-size: .58rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-role,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-scope {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-admin,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-settings,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-switch,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout {
+        width: 29px;
+        height: 29px;
+        min-width: 29px;
+        min-height: 29px;
+        flex: 0 0 29px;
+        margin: 0;
+        padding: 0;
+        border-radius: 8px;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .ent-dash-page > .header {
+        padding: 8px 0;
+        margin-bottom: 10px;
+        border-radius: 0 0 14px 14px;
+    }
+
+    .ent-dash-page > .header .header-content {
+        gap: 6px;
+    }
+
+    .ent-dash-page > .header .header-brand {
+        gap: 5px;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-logo {
+        width: 31px;
+        height: 31px;
+        flex-basis: 31px;
+        border-radius: 9px;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-logo svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-titles {
+        gap: 5px;
+    }
+
+    .ent-dash-page > .header .header-content h1 {
+        font-size: clamp(.82rem, 3.5vw, 1.02rem);
+        letter-spacing: -.035em;
+    }
+
+    .ent-dash-page > .header .header-title-sub {
+        font-size: .68em;
+    }
+
+    .ent-dash-page > .header .header-meta {
+        gap: 3px;
+    }
+
+    .ent-dash-page > .header .header-meta #connectionStatus {
+        width: 9px;
+        min-width: 9px;
+        height: 9px;
+        min-height: 9px;
+        margin: 0 3px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .ent-dash-page > .header .header-meta #connectionStatus::before {
+        width: 8px;
+        height: 8px;
+        flex-basis: 8px;
+    }
+
+    .ent-dash-page > .header .header-meta #connectionStatus::after {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-meta #installAppBtn {
+        min-height: 30px;
+        padding: 4px 6px;
+        border-radius: 8px;
+        font-size: .58rem;
+        white-space: nowrap;
+    }
+
+    .ent-dash-page > .header .header-user-controls {
+        gap: 3px;
+        padding-left: 4px;
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch-wrapper,
+    .ent-dash-page > .header .header-user-controls #dashNotificationCenter {
+        width: 31px;
+        min-width: 31px;
+        height: 31px;
+        min-height: 31px;
+        border-radius: 8px;
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch {
+        transform: scale(.64);
+    }
+
+    .ent-dash-page > .header .header-user-controls .ent-notification-toggle {
+        width: 29px;
+        height: 29px;
+    }
+
+    .ent-dash-page > .header .header-user-slot {
+        max-width: 132px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip {
+        min-height: 31px;
+        gap: 3px;
+        padding: 2px 3px;
+        border-radius: 9px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-avatar {
+        width: 23px;
+        height: 23px;
+        flex: 0 0 23px;
+        font-size: .65rem;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-meta {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-admin,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-settings,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-switch,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout {
+        width: 25px;
+        height: 25px;
+        min-width: 25px;
+        min-height: 25px;
+        flex-basis: 25px;
+        border-radius: 7px;
+    }
+}
+
+@media screen and (max-width: 380px) {
+    .ent-dash-page > .header .header-content {
+        gap: 4px;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-titles {
+        gap: 0;
+    }
+
+    .ent-dash-page > .header .header-content h1 {
+        font-size: .62rem;
+    }
+
+    .ent-dash-page > .header .header-title-sub {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot {
+        max-width: 110px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip {
+        gap: 2px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-admin,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-settings,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-switch,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout {
+        width: 23px;
+        height: 23px;
+        min-width: 23px;
+        min-height: 23px;
+        flex-basis: 23px;
+    }
+}
+
+@media screen and (min-width: 641px) {
+    .ent-dash-page > .header .ent-messages-link {
+        width: 36px;
+        min-width: 36px;
+        padding: 7px;
+    }
+
+    .ent-dash-page > .header .ent-messages-link span {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot {
+        max-width: 220px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout {
+        width: auto;
+        height: 29px;
+        min-width: 58px;
+        min-height: 29px;
+        flex: 0 0 auto;
+        gap: 4px;
+        padding: 0 7px;
+        white-space: nowrap;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout-icon {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout-text {
+        display: inline;
+        font-size: .64rem;
+        font-weight: 700;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .ent-dash-page > .header .header-content {
+        gap: 4px;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-logo {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-brand-center .header-titles {
+        gap: 0;
+    }
+
+    .ent-dash-page > .header .header-content h1 {
+        font-size: .72rem;
+    }
+
+    .ent-dash-page > .header .header-title-sub {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-meta {
+        gap: 2px;
+    }
+
+    .ent-dash-page > .header .header-user-controls {
+        gap: 2px;
+        padding-left: 3px;
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch-wrapper,
+    .ent-dash-page > .header .header-user-controls #dashNotificationCenter {
+        width: 28px;
+        min-width: 28px;
+        height: 28px;
+        min-height: 28px;
+        border-radius: 7px;
+    }
+
+    .ent-dash-page > .header .header-user-controls .theme-switch {
+        transform: scale(.56);
+    }
+
+    .ent-dash-page > .header .header-user-controls .ent-notification-toggle {
+        width: 26px;
+        height: 26px;
+    }
+
+    .ent-dash-page > .header .header-meta #installAppBtn {
+        width: 28px;
+        min-width: 28px;
+        height: 28px;
+        min-height: 28px;
+        justify-content: center;
+        padding: 0;
+        font-size: 0;
+        line-height: 1;
+    }
+
+    .ent-dash-page > .header .header-meta #installAppBtn::before {
+        content: "\2193";
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .ent-dash-page > .header .header-user-slot {
+        max-width: 104px;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-avatar {
+        display: none;
+    }
+
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-admin,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-settings,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-switch,
+    .ent-dash-page > .header .header-user-slot #entUserChip .ent-user-logout {
+        width: 23px;
+        height: 23px;
+        min-width: 23px;
+        min-height: 23px;
+        flex-basis: 23px;
+    }
+}

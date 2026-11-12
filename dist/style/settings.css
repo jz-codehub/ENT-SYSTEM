@@ -1,0 +1,378 @@
+.settings-page .main-content {
+    width: min(100% - 40px, 1200px);
+    max-width: none;
+    margin: 0 auto;
+    padding: 28px 0 48px;
+}
+
+.settings-page .back-link-container {
+    margin: 0 0 18px !important;
+}
+
+.settings-intro {
+    position: relative;
+    display: flex;
+    min-height: 164px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    overflow: hidden;
+    margin-bottom: 18px;
+    padding: clamp(24px, 4vw, 38px);
+    border: 1px solid rgba(14, 165, 233, .2);
+    border-radius: 20px;
+    background: linear-gradient(120deg, #0ea5e9 0%, #0284c7 54%, #0369a1 100%);
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(2, 132, 199, .16);
+}
+
+.settings-intro::after {
+    position: absolute;
+    top: -118px;
+    right: 7%;
+    width: 270px;
+    height: 270px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 50%;
+    box-shadow: 0 0 0 22px rgba(255, 255, 255, .055), 0 0 0 48px rgba(255, 255, 255, .035);
+    content: "";
+    pointer-events: none;
+}
+
+.settings-intro-copy,
+.settings-intro-mark {
+    position: relative;
+    z-index: 1;
+}
+
+.settings-intro-copy {
+    max-width: 700px;
+}
+
+.settings-intro-eyebrow {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, .78);
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .15em;
+}
+
+.settings-intro h2 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -.04em;
+    line-height: 1.15;
+}
+
+.settings-intro p {
+    max-width: 62ch;
+    margin: 8px 0 0;
+    color: rgba(255, 255, 255, .86);
+    font-size: .88rem;
+    line-height: 1.55;
+}
+
+.settings-intro-mark {
+    display: grid;
+    width: 78px;
+    height: 78px;
+    flex: 0 0 78px;
+    align-content: center;
+    justify-items: center;
+    border: 1px solid rgba(255, 255, 255, .32);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, .055), inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+
+.settings-intro-mark strong {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 850;
+    letter-spacing: -.04em;
+    line-height: 1.1;
+}
+
+.settings-intro-mark small {
+    margin-top: 3px;
+    color: rgba(255, 255, 255, .78);
+    font-size: .48rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
+
+.settings-page .settings-nav {
+    position: relative;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 7px;
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    background: var(--panel-bg-color);
+    box-shadow: var(--card-shadow);
+}
+
+.settings-page .settings-nav-btn {
+    min-width: 0;
+    min-height: 66px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    text-align: left;
+}
+
+.settings-page .settings-nav-btn > span:first-child {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--bg-color);
+    font-size: 18px;
+}
+
+.settings-page .settings-nav-btn strong {
+    font-size: .79rem;
+}
+
+.settings-page .settings-nav-btn small {
+    display: block;
+    font-size: .65rem;
+    line-height: 1.35;
+}
+
+.settings-page .settings-nav-btn:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 20%, var(--border-color));
+    background: color-mix(in srgb, var(--primary-light) 55%, var(--panel-bg-color));
+    color: var(--primary-hover-color);
+}
+
+.settings-page .settings-nav-btn.active {
+    border-color: color-mix(in srgb, var(--primary-color) 34%, var(--border-color));
+    background: linear-gradient(135deg, var(--primary-light), color-mix(in srgb, var(--primary-light) 48%, var(--panel-bg-color)));
+    color: var(--primary-hover-color);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
+.settings-page .settings-nav-btn.active > span:first-child {
+    background: var(--panel-bg-color);
+}
+
+.settings-page .settings-panel,
+.settings-page .danger-zone {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 17px !important;
+    background: var(--panel-bg-color);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .055);
+    padding: clamp(18px, 3vw, 30px) !important;
+}
+
+.settings-page .settings-panel > div:first-child {
+    align-items: flex-start !important;
+    margin-bottom: 8px !important;
+}
+
+.settings-page .settings-panel > div:first-child > span {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--primary-light);
+    font-size: 1.35rem !important;
+}
+
+.settings-page .settings-panel > div:first-child h2 {
+    padding-top: 5px;
+    color: var(--main-content-header-color) !important;
+    font-size: clamp(1.2rem, 2vw, 1.45rem) !important;
+    letter-spacing: -.025em;
+}
+
+.settings-page .settings-panel > p:first-of-type {
+    max-width: 78ch;
+    margin: 0 0 24px !important;
+    color: var(--secondary-text-color) !important;
+    font-size: .84rem !important;
+    line-height: 1.6;
+}
+
+.settings-page .settings-panel .form-group {
+    margin-bottom: 17px;
+}
+
+.settings-page .settings-panel .form-label,
+.settings-page .settings-panel .form-group > label:not([for]) {
+    color: var(--text-color);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.settings-page .settings-panel input:not([type="checkbox"]):not([type="radio"]),
+.settings-page .settings-panel select,
+.settings-page .settings-panel textarea {
+    min-height: 43px;
+    border-radius: 10px;
+    background-color: var(--input-bg-color);
+    font: inherit;
+}
+
+.settings-page .settings-panel textarea {
+    min-height: 88px;
+}
+
+.settings-page .settings-panel input[type="file"] {
+    min-height: 40px;
+    padding: 7px;
+    border: 1px solid var(--input-border-color);
+    border-radius: 9px;
+    background: var(--input-bg-color);
+    color: var(--text-color);
+    font: inherit;
+}
+
+.settings-page .settings-panel button,
+.settings-page .actions button {
+    min-height: 40px;
+    border-radius: 9px;
+    font-weight: 700;
+    transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+.settings-page .settings-panel button:hover,
+.settings-page .actions button:hover {
+    filter: brightness(.97);
+}
+
+.settings-page .settings-panel button:focus-visible,
+.settings-page .settings-nav-btn:focus-visible,
+.settings-page .actions button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--primary-color) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.settings-page .actions:not(.back-link-container) {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.settings-page .actions:not(.back-link-container) button {
+    width: auto;
+    min-width: 190px;
+    padding: 11px 20px;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    box-shadow: 0 5px 14px rgba(2, 132, 199, .19);
+}
+
+.settings-page .settings-panel[hidden],
+.settings-page .danger-zone[hidden] {
+    display: none !important;
+}
+
+.dark-mode.settings-page .settings-panel,
+.dark-mode.settings-page .danger-zone {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+
+.dark-mode.settings-page .settings-intro {
+    box-shadow: 0 12px 30px rgba(2, 132, 199, .12);
+}
+
+@media (max-width: 900px) {
+    .settings-page .settings-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .settings-page .main-content {
+        width: calc(100% - 24px);
+        padding: 18px 0 32px;
+    }
+
+    .settings-intro {
+        min-height: 0;
+        gap: 14px;
+        margin-bottom: 13px;
+        padding: 20px 17px;
+        border-radius: 16px;
+    }
+
+    .settings-intro::after {
+        top: -100px;
+        right: -100px;
+    }
+
+    .settings-intro h2 {
+        font-size: clamp(1.25rem, 6vw, 1.65rem);
+    }
+
+    .settings-intro p {
+        font-size: .77rem;
+    }
+
+    .settings-intro-mark {
+        width: 54px;
+        height: 54px;
+        flex-basis: 54px;
+    }
+
+    .settings-intro-mark strong {
+        font-size: .9rem;
+    }
+
+    .settings-intro-mark small {
+        font-size: .39rem;
+    }
+
+    .settings-page .settings-nav {
+        grid-template-columns: 1fr;
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .settings-page .settings-nav-btn {
+        min-height: 50px;
+        padding: 7px 9px;
+    }
+
+    .settings-page .settings-nav-btn > span:first-child {
+        width: 34px;
+        height: 34px;
+        flex-basis: 34px;
+    }
+
+    .settings-page .settings-nav-btn small {
+        display: block;
+    }
+
+    .settings-page .settings-panel,
+    .settings-page .danger-zone {
+        border-radius: 14px !important;
+    }
+
+    .settings-page .settings-panel .form-group > div[style*="display: flex"] {
+        flex-wrap: wrap;
+    }
+
+    .settings-page .actions:not(.back-link-container) button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-page .settings-panel button,
+    .settings-page .actions button {
+        transition: none;
+    }
+}

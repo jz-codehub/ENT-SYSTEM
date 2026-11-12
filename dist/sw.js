@@ -922,8 +922,17 @@
 // v122: keep the full profile name under the avatar, wrapped at small widths.
 // v123: hide the sign-out label at phone/tablet widths and keep its icon.
 // v124: give the dashboard profile avatar a purple-pink gradient.
-// v125: apply the gradient to the dashboard greeting avatar.
-const CACHE_NAME = 'ent-report-system-v125-dashboard-avatar-gradient';
+// v128: add persistent notifications and staff direct/clinic group messaging.
+// v143: redesign the admin Growth analytics panel and its summary cards.
+// v144: redesign the admin user directory and account cards.
+// v145: redesign the active-session, activity-log and support-inbox panels.
+// v146: redesign database usage, deleted records and settings.
+// v147: apply the system primary color to the admin header and sidebar.
+// v148: keep notification and Messenger interface refreshes up to date.
+// v149: keep the admin bell visible through load errors and polish Messenger.
+// v150: render notifications above header layers, centered on the bell.
+// v151: fix dashboard notification overlay and refresh admin activity actors.
+const CACHE_NAME = 'ent-report-system-v151-notification-panel-fix';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
@@ -945,6 +954,7 @@ const FILES_TO_CACHE = [
     'pages/settings.html',
     'pages/viewAll.html',
     'pages/reportProblem.html',
+    'pages/contactSupport.html',
     // Orphaned (no inbound links) but still reachable by direct URL, so it
     // must survive going offline like every other page. Its scripts
     // (supabase.min.js, paths.js, supabaseClient.js, auth.js) are all
@@ -963,6 +973,8 @@ const FILES_TO_CACHE = [
     'style/offlineWorkspace.css',
     'style/admin.css',
     'style/dashboard.css',
+    'style/notifications.css',
+    'style/messages.css',
     'style/index.css',
     'style/cf4.css',
     'style/patient-records.css',
@@ -981,6 +993,8 @@ const FILES_TO_CACHE = [
     'function/syncEngine.js',
     'function/index.js',
     'function/dashboard.js',
+    'function/notificationCenter.js',
+    'function/messagesPage.js',
     'function/cf4.js',
     'function/abstract.js',
     'function/patientRecords.js',
