@@ -8717,11 +8717,14 @@ body.dark-mode .ent-user-modal-close { background: var(--input-bg-color); }
     .ent-user-modal-body { padding: 2px 16px 8px; }
     .ent-user-modal-section { padding: 15px 0; }
     .ent-user-modal-actions { padding: 12px 16px max(14px, env(safe-area-inset-bottom)); }
+    .ent-user-form-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .ent-user-active-check { align-self: stretch; }
+    .ent-user-modal-section-head { align-items: flex-start; flex-direction: column; gap: 3px; }
+    .ent-user-modal-actions .ent-btn { flex: 1 1 0; min-width: 0; }
 }
 
 @media (max-width: 560px) {
     .ent-user-doctor-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .ent-user-modal-header { gap: 10px; }
     .ent-user-modal-close { width: 36px; height: 36px; flex-basis: 36px; }
-    .ent-user-modal-section-head { align-items: flex-start; flex-direction: column; gap: 3px; }
 }

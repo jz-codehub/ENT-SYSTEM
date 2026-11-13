@@ -935,7 +935,8 @@
 // v152: ship Super Secretary network access, dashboard and form permissions.
 // v153: refresh the admin script with the valid secretary-assignment filter.
 // v154: ship the dedicated Super Secretary network workbench.
-const CACHE_NAME = 'ent-report-system-v160-user-modal-refine';
+// v161: organize the add/edit account dialog for phone and tablet widths.
+const CACHE_NAME = 'ent-report-system-v161-user-modal-responsive';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
