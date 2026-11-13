@@ -3877,44 +3877,6 @@ body.ent-super-secretary .dash-activity-scroll { order: 10; }
     font-size: 0.78rem;
     line-height: 1.55;
 }
-.ent-ss-shortcuts {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-.ent-ss-shortcuts a,
-.ent-ss-shortcuts button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 38px;
-    padding: 8px 13px;
-    border: 1px solid var(--border-color);
-    border-radius: 11px;
-    background: var(--bg-color);
-    color: var(--text-color);
-    font: inherit;
-    font-size: 0.77rem;
-    font-weight: 720;
-    line-height: 1.25;
-    text-decoration: none;
-    text-transform: none;
-    cursor: pointer;
-    transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
-}
-.ent-ss-shortcuts a:hover,
-.ent-ss-shortcuts button:hover {
-    border-color: #4b8aa3;
-    background: color-mix(in srgb, #4b8aa3 8%, var(--bg-color));
-    transform: translateY(-1px);
-}
-.ent-ss-shortcuts .ent-ss-open-records {
-    border-color: #246d75;
-    background: #246d75;
-    color: #fff;
-}
-.ent-ss-shortcuts .ent-ss-open-records:hover { background: #1b5862; }
 .ent-ss-clinic-roster {
     display: grid;
     gap: 10px;
@@ -3951,8 +3913,6 @@ body.dark-mode .ent-ss-network-badge { border-color: rgba(157, 224, 208, 0.24); 
     .ent-ss-heading { flex-direction: column; }
     .ent-ss-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ent-ss-scope-note { grid-column: 1 / -1; padding: 4px 2px; }
-    .ent-ss-shortcuts > * { flex: 1 1 calc(50% - 8px); }
-    .ent-ss-shortcuts .ent-ss-open-records { flex-basis: 100%; }
     .ent-ss-roster-head { align-items: flex-start; flex-direction: column; }
 }
 

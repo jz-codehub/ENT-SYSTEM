@@ -439,7 +439,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v49-admin-users-fit-alignment/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v50-admin-actions-modal/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
@@ -456,18 +456,21 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      && (adminHtml.match(/class="ent-nav-icon" aria-hidden="true"><svg/g) || []).length === 10
      && /\.ent-nav-icon svg\s*\{[\s\S]*?stroke:\s*currentColor/.test(adminCss2),
      'logo and ten matching scalable icons are wired')
-  is('A16l', 'user rows fit the table with compact, accessible actions',
+  is('A16l', 'user rows keep visible action buttons inside the table',
      ['#panel-users > #usersGrid', '.ent-user-table-scroll', 'table-layout: fixed',
-      'min-width: 680px', '#panel-users .ent-user-cell', '#panel-users .ent-user-tags',
+      'min-width: 840px', 'position: sticky', '#panel-users .ent-user-cell', '#panel-users .ent-user-tags',
       '#panel-users .ent-user-meta', '#panel-users .ent-user-actions',
-      'grid-template-columns: repeat(2, 30px)', '.ent-user-action-text'].every(function (rule) {
+      'grid-template-columns: repeat(2, minmax(0, 1fr))', '.ent-user-action-text'].every(function (rule) {
        return adminCss2.includes(rule)
      })
        && /<table class="ent-user-table" aria-label="[\s\S]*?<th scope="col">User<\/th>[\s\S]*?<th scope="col">Actions<\/th>/.test(
          readFileSync(join(APP, 'function', 'admin.js'), 'utf8'))
+       && !/\.ent-user-action-text\s*\{[^}]*position:\s*absolute/.test(adminCss2)
+       && /ent-user-action-text">Edit<\/span>/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8'))
+       && /ent-user-action-text">Delete<\/span>/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8'))
        && /aria-label="Set password for ' \+ accessibleName/.test(
          readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
-     'fixed-width columns keep actions inside each row without hiding their accessible names')
+     'actions have visible labels, accessible names and stay pinned in the table viewport')
   const usersPanel = (adminHtml.match(/<section class="ent-admin-panel" id="panel-users">[\s\S]*?\n        <\/section>/) || [''])[0]
   is('A16l1', 'the Users tab introduces people and access management clearly',
      /PEOPLE &amp; ACCESS/.test(usersPanel) && /ent-users-hero-icon[\s\S]*?<svg/.test(usersPanel)
@@ -1041,9 +1044,9 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v42-admin-users-fit-alignment/.test(html)
-       && /admin\.css\?v=v49-admin-users-fit-alignment/.test(html)
-       && /ent-report-system-v156-admin-users-fit-alignment/.test(
+     /admin\.js\?v=v43-admin-actions-modal/.test(html)
+       && /admin\.css\?v=v50-admin-actions-modal/.test(html)
+       && /ent-report-system-v157-admin-actions-shortcuts/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
 

@@ -621,10 +621,8 @@
             + ' title="' + (active ? 'Deactivate account' : 'Activate account') + '">'
             + '<span class="ent-rowbtn-icon" aria-hidden="true">' + (active ? '&#128683;' : '&#10004;') + '</span>'
             + '<span class="ent-user-action-text">' + (active ? 'Deactivate' : 'Activate') + '</span></button>'
-            // Delete is LAST and styled as the destructive action, so the safe
-            // ones a person reaches for under pressure are not next to it.
-            // It asks for the admin's own password before it does anything -
-            // see the `delete` action in auth-admin.
+            // Delete remains the last, destructive action. It asks for the
+            // admin's own password before doing anything; see auth-admin.
             + '<button type="button" class="ent-rowbtn del" data-act="delete" aria-label="Delete ' + accessibleName + '"'
             + ' title="Delete account permanently">'
             + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128465;</span><span class="ent-user-action-text">Delete</span></button>'

@@ -829,11 +829,17 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && env.nodes.superSecretaryClinicList.innerHTML.includes('ENT North')
        && env.nodes.superSecretaryClinicList.innerHTML.includes('Other Doctor'))
   const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
+  const superSecretaryMarkup = (indexHtml.match(/<section class="ent-ss-workspace"[\s\S]*?<\/section>/) || [''])[0]
+  ok('T55a', 'the Super Secretary workspace avoids repeating dashboard form shortcuts',
+     !!superSecretaryMarkup
+       && !superSecretaryMarkup.includes('Find / open patient records')
+       && !superSecretaryMarkup.includes('data-report-type=')
+       && indexHtml.includes('id="dashQuickActions"'))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the dedicated workspace ships with fresh script, style and service-worker versions',
      /dashboard\.js\?v=v36ad/.test(indexHtml)
-       && /dashboard\.css\?v=v36abe/.test(indexHtml)
-       && /ent-report-system-v156-admin-users-fit-alignment/.test(serviceWorker))
+       && /dashboard\.css\?v=v36abf/.test(indexHtml)
+       && /ent-report-system-v157-admin-actions-shortcuts/.test(serviceWorker))
 }
 
 }
