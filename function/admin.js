@@ -77,6 +77,7 @@
     let activityCursorId = 0;     // highest activity_logs.id seen so far
     let activityError = '';
     let editingId = null;      // null = creating a new user
+    let userModalReturnFocus = null;
     // 0037: the secretary's ADDITIONAL doctors as last READ from the server
     // (secretary_assignments). Compared against the form on save so
     // set_assignments only fires when the set actually changed.
@@ -990,6 +991,8 @@
     }
 
     function openUserModal(user, focusPassword) {
+        const activeElement = document.activeElement;
+        userModalReturnFocus = activeElement && activeElement !== document.body ? activeElement : null;
         editingId = user ? user.id : null;
         byId('userModalTitle').textContent = user ? 'Edit ' + (displayName(user)) : 'Add user';
         byId('userModalDescription').textContent = user
@@ -1039,6 +1042,9 @@
     function closeUserModal() {
         byId('userModal').classList.remove('open');
         editingId = null;
+        const returnFocus = userModalReturnFocus;
+        userModalReturnFocus = null;
+        if (returnFocus && returnFocus.isConnected) returnFocus.focus();
     }
 
     async function saveUser() {
@@ -2654,6 +2660,7 @@ const FLAG_INFO = {
 
         byId('addUserBtn').addEventListener('click', function () { openUserModal(null); });
         byId('userModalCancel').addEventListener('click', closeUserModal);
+        byId('userModalClose').addEventListener('click', closeUserModal);
         byId('userModalSave').addEventListener('click', saveUser);
         byId('fRole').addEventListener('change', syncRoleFields);
         // 0037: changing the PRIMARY doctor re-fills the "Also works at"

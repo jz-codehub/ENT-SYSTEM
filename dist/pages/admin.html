@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v3-notification-panel">
     <link rel="stylesheet" href="../style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
-    <link rel="stylesheet" href="../style/admin.css?v=v52-actions-fit-no-shadow">
+    <link rel="stylesheet" href="../style/admin.css?v=v53-user-modal-refine">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -1035,6 +1035,9 @@
                     <h3 id="userModalTitle">Add user</h3>
                     <p id="userModalDescription">Create a clinic account and choose what it can access.</p>
                 </div>
+                <button type="button" class="ent-user-modal-close" id="userModalClose" aria-label="Close user form">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
             </header>
             <div class="ent-user-modal-body">
                 <section class="ent-user-modal-section">
@@ -1126,6 +1129,6 @@
     <script src="../function/notificationCenter.js?v=v3-notification-panel" defer></script>
     <script src="../function/messagesPage.js?v=v9-responsive" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v44-compact-admin-actions" defer></script>
+    <script src="../function/admin.js?v=v45-user-modal-refine" defer></script>
 </body>
 </html>
