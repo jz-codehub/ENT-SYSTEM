@@ -65,6 +65,13 @@ separate files, walang all-in-one.
    clinic-scoped access; idempotent ang mga statement nito. I-apply bago
    i-deploy ang browser code na tumatawag sa `ent_set_active_clinic`.
 
+10. Kasama sa `0049_notifications_and_staff_chat.sql` ang notification kapag
+    umabot sa 100% ang Doctor's work ng final CF4, Nasal, o Laryngeal report.
+    Para sa existing project na na-run na ang dating 0049, i-run ulit nang
+    isang beses ang updated na 0049 file para idagdag ang notification trigger.
+    Idempotent ang mga policy, trigger, at chat-membership backfill nito; hindi
+    kailangan ng browser-code change.
+
 ## Mga tuntunin
 
 - Ang folder NA ITO ang **source of truth** — dito mag-edit, walang kopyahin.

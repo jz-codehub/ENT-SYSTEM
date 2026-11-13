@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS public.app_notifications (
     recipient_id uuid NOT NULL REFERENCES public.staff_profiles(id) ON DELETE CASCADE,
     kind         text NOT NULL CHECK (kind IN (
         'access_request', 'access_decision', 'chat_message',
-        'ticket_new', 'ticket_message', 'ticket_status'
+        'ticket_new', 'ticket_message', 'ticket_status',
+        'doctor_work_complete'
     )),
     title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
     body         text NOT NULL DEFAULT '' CHECK (length(body) <= 300),
@@ -21,6 +22,15 @@ CREATE TABLE IF NOT EXISTS public.app_notifications (
     created_at   timestamptz NOT NULL DEFAULT now(),
     read_at      timestamptz
 );
+
+ALTER TABLE public.app_notifications
+    DROP CONSTRAINT IF EXISTS app_notifications_kind_check;
+ALTER TABLE public.app_notifications
+    ADD CONSTRAINT app_notifications_kind_check CHECK (kind IN (
+        'access_request', 'access_decision', 'chat_message',
+        'ticket_new', 'ticket_message', 'ticket_status',
+        'doctor_work_complete'
+    ));
 
 CREATE INDEX IF NOT EXISTS idx_app_notifications_recipient
     ON public.app_notifications (recipient_id, created_at DESC);
@@ -673,6 +683,274 @@ DROP TRIGGER IF EXISTS trg_notify_ticket_status ON public.tickets;
 CREATE TRIGGER trg_notify_ticket_status
     AFTER UPDATE OF status ON public.tickets
     FOR EACH ROW EXECUTE FUNCTION public.ent_notify_ticket_status();
+
+-- Doctor work completion notifications (kept in 0049 to stay within the migration limit).
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_app_notifications_doctor_work_complete
+    ON public.app_notifications (recipient_id, source_id)
+    WHERE kind = 'doctor_work_complete';
+
+CREATE OR REPLACE FUNCTION public.ent_doctor_work_percent(
+    p_report_type public.ent_report_type,
+    p_payload jsonb
+)
+RETURNS integer
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public, pg_temp
+AS $$
+    WITH fields AS (
+        SELECT unnest(
+            CASE p_report_type
+                WHEN 'cf4' THEN ARRAY[
+                    'chiefComplaint',
+                    'admittingDiagnosis',
+                    'dischargeDiagnosis',
+                    'historyPresentIllness',
+                    'pertinentPastMedicalHistory',
+                    'courseOrder'
+                ]
+                WHEN 'nasal' THEN ARRAY[
+                    'preOpDiagnosis',
+                    'endoscopyType',
+                    'indication',
+                    'anesthesiaUsed',
+                    'septum',
+                    'discharge',
+                    'mucosa',
+                    'it',
+                    'mt',
+                    'mm',
+                    'im',
+                    'omc',
+                    'nasopharynx',
+                    'impression',
+                    'recommendation'
+                ]
+                WHEN 'laryngeal' THEN ARRAY[
+                    'preOpDiagnosis',
+                    'endoscopyType',
+                    'indication',
+                    'anesthesiaUsed',
+                    'epiglottis',
+                    'vallecula',
+                    'pyriformSinuses',
+                    'arytenoids',
+                    'falseVocalCords',
+                    'trueVocalCords',
+                    'vocalCordMobility',
+                    'subglottis',
+                    'impression',
+                    'recommendation'
+                ]
+                ELSE ARRAY[]::text[]
+            END
+        ) AS field_key
+    ),
+    field_values AS (
+        SELECT field_key,
+               coalesce(p_payload, '{}'::jsonb) -> 'formData' -> field_key AS field_value
+          FROM fields
+    ),
+    totals AS (
+        SELECT count(*)::integer AS total,
+               count(*) FILTER (
+                   WHERE CASE
+                       WHEN field_key = 'courseOrder' THEN EXISTS (
+                           SELECT 1
+                             FROM jsonb_array_elements(
+                                 CASE
+                                     WHEN jsonb_typeof(field_value) = 'array' THEN field_value
+                                     ELSE jsonb_build_array(field_value)
+                                 END
+                             ) AS entries(value)
+                            WHERE entries.value IS NOT NULL
+                              AND entries.value <> 'null'::jsonb
+                              AND entries.value <> 'false'::jsonb
+                              AND entries.value <> '0'::jsonb
+                              AND nullif(btrim(entries.value #>> '{}'), '') IS NOT NULL
+                              AND upper(btrim(entries.value #>> '{}')) <>
+                                  'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).'
+                              AND btrim(entries.value #>> '{}') !~ '\(\s{2,}\)'
+                       )
+                       WHEN jsonb_typeof(field_value) = 'boolean'
+                           THEN field_value = 'true'::jsonb
+                       ELSE nullif(btrim(field_value #>> '{}'), '') IS NOT NULL
+                   END
+               )::integer AS completed
+          FROM field_values
+    )
+    SELECT CASE
+               WHEN total = 0 THEN 0
+               ELSE round(completed * 100.0 / total)::integer
+           END
+      FROM totals
+$$;
+
+REVOKE ALL ON FUNCTION public.ent_doctor_work_percent(public.ent_report_type, jsonb)
+    FROM anon, public, authenticated;
+
+CREATE OR REPLACE FUNCTION public.ent_notify_doctor_work_completion()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    actor public.staff_profiles;
+BEGIN
+    IF NEW.is_draft
+       OR NEW.doctor_id IS DISTINCT FROM public.ent_auth_uid()
+       OR public.ent_doctor_work_percent(NEW.report_type, NEW.payload) <> 100 THEN
+        RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND NOT OLD.is_draft
+       AND OLD.report_type = NEW.report_type
+       AND public.ent_doctor_work_percent(OLD.report_type, OLD.payload) = 100 THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT * INTO actor
+      FROM public.staff_profiles
+     WHERE id = public.ent_auth_uid()
+       AND is_active
+       AND role = 'doctor';
+
+    IF actor.id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO public.app_notifications
+        (recipient_id, kind, title, body, target_url, source_id)
+    SELECT secretary.id,
+           'doctor_work_complete',
+           'Doctor work completed',
+           coalesce(nullif(btrim(actor.full_name), ''), actor.username::text, 'Your doctor')
+               || ' completed the doctor work for a '
+               || CASE NEW.report_type
+                      WHEN 'cf4' THEN 'CF4'
+                      WHEN 'nasal' THEN 'Nasal'
+                      WHEN 'laryngeal' THEN 'Laryngeal'
+                  END
+               || ' report (100%). Open DB Records to review.',
+           'pages/viewAll.html',
+           NEW.id
+      FROM public.staff_profiles secretary
+      JOIN public.clinics doctor_clinic ON doctor_clinic.id = actor.clinic_id
+      LEFT JOIN public.clinics secretary_clinic ON secretary_clinic.id = secretary.clinic_id
+     WHERE secretary.role = 'secretary'
+       AND secretary.is_active
+       AND (
+            secretary.assigned_doctor_id = actor.id
+            OR EXISTS (
+                SELECT 1
+                  FROM public.secretary_assignments assignment
+                 WHERE assignment.secretary_id = secretary.id
+                   AND assignment.doctor_id = actor.id
+            )
+            OR (
+                secretary.is_super_secretary
+                AND secretary_clinic.id IS NOT NULL
+                AND (
+                    doctor_clinic.id = secretary_clinic.id
+                    OR (
+                        secretary_clinic.managed_by IS NOT NULL
+                        AND doctor_clinic.managed_by = secretary_clinic.managed_by
+                    )
+                )
+            )
+       )
+    ON CONFLICT (recipient_id, source_id)
+        WHERE kind = 'doctor_work_complete'
+        DO NOTHING;
+
+    RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ent_notify_doctor_work_completion()
+    FROM anon, public, authenticated;
+
+DROP TRIGGER IF EXISTS trg_notify_doctor_work_completion ON public.reports;
+CREATE TRIGGER trg_notify_doctor_work_completion
+    AFTER INSERT OR UPDATE OF payload, is_draft ON public.reports
+    FOR EACH ROW EXECUTE FUNCTION public.ent_notify_doctor_work_completion();
+
+DO $$
+DECLARE
+    cf4_payload jsonb := jsonb_build_object(
+        'formData', jsonb_build_object(
+            'chiefComplaint', 'Complete',
+            'admittingDiagnosis', 'Complete',
+            'dischargeDiagnosis', 'Complete',
+            'historyPresentIllness', 'Complete',
+            'pertinentPastMedicalHistory', 'Complete',
+            'courseOrder', jsonb_build_array('Procedure completed')
+        )
+    );
+    nasal_payload jsonb := jsonb_build_object(
+        'formData', jsonb_build_object(
+            'preOpDiagnosis', 'Complete',
+            'endoscopyType', 'Complete',
+            'indication', 'Complete',
+            'anesthesiaUsed', 'Complete',
+            'septum', 'Complete',
+            'discharge', 'Complete',
+            'mucosa', 'Complete',
+            'it', 'Complete',
+            'mt', 'Complete',
+            'mm', 'Complete',
+            'im', 'Complete',
+            'omc', 'Complete',
+            'nasopharynx', 'Complete',
+            'impression', 'Complete',
+            'recommendation', 'Complete'
+        )
+    );
+    laryngeal_payload jsonb := jsonb_build_object(
+        'formData', jsonb_build_object(
+            'preOpDiagnosis', 'Complete',
+            'endoscopyType', 'Complete',
+            'indication', 'Complete',
+            'anesthesiaUsed', 'Complete',
+            'epiglottis', 'Complete',
+            'vallecula', 'Complete',
+            'pyriformSinuses', 'Complete',
+            'arytenoids', 'Complete',
+            'falseVocalCords', 'Complete',
+            'trueVocalCords', 'Complete',
+            'vocalCordMobility', 'Complete',
+            'subglottis', 'Complete',
+            'impression', 'Complete',
+            'recommendation', 'Complete'
+        )
+    );
+BEGIN
+    IF public.ent_doctor_work_percent('cf4', cf4_payload) <> 100
+       OR public.ent_doctor_work_percent('nasal', nasal_payload) <> 100
+       OR public.ent_doctor_work_percent('laryngeal', laryngeal_payload) <> 100 THEN
+        RAISE EXCEPTION 'doctor work completion percentage self-check failed';
+    END IF;
+
+    cf4_payload := jsonb_set(
+        cf4_payload,
+        '{formData,courseOrder}',
+        to_jsonb(ARRAY[
+            'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).'
+        ])
+    );
+
+    IF public.ent_doctor_work_percent('cf4', cf4_payload) = 100
+       OR public.ent_doctor_work_percent('nasal', jsonb_build_object(
+           'formData', jsonb_set(nasal_payload -> 'formData', '{recommendation}', '""'::jsonb)
+       )) = 100 THEN
+        RAISE EXCEPTION 'doctor work incomplete-field self-check failed';
+    END IF;
+END;
+$$;
+
 
 -- Only trusted trigger functions write notifications. Chat messages are
 -- append-only; identity and timestamps are server-stamped on insertion.

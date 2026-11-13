@@ -488,6 +488,14 @@ ok('T25', 'a 500 surfaces its message rather than claiming success',
   ok('T52', 'request icons and arrows stay black on both themes',
      /body\.ent-cca-page \.cca-reqbtn-icon svg\s*\{[^}]*color:\s*#111/.test(css) &&
      /body\.ent-cca-page \.cca-reqbtn-copy > span,[\s\S]*?\.cca-reqbtn-arrow\s*\{[^}]*color:\s*#111/.test(css))
+  ok('T53', 'mobile action cards label the access controls',
+     /<td class="cca-act" data-label="Access">/.test(html))
+  ok('T54', 'the access summary no longer has the oversized overview kicker',
+     !pageHtml.includes('ACCESS OVERVIEW') &&
+     pageHtml.includes('id="ccaOverviewTitle"') &&
+     pageHtml.includes('id="ccaStatTotal"') &&
+     pageHtml.includes('id="ccaOpenMy"') &&
+     pageHtml.includes('id="ccaOpenInbox"'))
 }
 
 console.log('')

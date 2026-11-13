@@ -302,7 +302,7 @@
                     <span class="cca-sub">${esc(row.doctor_name || 'No doctor named')}</span>
                 </td>
                 <td class="cca-when" data-label="Date">${esc(prettyDate(row.procedure_date || row.created_at))}</td>
-                <td class="cca-act" data-label="">${statusPill(row)}${action}</td>
+                <td class="cca-act" data-label="Access">${statusPill(row)}${action}</td>
             </tr>`;
     }
 

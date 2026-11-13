@@ -2643,3 +2643,276 @@ body.dark-mode.ent-cca-page .ent-cca-overview {
         text-align: right;
     }
 }
+@media screen and (max-width: 820px) {
+    body.ent-cca-page .ent-cca-search,
+    body.ent-cca-page .ent-cca-select {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    body.ent-cca-page .ent-cca-toggle {
+        min-height: 44px;
+    }
+
+    body.ent-cca-page .ent-cca-table tbody td::before {
+        font-size: 0.75rem;
+        line-height: 1.35;
+    }
+
+    body.ent-cca-page .ent-cca-table td.cca-act .cca-btn {
+        min-height: 44px;
+        padding: 10px 13px;
+    }
+}
+
+@media screen and (max-width: 520px) {
+    body.ent-cca-page .ent-cca-search-label,
+    body.ent-cca-page .ent-cca-filter > label {
+        font-size: 0.75rem;
+        line-height: 1.35;
+    }
+
+    body.ent-cca-page .ent-cca-count {
+        font-size: 0.72rem;
+    }
+}
+
+/* Keep access controls useful without letting the overview dominate the list. */
+body.ent-cca-page .ent-cca-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, .05);
+}
+
+body.ent-cca-page .ent-cca-overview-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+}
+
+body.ent-cca-page .ent-cca-overview-copy h2 {
+    color: var(--text-color);
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+    font-weight: 750;
+    letter-spacing: -.02em;
+    line-height: 1.25;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line.ent-cca-scope-body {
+    width: auto;
+    margin: 4px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--secondary-text-color);
+    font-size: .82rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+body.ent-cca-page .ent-cca-overview-copy .ent-cca-scope-line::before {
+    content: none;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-reqbar {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin: 0;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 11px;
+    background: var(--panel-bg-color);
+    box-shadow: none;
+    color: var(--text-color);
+    font-size: .82rem;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn:hover {
+    transform: none;
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+    box-shadow: 0 2px 7px rgba(15, 23, 42, .08);
+    color: var(--text-color);
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-icon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+    border-radius: 9px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-icon svg {
+    width: 18px;
+    height: 18px;
+    color: currentColor;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy > span {
+    font-size: .82rem;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy small {
+    font-size: .68rem;
+}
+
+body.ent-cca-page .ent-cca-overview .cca-reqbtn-arrow {
+    font-size: .9rem;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat {
+    min-width: 0;
+    min-height: 56px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--secondary-text-color);
+    border-radius: 11px;
+    background: var(--panel-bg-color);
+    box-shadow: none;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat-n {
+    flex: 0 0 auto;
+    font-size: clamp(1.2rem, 2vw, 1.5rem);
+    line-height: 1;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat-l {
+    color: var(--secondary-text-color);
+    font-size: .74rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.25;
+    text-transform: none;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat.is-ok {
+    border-left-color: #16a34a;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat.is-ok .ent-cca-stat-n {
+    color: #15803d;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat.is-locked {
+    border-left-color: #d97706;
+}
+
+body.ent-cca-page .ent-cca-overview .ent-cca-stat.is-locked .ent-cca-stat-n {
+    color: #b45309;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview {
+    border-color: var(--border-color);
+    background: var(--panel-bg-color);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .16);
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .cca-reqbtn,
+body.dark-mode.ent-cca-page .ent-cca-overview .ent-cca-stat {
+    border-color: var(--border-color);
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .ent-cca-stat.is-ok {
+    border-left-color: #22c55e;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .ent-cca-stat.is-ok .ent-cca-stat-n {
+    color: #86efac;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .ent-cca-stat.is-locked {
+    border-left-color: #f59e0b;
+}
+
+body.dark-mode.ent-cca-page .ent-cca-overview .ent-cca-stat.is-locked .ent-cca-stat-n {
+    color: #fcd34d;
+}
+
+@media screen and (max-width: 760px) {
+    body.ent-cca-page .ent-cca-overview-head {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-reqbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 3px;
+        padding: 8px;
+    }
+}
+
+@media screen and (max-width: 520px) {
+    body.ent-cca-page .ent-cca-overview {
+        gap: 10px;
+        padding: 11px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn {
+        min-height: 44px;
+        gap: 6px;
+        padding: 7px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-icon {
+        width: 27px;
+        height: 27px;
+        flex-basis: 27px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .cca-reqbtn-copy small {
+        display: none;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat {
+        min-height: 54px;
+    }
+
+    body.ent-cca-page .ent-cca-overview .ent-cca-stat-l {
+        font-size: .68rem;
+    }
+}
