@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0051_super_secretary_active_clinic.sql`). Isa-isa; hintayin ang
+   (ngayon: `0050_super_secretary_network_scope.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -59,10 +59,11 @@ separate files, walang all-in-one.
    patient records. I-apply muna ito bago i-deploy ang matching browser build.
    Mananatiling tig-3,000-row bounded ang recent-patient at follow-up panels.
 
-9. Ang `0051_super_secretary_active_clinic.sql` ay nagtatali ng napiling
-   clinic sa authenticated session at nililimitahan ang Super Secretary sa
-   records ng clinic na iyon. Kailangan itong i-apply bago i-deploy ang
-   browser code na tumatawag sa `ent_set_active_clinic`.
+9. Kasama na sa `0050_super_secretary_network_scope.sql` ang active-clinic
+   context para sa Super Secretary. Para sa existing project na na-run na ang
+   dating 0050, i-run ulit ang updated na file na ito upang idagdag ang
+   clinic-scoped access; idempotent ang mga statement nito. I-apply bago
+   i-deploy ang browser code na tumatawag sa `ent_set_active_clinic`.
 
 ## Mga tuntunin
 
