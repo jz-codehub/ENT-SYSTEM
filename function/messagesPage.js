@@ -37,9 +37,13 @@
             + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8'
             + ' 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1'
             + ' 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
-            + '<span><strong>Messages</strong><small id="msgConnectionText">Connecting…</small></span></span>'
+            + '<span><strong>Messages</strong><small class="messages-connection-status" id="msgConnection">'
+            + '<i aria-hidden="true"></i><span id="msgConnectionText">Connecting…</span></small></span></span>'
             + '<button type="button" class="ent-messages-widget-close" id="messagesClose" aria-label="Close messages">&times;</button></header>'
-            + '<p class="messages-privacy">Staff coordination only · Please don’t share patient details.</p>'
+            + '<p class="messages-privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/>'
+            + '<path d="m9 12 2 2 4-4"/></svg><span>Staff coordination only · Please don’t share patient details.</span></p>'
             + '<p class="messages-notice" id="messagesNotice" role="status" hidden></p>'
             + '<section class="messages-workspace" id="messagesWorkspace" aria-label="Staff conversations">'
             + '<aside class="messages-sidebar" id="messagesSidebar"><div class="messages-sidebar-heading">'
@@ -67,12 +71,22 @@
             + '<div class="messages-search-results" id="staffSearchResults" role="list" aria-label="Active staff">'
             + '<span class="messages-search-hint">Loading staff…</span></div></div></aside>'
             + '<section class="messages-thread" id="messagesThread" aria-label="Conversation">'
-            + '<div class="messages-thread-empty" id="threadEmpty"><span class="messages-empty-icon" aria-hidden="true">'
+            + '<div class="messages-thread-empty" id="threadEmpty"><div class="messages-empty-card">'
+            + '<span class="messages-empty-icon" aria-hidden="true">'
             + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"'
             + ' stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7'
             + ' 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6'
             + ' 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
-            + '<h3>Choose a conversation</h3><p>Open your clinic group or find a staff member.</p></div>'
+            + '<span class="messages-empty-eyebrow">STAFF MESSENGER</span>'
+            + '<h3>Keep your team in sync</h3>'
+            + '<p>Choose your clinic group or start a private chat with a teammate.</p>'
+            + '<button type="button" class="messages-empty-action" id="messagesStartChat">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>'
+            + '<circle cx="10" cy="7" r="4"/><path d="M20 8v6m-3-3h6"/></svg>'
+            + 'Start a private chat</button>'
+            + '<small class="messages-empty-note">For clinic staff coordination only</small></div></div>'
             + '<div class="messages-thread-active" id="threadActive" hidden><header class="messages-thread-head">'
             + '<button type="button" class="messages-thread-back" id="threadBack" aria-label="Back to conversations">&larr;</button>'
             + '<span class="messages-thread-avatar" id="threadAvatar" aria-hidden="true">C</span><span class="messages-thread-heading">'
@@ -225,6 +239,26 @@
         return iso && !isNaN(date.getTime()) ? date.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '';
     }
 
+    function messageDayLabel(iso) {
+        var date = new Date(iso);
+        if (!iso || isNaN(date.getTime())) return null;
+        var today = new Date();
+        if (date.toDateString() === today.toDateString()) return { key: date.toDateString(), label: 'Today' };
+        var yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        if (date.toDateString() === yesterday.toDateString()) return { key: date.toDateString(), label: 'Yesterday' };
+        var options = { month: 'short', day: 'numeric' };
+        if (date.getFullYear() !== today.getFullYear()) options.year = 'numeric';
+        return { key: date.toDateString(), label: date.toLocaleDateString([], options) };
+    }
+
+    function messageClock(iso) {
+        var date = new Date(iso);
+        return iso && !isNaN(date.getTime())
+            ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            : '';
+    }
+
     function renderMessages(rows) {
         var list = byId('messageList');
         if (!list) return;
@@ -232,12 +266,20 @@
             list.innerHTML = '<p class="messages-empty">No messages yet. Start the conversation.</p>';
             return;
         }
+        var previousDay = '';
         list.innerHTML = rows.map(function (message) {
             var own = message.sender_id === me.id;
-            return '<article class="messages-bubble' + (own ? ' is-mine' : '') + '">'
+            var day = messageDayLabel(message.created_at);
+            var divider = '';
+            if (day && day.key !== previousDay) {
+                previousDay = day.key;
+                divider = '<div class="messages-date-divider"><span>' + esc(day.label) + '</span></div>';
+            }
+            return divider + '<article class="messages-bubble' + (own ? ' is-mine' : '') + '">'
+                + '<div class="messages-bubble-meta">'
                 + (!own ? '<span class="messages-bubble-author">' + esc(message.sender_name || 'Clinic staff') + '</span>' : '')
+                + '<time datetime="' + esc(message.created_at) + '">' + esc(messageClock(message.created_at)) + '</time></div>'
                 + '<p>' + esc(message.body) + '</p>'
-                + '<time datetime="' + esc(message.created_at) + '">' + esc(displayTime(message.created_at)) + '</time>'
                 + '</article>';
         }).join('');
         list.scrollTop = list.scrollHeight;
@@ -462,6 +504,10 @@
             }
         });
         byId('messagesClose').addEventListener('click', hideWidget);
+        byId('messagesStartChat').addEventListener('click', function () {
+            setActiveList('people');
+            byId('staffSearch').focus();
+        });
         byId('messagesSidebar').addEventListener('click', function (event) {
             var tab = event.target.closest('[data-message-tab]');
             if (tab) setActiveList(tab.dataset.messageTab);

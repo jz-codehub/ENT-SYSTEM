@@ -905,7 +905,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
        && /auth\.js\?v=v36m-doc-jess-clinic-code/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v172-messenger-unread/.test(serviceWorker))
+       && /ent-report-system-v173-messenger-polish/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
