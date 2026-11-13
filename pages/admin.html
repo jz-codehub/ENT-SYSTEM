@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v3-notification-panel">
     <link rel="stylesheet" href="../style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
-    <link rel="stylesheet" href="../style/admin.css?v=v47-super-secretary">
+    <link rel="stylesheet" href="../style/admin.css?v=v48-admin-users-table-modal">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -545,7 +545,7 @@
             <div class="ent-users-resultline">
                 <span class="ent-users-result-dot" aria-hidden="true"></span>
                 <span id="usersResultCount" role="status" aria-live="polite">Loading accounts&hellip;</span>
-                <span class="ent-users-result-hint">Role groups keep access and responsibilities easy to compare.</span>
+                <span class="ent-users-result-hint">Accounts are grouped by role. Scroll the table horizontally on smaller screens.</span>
             </div>
             <div class="ent-user-grid" id="usersGrid">
                 <div class="ent-empty">Loading users&hellip;</div>
@@ -1023,60 +1023,91 @@
     </main>
 
     <!-- ------------------------- ADD / EDIT USER -------------------------- -->
-    <div class="ent-modal" id="userModal" role="dialog" aria-modal="true">
-        <div class="ent-modal-card">
-            <h3 id="userModalTitle">Add user</h3>
-            <div class="ent-field">
-                <label for="fFullName">Full name</label>
-                <input type="text" id="fFullName" autocomplete="off">
+    <div class="ent-modal" id="userModal" role="dialog" aria-modal="true"
+         aria-labelledby="userModalTitle" aria-describedby="userModalDescription" tabindex="-1">
+        <div class="ent-modal-card ent-user-modal-card">
+            <header class="ent-user-modal-header">
+                <span class="ent-user-modal-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 11a3.5 3.5 0 0 0 0-7M17 15h1a3 3 0 0 1 3 3v2"/></svg>
+                </span>
+                <div>
+                    <span class="ent-user-modal-kicker">ACCOUNT ACCESS</span>
+                    <h3 id="userModalTitle">Add user</h3>
+                    <p id="userModalDescription">Create a clinic account and choose what it can access.</p>
+                </div>
+            </header>
+            <div class="ent-user-modal-body">
+                <section class="ent-user-modal-section">
+                    <div class="ent-user-modal-section-head">
+                        <b>Account details</b><span>Identity and clinic role</span>
+                    </div>
+                    <div class="ent-user-form-grid">
+                        <div class="ent-field">
+                            <label for="fFullName">Full name</label>
+                            <input type="text" id="fFullName" autocomplete="name" placeholder="Enter the person&rsquo;s full name">
+                        </div>
+                        <div class="ent-field">
+                            <label for="fUsername">Username</label>
+                            <input type="text" id="fUsername" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. christie.b">
+                            <div class="ent-hint">Lowercase, no spaces. This is what they type to sign in.</div>
+                        </div>
+                        <div class="ent-field">
+                            <label for="fRole">Role</label>
+                            <select id="fRole">
+                                <option value="doctor">Doctor &mdash; sees own patients</option>
+                                <option value="secretary">Secretary &mdash; works with assigned doctors</option>
+                                <option value="admin">Admin &mdash; manages this clinic network</option>
+                            </select>
+                        </div>
+                        <div class="ent-field">
+                            <label for="fSpecialty">Specialty / notes <span>(optional)</span></label>
+                            <input type="text" id="fSpecialty" autocomplete="off" placeholder="ENT, clinic role, or notes">
+                        </div>
+                    </div>
+                </section>
+                <section class="ent-user-modal-section ent-user-assignment-section">
+                    <div class="ent-user-modal-section-head">
+                        <b>Doctor access</b><span>Only used for secretary accounts</span>
+                    </div>
+                    <div class="ent-field" id="assignedWrap" style="display:none;">
+                        <label for="fAssigned">Primary doctor</label>
+                        <select id="fAssigned"></select>
+                        <div class="ent-hint">Changing the primary doctor transfers the secretary&rsquo;s home clinic. Additional doctor assignments stay available.</div>
+                        <label class="ent-user-check ent-user-super-check">
+                            <input type="checkbox" id="fSuperSecretary">
+                            <span><b>Super Secretary</b><small>Access active doctors and patient records in this admin&rsquo;s managed clinic network, including future doctors. Does not cross into another admin&rsquo;s network.</small></span>
+                        </label>
+                        <p class="ent-user-role-note">Doctor assignments determine which patient records a secretary can open.</p>
+                    </div>
+                    <div class="ent-field" id="extraWrap" style="display:none;">
+                        <label for="fExtraDoctors">Additional doctors</label>
+                        <select id="fExtraDoctors" multiple size="4"></select>
+                        <button type="button" class="ent-btn ent-user-select-doctors" id="fExtraDoctorsToggle">Select all other doctors</button>
+                        <div class="ent-hint">Choose additional doctors in clinics you manage. Leave empty to keep access to the primary doctor only.</div>
+                    </div>
+                </section>
+                <section class="ent-user-modal-section ent-user-credentials-section">
+                    <div class="ent-user-modal-section-head">
+                        <b>Sign-in &amp; status</b><span>Password and account availability</span>
+                    </div>
+                    <div class="ent-user-form-grid">
+                        <div class="ent-field">
+                            <label for="fPassword" id="passwordLabel">Starting password</label>
+                            <input type="password" id="fPassword" autocomplete="new-password" placeholder="Enter a temporary password">
+                            <div class="ent-hint" id="passwordHint">At least 6 characters.</div>
+                        </div>
+                        <label class="ent-user-check ent-user-active-check">
+                            <input type="checkbox" id="fActive" checked>
+                            <span><b>Account is active</b><small>Active users can sign in. Turning this off blocks the next sign-in.</small></span>
+                        </label>
+                    </div>
+                </section>
+                <div class="ent-login-error" id="userModalError" role="alert"></div>
             </div>
-            <div class="ent-field">
-                <label for="fUsername">Username</label>
-                <input type="text" id="fUsername" autocomplete="off" autocapitalize="none" spellcheck="false">
-                <div class="ent-hint">Lowercase, no spaces. This is what they type to sign in.</div>
-            </div>
-            <div class="ent-field">
-                <label for="fRole">Role</label>
-                <select id="fRole">
-                    <option value="doctor">Doctor &mdash; sees only own patients</option>
-                    <option value="secretary">Secretary &mdash; sees assigned doctors&rsquo; patients</option>
-                    <option value="admin">Admin &mdash; sees everything</option>
-                </select>
-            </div>
-            <div class="ent-field" id="assignedWrap" style="display:none;">
-                <label for="fAssigned">Assigned doctor</label>
-                <select id="fAssigned"></select>
-                <div class="ent-hint">This secretary&rsquo;s home doctor and clinic. Changing this doctor transfers her home clinic; her additional doctor assignments stay available.</div>
-                <label class="ent-hint" style="display:flex;align-items:flex-start;gap:8px;font-size:.85rem;">
-                    <input type="checkbox" id="fSuperSecretary" style="width:auto;margin-top:3px;">
-                    <span><b>Super Secretary</b><br>Access all active doctors and patient records in this admin&rsquo;s clinic network, including future doctors. Does not cross to another admin&rsquo;s network.</span>
-                </label>
-            </div>
-            <div class="ent-field" id="extraWrap" style="display:none;">
-                <label for="fExtraDoctors">Also works at (optional)</label>
-                <select id="fExtraDoctors" multiple size="4" style="height:auto;"></select>
-                <button type="button" class="ent-btn" id="fExtraDoctorsToggle">Select all other doctors</button>
-                <div class="ent-hint">Choose any additional doctors in clinics you manage. This grants access to their records and lets her file under them. Leave empty for access to only her assigned doctor.</div>
-            </div>
-            <div class="ent-field">
-                <label for="fSpecialty">Specialty / notes (optional)</label>
-                <input type="text" id="fSpecialty" autocomplete="off">
-            </div>
-            <div class="ent-field">
-                <label for="fPassword" id="passwordLabel">Password</label>
-                <input type="password" id="fPassword" autocomplete="new-password">
-                <div class="ent-hint" id="passwordHint">At least 6 characters.</div>
-            </div>
-            <div class="ent-field">
-                <label class="ent-hint" style="display:flex;align-items:center;gap:7px;font-size:.85rem;">
-                    <input type="checkbox" id="fActive" checked style="width:auto;"> Account is active
-                </label>
-            </div>
-            <div class="ent-login-error" id="userModalError"></div>
-            <div class="ent-modal-actions">
+            <footer class="ent-modal-actions ent-user-modal-actions">
                 <button type="button" class="ent-btn" id="userModalCancel">Cancel</button>
-                <button type="button" class="ent-btn primary" id="userModalSave">Save</button>
-            </div>
+                <button type="button" class="ent-btn primary" id="userModalSave">Create account</button>
+            </footer>
         </div>
     </div>
 
@@ -1093,6 +1124,6 @@
     <script src="../function/notificationCenter.js?v=v3-notification-panel" defer></script>
     <script src="../function/messagesPage.js?v=v9-responsive" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v40-super-secretary-assignment-filter" defer></script>
+    <script src="../function/admin.js?v=v41-admin-users-table-modal" defer></script>
 </body>
 </html>

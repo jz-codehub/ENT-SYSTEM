@@ -439,7 +439,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v47-super-secretary/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v48-admin-users-table-modal/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
@@ -456,10 +456,14 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      && (adminHtml.match(/class="ent-nav-icon" aria-hidden="true"><svg/g) || []).length === 10
      && /\.ent-nav-icon svg\s*\{[\s\S]*?stroke:\s*currentColor/.test(adminCss2),
      'logo and ten matching scalable icons are wired')
-  is('A16l', 'the user directory cards have responsive, complete styling',
-     ['.ent-user-grid,', '.ent-user-card {', '.ent-user-av {', '.ent-user-tags {',
-      '.ent-user-meta {', '.ent-user-actions {'].every(function (rule) { return adminCss2.includes(rule); }),
-     'grouped account cards cover identity, role, access state and actions')
+  is('A16l', 'the user directory renders accessible, responsive account tables',
+     ['#panel-users > #usersGrid', '.ent-user-table-scroll', '.ent-user-table {',
+      '.ent-user-cell', '.ent-user-tags', '.ent-user-meta', '.ent-user-actions'].every(function (rule) {
+       return adminCss2.includes(rule)
+     })
+       && /<table class="ent-user-table">[\s\S]*?<th scope="col">User<\/th>[\s\S]*?<th scope="col">Actions<\/th>/.test(
+         readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
+     'role-grouped tables retain identity, access, clinic, login and account actions')
   const usersPanel = (adminHtml.match(/<section class="ent-admin-panel" id="panel-users">[\s\S]*?\n        <\/section>/) || [''])[0]
   is('A16l1', 'the Users tab introduces people and access management clearly',
      /PEOPLE &amp; ACCESS/.test(usersPanel) && /ent-users-hero-icon[\s\S]*?<svg/.test(usersPanel)
@@ -470,13 +474,23 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
        && /id="usersResultCount" role="status"/.test(usersPanel)
        && /clearSearch\.hidden = !needle/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
      'search can be cleared and filtered totals are visible')
-  is('A16l3', 'the grouped user cards are responsive, readable and styled for dark mode',
+  is('A16l3', 'the grouped user tables and account modal support mobile and dark mode',
      ['#panel-users .ent-users-stats', '#panel-users .ent-user-group',
-      '#panel-users .ent-user-card', '#panel-users .ent-users-note'].every(function (rule) {
+      '.ent-user-table', '.ent-user-modal-card', '.ent-user-modal-section',
+      '.ent-user-modal-actions', '#panel-users .ent-users-note'].every(function (rule) {
         return adminCss2.includes(rule)
       })
-       && /@media\s*\(max-width:\s*720px\)[\s\S]*?#panel-users[\s\S]*?body\.dark-mode #panel-users/.test(adminCss2),
-     'role groups, account cards and access guidance adapt on mobile and in dark theme')
+       && /@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-user-modal-card[\s\S]*?body\.dark-mode #panel-users/.test(adminCss2),
+     'role groups, tables, modal sections and access guidance adapt to small and dark displays')
+  is('A16l5', 'the account modal is labeled, sectioned and preserves its form controls',
+     /id="userModal" role="dialog" aria-modal="true"[\s\S]*?aria-labelledby="userModalTitle" aria-describedby="userModalDescription"/.test(adminHtml)
+       && ['Account details', 'Doctor access', 'Sign-in &amp; status',
+           'fFullName', 'fUsername', 'fRole', 'fAssigned', 'fSuperSecretary',
+           'fExtraDoctors', 'fSpecialty', 'fPassword', 'fActive', 'userModalSave']
+         .every(function (value) { return adminHtml.includes(value) })
+       && /userModalDescription'\)\.textContent = user[\s\S]*?userModalSave'\)\.textContent = user \? 'Save changes' : 'Create account'/.test(
+         readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
+     'the redesigned dialog keeps the existing account, assignment and status controls')
   is('A16l4', 'role counts stay account-wide while result counts track the active filters',
      /userStatDoctors[\s\S]*?userStatSecretaries[\s\S]*?userStatAdmins[\s\S]*?userStatInactive/.test(usersPanel)
        && /Showing ' \+ rows\.length \+ ' of ' \+ users\.length/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8')),
@@ -1019,8 +1033,9 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v40-super-secretary-assignment-filter/.test(html)
-       && /ent-report-system-v154-super-secretary-workbench/.test(
+     /admin\.js\?v=v41-admin-users-table-modal/.test(html)
+       && /admin\.css\?v=v48-admin-users-table-modal/.test(html)
+       && /ent-report-system-v155-admin-users-table-modal/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
 

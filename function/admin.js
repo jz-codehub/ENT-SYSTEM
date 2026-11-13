@@ -590,28 +590,26 @@
         const roleIcon = u.role === 'doctor' ? '&#129657;'
             : u.role === 'secretary' ? '&#128203;'
             : u.role === 'admin' ? '&#128737;' : '';
-        return '<article class="ent-user-card role-' + esc(u.role) + (active ? '' : ' is-off') + '"'
+        return '<tr class="ent-user-row role-' + esc(u.role) + (active ? '' : ' is-off') + '"'
             + ' data-id="' + esc(u.id) + '">'
+            + '<td data-label="User"><div class="ent-user-cell">'
             + '<span class="ent-user-av" title="' + esc(u.role || '') + '">'
             + esc(displayInitials(u))
             + (roleIcon ? '<i class="ent-user-avic" aria-hidden="true">' + roleIcon + '</i>' : '')
-            + '</span>'
-            + '<div class="ent-user-main">'
-            + '<b>' + esc(displayName(u)) + '</b>'
-            + '<small>@' + esc(u.username || '') + ' \u00b7 ' + esc(clinic) + '</small>'
-            + '</div>'
-            + '<div class="ent-user-tags">' + rolePill(u.role)
+            + '</span><span class="ent-user-main"><b>' + esc(displayName(u)) + '</b>'
+            + '<small>@' + esc(u.username || '') + '</small></span></div></td>'
+            + '<td data-label="Access"><div class="ent-user-tags">' + rolePill(u.role)
             + (u.role === 'secretary' && u.is_super_secretary
                 ? '<span class="ent-pill is-super-secretary">Super Secretary</span>' : '')
             + (active ? '<span class="ent-pill live">Active</span>'
                 : '<span class="ent-pill idle">Deactivated</span>')
-            + '</div>'
-            + '<div class="ent-user-meta">'
+            + '</div></td>'
+            + '<td data-label="Clinic"><span class="ent-user-clinic">' + esc(clinic) + '</span></td>'
+            + '<td data-label="Assignment / last login"><div class="ent-user-meta">'
             + (boss ? '<span><em>Works for</em><b>' + esc(boss) + '</b></span>' : '')
             + '<span><em>Last login</em><b title="' + esc(u.last_login_at || '') + '">'
-            + esc(relTime(u.last_login_at)) + '</b></span>'
-            + '</div>'
-            + '<div class="ent-user-actions">'
+            + esc(relTime(u.last_login_at)) + '</b></span></div></td>'
+            + '<td data-label="Actions"><div class="ent-user-actions">'
             + '<button type="button" class="ent-rowbtn edit" data-act="edit" title="Change name, role or assigned doctor">'
             + '<span class="ent-rowbtn-icon" aria-hidden="true">&#9998;</span>Edit</button>'
             + '<button type="button" class="ent-rowbtn key" data-act="password" title="Set a new password">'
@@ -627,8 +625,8 @@
             + '<button type="button" class="ent-rowbtn del" data-act="delete"'
             + ' title="Delete this account permanently. You will be asked for your admin password.">'
             + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128465;</span>Delete</button>'
-            + '</div>'
-            + '</article>';
+            + '</div></td>'
+            + '</tr>';
     }
 
     /* ---------------------- delete confirmation ---------------------- */
@@ -754,7 +752,11 @@
                 + '<span class="ent-user-group-ic" aria-hidden="true">' + g.icon + '</span>' + g.label
                 + '<em>' + list.length + '</em>'
                 + '<span class="ent-user-group-hint">' + g.hint + '</span></h4>'
-                + '<div class="ent-user-grid">' + list.map(userCard).join('') + '</div>'
+                + '<div class="ent-user-table-scroll"><table class="ent-user-table">'
+                + '<thead><tr><th scope="col">User</th><th scope="col">Access</th>'
+                + '<th scope="col">Clinic</th><th scope="col">Assignment / last login</th>'
+                + '<th scope="col">Actions</th></tr></thead>'
+                + '<tbody>' + list.map(userCard).join('') + '</tbody></table></div>'
                 + '</section>';
         }).join('') || '<div class="ent-empty">No user matches this filter.</div>';
     }
@@ -988,6 +990,10 @@
     function openUserModal(user, focusPassword) {
         editingId = user ? user.id : null;
         byId('userModalTitle').textContent = user ? 'Edit ' + (displayName(user)) : 'Add user';
+        byId('userModalDescription').textContent = user
+            ? 'Review this account identity and access, then save any updates.'
+            : 'Create a clinic account and choose its role, doctor access, and sign-in details.';
+        byId('userModalSave').textContent = user ? 'Save changes' : 'Create account';
         byId('fFullName').value = user ? (user.full_name || '') : '';
         byId('fUsername').value = user ? user.username : '';
         byId('fUsername').disabled = !!user;
@@ -1187,7 +1193,7 @@
             modalError('Could not save: ' + error.message);
         } finally {
             saving.disabled = false;
-            saving.textContent = 'Save';
+            saving.textContent = editingId ? 'Save changes' : 'Create account';
         }
     }
 
