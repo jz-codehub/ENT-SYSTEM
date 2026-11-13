@@ -933,7 +933,8 @@
 // v150: render notifications above header layers, centered on the bell.
 // v151: fix dashboard notification overlay and refresh admin activity actors.
 // v152: ship Super Secretary network access, dashboard and form permissions.
-const CACHE_NAME = 'ent-report-system-v152-super-secretary-network-access';
+// v153: refresh the admin script with the valid secretary-assignment filter.
+const CACHE_NAME = 'ent-report-system-v153-admin-assignment-filter';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

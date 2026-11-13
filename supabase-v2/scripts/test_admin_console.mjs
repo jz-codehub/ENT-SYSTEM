@@ -1019,8 +1019,8 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v39-super-secretary/.test(html)
-       && /ent-report-system-v152-super-secretary-network-access/.test(
+     /admin\.js\?v=v40-super-secretary-assignment-filter/.test(html)
+       && /ent-report-system-v153-admin-assignment-filter/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
 
