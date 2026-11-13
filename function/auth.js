@@ -874,52 +874,147 @@
         return buildSafeUser();
     }
 
-    /* The "Which clinic are you working at today?" pop-up. Only opens when
-     * there are at least TWO doctors to choose between — a secretary with one
-     * assignment has nothing to decide and must not be interrupted. Picking a
-     * doctor stores the choice and reloads, because scope() is read once per
-     * page and a reload is the only way every module (dashboard, DB Records,
-     * sync, the ticket form) agrees on the new shelf at once. */
+    /* Picking a clinic stores its assigned doctor and reloads so every module
+     * agrees on the new clinic context. */
     function openClinicPicker(doctors) {
         if (!Array.isArray(doctors) || doctors.length < 2) return;
         if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
         const old = document.getElementById('entClinicPicker');
         if (old && old.parentNode) old.parentNode.removeChild(old);
 
+        const pickerUser = currentUser();
+        const isSuperSecretary = pickerUser && pickerUser.is_super_secretary === true;
         const cur = workingChoice();
-        const curId = cur ? String(cur.id) : '';
-        const options = doctors.map(function (d) {
-            const id = String(d.doctor_id);
-            const isCurrent = id === curId;
-            return '<button type="button" class="ent-clinic-opt' + (isCurrent ? ' is-current' : '') + '" data-id="' + escapeHtml(id) + '">'
-                + '<span class="ent-clinic-opt-name">Dr. ' + escapeHtml(d.doctor_name || 'Unknown')
-                + (d.is_primary ? ' <span class="ent-clinic-opt-primary">primary</span>' : '')
-                + '</span>'
-                + '<span class="ent-clinic-opt-clinic">' + escapeHtml(d.clinic_name || 'Clinic not named') + '</span>'
-                + '</button>';
+        const currentScope = scope();
+        const curId = String(cur && cur.id || currentScope.doctorId || '');
+        const currentDoctor = doctors.find(function (doctor) {
+            return String(doctor.doctor_id || '') === curId;
+        });
+        const currentClinicId = String(cur && cur.clinic_id
+            || currentDoctor && currentDoctor.clinic_id || '');
+        let choices;
+        if (isSuperSecretary) {
+            const clinicGroups = Object.create(null);
+            doctors.forEach(function (doctor) {
+                const doctorId = String(doctor && doctor.doctor_id || '').trim();
+                if (!doctorId) return;
+                const clinicId = String(doctor.clinic_id || '').trim();
+                const key = clinicId || 'doctor:' + doctorId;
+                if (!clinicGroups[key]) {
+                    clinicGroups[key] = {
+                        clinicId: clinicId,
+                        clinicName: doctor.clinic_name || 'Clinic not named',
+                        doctors: []
+                    };
+                } else if (clinicGroups[key].clinicName === 'Clinic not named' && doctor.clinic_name) {
+                    clinicGroups[key].clinicName = doctor.clinic_name;
+                }
+                clinicGroups[key].doctors.push(doctor);
+            });
+            choices = Object.keys(clinicGroups).map(function (key) {
+                const clinic = clinicGroups[key];
+                const selectedDoctor = clinic.doctors.find(function (doctor) {
+                    return String(doctor.doctor_id || '') === curId;
+                }) || clinic.doctors.find(function (doctor) {
+                    return doctor.is_primary === true;
+                }) || clinic.doctors[0];
+                return {
+                    id: String(selectedDoctor.doctor_id),
+                    doctor: selectedDoctor,
+                    clinicName: clinic.clinicName,
+                    doctorCount: clinic.doctors.length,
+                    isCurrent: clinic.clinicId
+                        ? clinic.clinicId === currentClinicId
+                        : clinic.doctors.some(function (doctor) {
+                            return String(doctor.doctor_id || '') === curId;
+                        })
+                };
+            });
+        } else {
+            choices = doctors.map(function (doctor) {
+                const id = String(doctor.doctor_id);
+                return {
+                    id: id,
+                    doctor: doctor,
+                    clinicName: doctor.clinic_name || 'Clinic not named',
+                    doctorCount: 1,
+                    isCurrent: id === curId
+                };
+            });
+        }
+        if (choices.length < 2) return;
+
+        const options = choices.map(function (choice) {
+            const doctor = choice.doctor;
+            const currentBadge = choice.isCurrent
+                ? '<span class="ent-clinic-current">Current clinic</span>' : '';
+            const title = isSuperSecretary
+                ? choice.clinicName
+                : 'Dr. ' + (doctor.doctor_name || 'Unknown');
+            const detail = isSuperSecretary
+                ? 'Dr. ' + (doctor.doctor_name || 'Unknown') + ' · '
+                    + choice.doctorCount + ' assigned doctor' + (choice.doctorCount === 1 ? '' : 's')
+                : choice.clinicName;
+            return '<button type="button" class="ent-clinic-opt' + (choice.isCurrent ? ' is-current' : '')
+                + '" data-id="' + escapeHtml(choice.id) + '" aria-pressed="' + String(choice.isCurrent) + '">'
+                + '<span class="ent-clinic-opt-icon" aria-hidden="true">'
+                + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+                + ' stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/>'
+                + '<path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg>'
+                + '</span><span class="ent-clinic-opt-copy"><span class="ent-clinic-opt-name">'
+                + escapeHtml(title) + '</span><span class="ent-clinic-opt-clinic">'
+                + escapeHtml(detail) + '</span></span>' + currentBadge
+                + '<span class="ent-clinic-opt-arrow" aria-hidden="true">&#8250;</span></button>';
         }).join('');
 
         const box = document.createElement('div');
         box.id = 'entClinicPicker';
-        box.className = 'ent-modal';
-        const pickerUser = currentUser();
-        const pickerHint = pickerUser && pickerUser.is_super_secretary === true
-            ? 'Only records from the selected clinic are shown. New reports are filed under the selected doctor.'
-            : 'Records you save go onto the selected doctor&rsquo;s shelf. '
-                + 'You can switch anytime from the pill beside your name.';
-        box.innerHTML = '<div class="ent-modal-card" style="max-width:440px;">'
-            + '<h3>Which clinic are you working at today?</h3>'
-            + '<p class="ent-hint">' + pickerHint + '</p>'
-            + '<div class="ent-clinic-list">' + options + '</div>'
-            + '<div class="ent-modal-actions">'
-            + '<button type="button" class="ent-btn" id="entClinicCancel">Keep current</button>'
+        box.className = 'ent-modal ent-clinic-picker';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-labelledby', 'entClinicPickerTitle');
+        box.setAttribute('aria-describedby', 'entClinicPickerHint');
+        box.setAttribute('tabindex', '-1');
+        const pickerHint = isSuperSecretary
+            ? 'Your dashboard shows records from the selected clinic only. Clinical Abstract and Medical Certificate stay available in Doc Jess clinic.'
+            : 'Choose the doctor whose records you are working with. You can switch again anytime.';
+        const heading = isSuperSecretary ? 'Switch clinic' : 'Choose doctor';
+        box.innerHTML = '<div class="ent-modal-card ent-clinic-picker-card">'
+            + '<div class="ent-clinic-picker-heading">'
+            + '<span class="ent-clinic-picker-mark" aria-hidden="true">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/>'
+            + '<path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg></span>'
+            + '<span class="ent-clinic-picker-title"><small>WORKSPACE</small><h2 id="entClinicPickerTitle">'
+            + heading + '</h2></span>'
+            + '<button type="button" class="ent-clinic-picker-close" id="entClinicClose"'
+            + ' aria-label="Close clinic switcher">&times;</button></div>'
+            + '<p class="ent-clinic-picker-hint" id="entClinicPickerHint">' + pickerHint + '</p>'
+            + '<div class="ent-clinic-list" role="group" aria-label="Available clinics">' + options + '</div>'
+            + '<div class="ent-clinic-picker-footer">'
+            + '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M12 3 4.5 6v5.5c0 4.3 3.2 7.7 7.5 9.5 4.3-1.8 7.5-5.2 7.5-9.5V6L12 3Z"/>'
+            + '<path d="m9 12 2 2 4-4"/></svg>Clinic records stay separated</span>'
+            + '<button type="button" class="ent-clinic-picker-cancel" id="entClinicCancel">Cancel</button>'
             + '</div></div>';
+        const returnFocus = document.activeElement;
         document.body.appendChild(box);
 
-        function close() { if (box.parentNode) box.parentNode.removeChild(box); }
+        function close() {
+            if (box.parentNode) box.parentNode.removeChild(box);
+            document.removeEventListener('keydown', handleKeydown);
+            if (returnFocus && typeof returnFocus.focus === 'function') returnFocus.focus();
+        }
+        function handleKeydown(event) {
+            if (event.key === 'Escape') close();
+        }
         box.addEventListener('click', function (e) { if (e.target === box) close(); });
-        const cancel = document.getElementById('entClinicCancel');
+        document.addEventListener('keydown', handleKeydown);
+        const cancel = box.querySelector('#entClinicCancel');
         if (cancel) cancel.addEventListener('click', close);
+        const closeButton = box.querySelector('#entClinicClose');
+        if (closeButton) closeButton.addEventListener('click', close);
 
         const list = box.querySelector('.ent-clinic-list');
         if (list) list.addEventListener('click', function (e) {
@@ -953,6 +1048,8 @@
         });
 
         box.classList.add('open');
+        const firstChoice = box.querySelector('.ent-clinic-opt');
+        if (firstChoice && typeof firstChoice.focus === 'function') firstChoice.focus();
     }
 
     /* Every doctor this secretary may file under (primary + junction), as

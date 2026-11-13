@@ -882,14 +882,19 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      env.clinicPickerCalls.length === 1
        && env.clinicPickerCalls[0].length === 3)
   const dashboardCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
+  const authCss = readFileSync(join(APP, 'style', 'auth.css'), 'utf8')
   ok('T55a', 'the dashboard no longer adds a separate Super Secretary layout',
      !dashboardCss.includes('ent-super-secretary')
        && !dashboardCss.includes('ent-ss-workspace'))
+  ok('T55c', 'the hidden header switcher stays hidden beside the dashboard clinic switcher',
+     /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
      /dashboard\.js\?v=v39-super-secretary-polish/.test(indexHtml)
        && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
-       && /ent-report-system-v165-super-secretary-polish/.test(serviceWorker))
+       && /auth\.js\?v=v36k-clinic-picker/.test(indexHtml)
+       && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
+       && /ent-report-system-v166-super-secretary-clinic-picker/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */

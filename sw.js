@@ -937,7 +937,8 @@
 // v154: ship the dedicated Super Secretary network workbench.
 // v163: use the normal dashboard and selected-clinic scope for Super Secretaries.
 // v165: highlight Super Secretary identity, active clinic and clinic-only actions.
-const CACHE_NAME = 'ent-report-system-v165-super-secretary-polish';
+// v166: hide the duplicate header switcher and polish the clinic picker modal.
+const CACHE_NAME = 'ent-report-system-v166-super-secretary-clinic-picker';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

@@ -767,7 +767,7 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        loginHtml.includes(`id="${id}"`))
        && loginHtml.includes('ent-login-content')
        && loginHtml.includes('Remember on this device')
-       && /auth\.css\?v=v36i-primary-login/.test(loginHtml)
+       && /auth\.css\?v=v33an-clinic-picker/.test(loginHtml)
        && authCss.includes('grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr)')
        && mobileCss.includes('grid-template-columns: minmax(0, 1fr)')
        && /ent-report-system-v\d+-[^'"]+/.test(sw),
@@ -816,8 +816,12 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
   superWin.document.readyState = 'loading'
   superWin.__session = { access_token: 'SUPER-JWT', user: { id: 'super-1' } }
   superWin.__assignedDoctorRows = [
-    { doctor_id: 'doc-north', doctor_name: 'North Doctor', clinic_id: 'clinic-north', is_primary: true },
-    { doctor_id: 'doc-jess', doctor_name: 'Jess Doctor', clinic_id: 'clinic-jess', is_primary: false },
+    { doctor_id: 'doc-north', doctor_name: 'North Doctor', clinic_id: 'clinic-north',
+      clinic_name: 'North Clinic', is_primary: true },
+    { doctor_id: 'doc-jess', doctor_name: 'Jess Doctor', clinic_id: 'clinic-jess',
+      clinic_name: 'Doc Jess ENT Clinic', is_primary: false },
+    { doctor_id: 'doc-jess-2', doctor_name: 'Jess Associate', clinic_id: 'clinic-jess',
+      clinic_name: 'Doc Jess ENT Clinic', is_primary: false },
   ]
   superWin.__activeClinicId = 'clinic-jess'
   for (const f of ['supabaseClient.js', 'photoStore.js', 'auth.js']) {
@@ -837,6 +841,44 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
      superAuth.scope().doctorId === 'doc-jess'
        && superAuth.workingDoctor().clinic_id === 'clinic-jess',
      `working doctor=${superAuth.scope().doctorId}`)
+
+  const modalParts = {
+    list: { addEventListener() {} },
+    cancel: { addEventListener() {} },
+    close: { addEventListener() {} },
+    firstChoice: { focus() { this.wasFocused = true } }
+  }
+  const modal = {
+    parentNode: null, innerHTML: '', attributes: {},
+    classList: { add() {} },
+    setAttribute(name, value) { this.attributes[name] = value },
+    addEventListener() {},
+    querySelector(selector) {
+      if (selector === '.ent-clinic-list') return modalParts.list
+      if (selector === '#entClinicCancel') return modalParts.cancel
+      if (selector === '#entClinicClose') return modalParts.close
+      if (selector === '.ent-clinic-opt') return modalParts.firstChoice
+      return null
+    }
+  }
+  const modalDocument = superWin.document
+  modalDocument.createElement = () => modal
+  modalDocument.getElementById = () => null
+  modalDocument.body.appendChild = element => { element.parentNode = modalDocument.body }
+  modalDocument.body.removeChild = element => { element.parentNode = null }
+  modalDocument.addEventListener = () => {}
+  modalDocument.removeEventListener = () => {}
+  superAuth.openClinicPicker(superWin.__assignedDoctorRows)
+  const clinicOptionCount = (modal.innerHTML.match(/class="ent-clinic-opt(?:\s|")/g) || []).length
+  is('T15', 'Super Secretary picker groups assigned doctors into distinct clinics',
+     clinicOptionCount === 2
+       && modal.innerHTML.includes('Doc Jess ENT Clinic')
+       && modal.innerHTML.includes('2 assigned doctors')
+       && modal.innerHTML.includes('aria-pressed="true"')
+       && modal.attributes.role === 'dialog'
+       && modalParts.firstChoice.wasFocused,
+     `options=${clinicOptionCount}, active=${modal.innerHTML.includes('aria-pressed="true"')}, role=${modal.attributes.role}`)
+
   const abstractJs = readFileSync(join(APP, 'function', 'abstract.js'), 'utf8')
   is('T14', 'direct medical-document pages require the active Doc Jess clinic id',
      abstractJs.includes("const docJessClinicId = '00000000-0000-4000-8000-00000000c11c'")
