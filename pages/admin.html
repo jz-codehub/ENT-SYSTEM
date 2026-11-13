@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v3-notification-panel">
     <link rel="stylesheet" href="../style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="../style/mobile.css?v=v7">
-    <link rel="stylesheet" href="../style/admin.css?v=v48-admin-users-table-modal">
+    <link rel="stylesheet" href="../style/admin.css?v=v49-admin-users-fit-alignment">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -1065,25 +1065,27 @@
                         </div>
                     </div>
                 </section>
-                <section class="ent-user-modal-section ent-user-assignment-section">
+                <section class="ent-user-modal-section ent-user-assignment-section" id="userAssignmentSection">
                     <div class="ent-user-modal-section-head">
                         <b>Doctor access</b><span>Only used for secretary accounts</span>
                     </div>
-                    <div class="ent-field" id="assignedWrap" style="display:none;">
-                        <label for="fAssigned">Primary doctor</label>
-                        <select id="fAssigned"></select>
-                        <div class="ent-hint">Changing the primary doctor transfers the secretary&rsquo;s home clinic. Additional doctor assignments stay available.</div>
-                        <label class="ent-user-check ent-user-super-check">
-                            <input type="checkbox" id="fSuperSecretary">
-                            <span><b>Super Secretary</b><small>Access active doctors and patient records in this admin&rsquo;s managed clinic network, including future doctors. Does not cross into another admin&rsquo;s network.</small></span>
-                        </label>
-                        <p class="ent-user-role-note">Doctor assignments determine which patient records a secretary can open.</p>
-                    </div>
-                    <div class="ent-field" id="extraWrap" style="display:none;">
-                        <label for="fExtraDoctors">Additional doctors</label>
-                        <select id="fExtraDoctors" multiple size="4"></select>
-                        <button type="button" class="ent-btn ent-user-select-doctors" id="fExtraDoctorsToggle">Select all other doctors</button>
-                        <div class="ent-hint">Choose additional doctors in clinics you manage. Leave empty to keep access to the primary doctor only.</div>
+                    <div class="ent-user-doctor-grid">
+                        <div class="ent-field" id="assignedWrap" style="display:none;">
+                            <label for="fAssigned">Primary doctor</label>
+                            <select id="fAssigned"></select>
+                            <div class="ent-hint">Changing the primary doctor transfers the secretary&rsquo;s home clinic. Additional doctor assignments stay available.</div>
+                            <label class="ent-user-check ent-user-super-check">
+                                <input type="checkbox" id="fSuperSecretary">
+                                <span><b>Super Secretary</b><small>Access active doctors and patient records in this admin&rsquo;s managed clinic network, including future doctors. Does not cross into another admin&rsquo;s network.</small></span>
+                            </label>
+                            <p class="ent-user-role-note">Doctor assignments determine which patient records a secretary can open.</p>
+                        </div>
+                        <div class="ent-field" id="extraWrap" style="display:none;">
+                            <label for="fExtraDoctors">Additional doctors</label>
+                            <select id="fExtraDoctors" multiple size="4"></select>
+                            <button type="button" class="ent-btn ent-user-select-doctors" id="fExtraDoctorsToggle">Select all other doctors</button>
+                            <div class="ent-hint">Choose additional doctors in clinics you manage. Leave empty to keep access to the primary doctor only.</div>
+                        </div>
                     </div>
                 </section>
                 <section class="ent-user-modal-section ent-user-credentials-section">
@@ -1124,6 +1126,6 @@
     <script src="../function/notificationCenter.js?v=v3-notification-panel" defer></script>
     <script src="../function/messagesPage.js?v=v9-responsive" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v41-admin-users-table-modal" defer></script>
+    <script src="../function/admin.js?v=v42-admin-users-fit-alignment" defer></script>
 </body>
 </html>

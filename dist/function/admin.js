@@ -584,12 +584,13 @@
             ? (u.assigned_doctor_id ? userName(u.assigned_doctor_id) : 'not set')
             : '';
         const clinic = clinicLabel((u && u.clinic_id) || 'main_clinic');
-        /* Role icon per card: a stethoscope for doctors, a clipboard for
+        /* Role icon per row: a stethoscope for doctors, a clipboard for
          * secretaries, a shield for admins - carried on the avatar so the
          * role is visible without reading the pill. */
         const roleIcon = u.role === 'doctor' ? '&#129657;'
             : u.role === 'secretary' ? '&#128203;'
             : u.role === 'admin' ? '&#128737;' : '';
+        const accessibleName = esc(displayName(u));
         return '<tr class="ent-user-row role-' + esc(u.role) + (active ? '' : ' is-off') + '"'
             + ' data-id="' + esc(u.id) + '">'
             + '<td data-label="User"><div class="ent-user-cell">'
@@ -604,27 +605,29 @@
             + (active ? '<span class="ent-pill live">Active</span>'
                 : '<span class="ent-pill idle">Deactivated</span>')
             + '</div></td>'
-            + '<td data-label="Clinic"><span class="ent-user-clinic">' + esc(clinic) + '</span></td>'
+            + '<td data-label="Clinic"><span class="ent-user-clinic" title="' + esc(clinic) + '">'
+            + esc(clinic) + '</span></td>'
             + '<td data-label="Assignment / last login"><div class="ent-user-meta">'
-            + (boss ? '<span><em>Works for</em><b>' + esc(boss) + '</b></span>' : '')
+            + (boss ? '<span title="' + esc(boss) + '"><em>Works for</em><b>' + esc(boss) + '</b></span>' : '')
             + '<span><em>Last login</em><b title="' + esc(u.last_login_at || '') + '">'
             + esc(relTime(u.last_login_at)) + '</b></span></div></td>'
             + '<td data-label="Actions"><div class="ent-user-actions">'
-            + '<button type="button" class="ent-rowbtn edit" data-act="edit" title="Change name, role or assigned doctor">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#9998;</span>Edit</button>'
-            + '<button type="button" class="ent-rowbtn key" data-act="password" title="Set a new password">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128273;</span>Password</button>'
+            + '<button type="button" class="ent-rowbtn edit" data-act="edit" aria-label="Edit ' + accessibleName + '" title="Edit account">'
+            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#9998;</span><span class="ent-user-action-text">Edit</span></button>'
+            + '<button type="button" class="ent-rowbtn key" data-act="password" aria-label="Set password for ' + accessibleName + '" title="Set password">'
+            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128273;</span><span class="ent-user-action-text">Password</span></button>'
             + '<button type="button" class="ent-rowbtn ' + (active ? 'off' : 'on') + '" data-act="toggle"'
-            + ' title="' + (active ? 'Deactivate this account' : 'Bring this account back') + '">'
+            + ' aria-label="' + (active ? 'Deactivate ' : 'Activate ') + accessibleName + '"'
+            + ' title="' + (active ? 'Deactivate account' : 'Activate account') + '">'
             + '<span class="ent-rowbtn-icon" aria-hidden="true">' + (active ? '&#128683;' : '&#10004;') + '</span>'
-            + (active ? 'Deactivate' : 'Activate') + '</button>'
+            + '<span class="ent-user-action-text">' + (active ? 'Deactivate' : 'Activate') + '</span></button>'
             // Delete is LAST and styled as the destructive action, so the safe
             // ones a person reaches for under pressure are not next to it.
             // It asks for the admin's own password before it does anything -
             // see the `delete` action in auth-admin.
-            + '<button type="button" class="ent-rowbtn del" data-act="delete"'
-            + ' title="Delete this account permanently. You will be asked for your admin password.">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128465;</span>Delete</button>'
+            + '<button type="button" class="ent-rowbtn del" data-act="delete" aria-label="Delete ' + accessibleName + '"'
+            + ' title="Delete account permanently">'
+            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128465;</span><span class="ent-user-action-text">Delete</span></button>'
             + '</div></td>'
             + '</tr>';
     }
@@ -752,7 +755,7 @@
                 + '<span class="ent-user-group-ic" aria-hidden="true">' + g.icon + '</span>' + g.label
                 + '<em>' + list.length + '</em>'
                 + '<span class="ent-user-group-hint">' + g.hint + '</span></h4>'
-                + '<div class="ent-user-table-scroll"><table class="ent-user-table">'
+                + '<div class="ent-user-table-scroll"><table class="ent-user-table" aria-label="' + g.label + ' accounts">'
                 + '<thead><tr><th scope="col">User</th><th scope="col">Access</th>'
                 + '<th scope="col">Clinic</th><th scope="col">Assignment / last login</th>'
                 + '<th scope="col">Actions</th></tr></thead>'
@@ -980,6 +983,8 @@
     function syncRoleFields() {
         const secretary = byId('fRole').value === 'secretary';
         byId('assignedWrap').style.display = secretary ? '' : 'none';
+        const assignmentSection = byId('userAssignmentSection');
+        if (assignmentSection) assignmentSection.hidden = !secretary;
         // 0037: the "Also works at" multi-select is secretary-only, exactly
         // like the primary assigned-doctor field above it.
         const extraWrap = byId('extraWrap');

@@ -833,7 +833,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T56', 'the dedicated workspace ships with fresh script, style and service-worker versions',
      /dashboard\.js\?v=v36ad/.test(indexHtml)
        && /dashboard\.css\?v=v36abe/.test(indexHtml)
-       && /ent-report-system-v155-admin-users-table-modal/.test(serviceWorker))
+       && /ent-report-system-v156-admin-users-fit-alignment/.test(serviceWorker))
 }
 
 }

@@ -8387,7 +8387,8 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 
 .ent-user-table {
     width: 100%;
-    min-width: 890px;
+    min-width: 680px;
+    table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
     color: var(--text-color);
@@ -8395,18 +8396,36 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 }
 
 .ent-user-table th {
-    padding: 10px 12px;
+    padding: 9px 9px;
     border-bottom: 1px solid var(--border-color);
     background: var(--input-bg-color);
     color: var(--secondary-text-color);
-    font-size: .64rem;
+    font-size: .62rem;
     font-weight: 780;
     letter-spacing: .045em;
-    white-space: nowrap;
+    line-height: 1.35;
+    vertical-align: bottom;
+}
+
+.ent-user-table th:nth-child(1),
+.ent-user-table td:nth-child(1) { width: 26%; }
+.ent-user-table th:nth-child(2),
+.ent-user-table td:nth-child(2) { width: 19%; }
+.ent-user-table th:nth-child(3),
+.ent-user-table td:nth-child(3) { width: 16%; }
+.ent-user-table th:nth-child(4),
+.ent-user-table td:nth-child(4) { width: 24%; }
+.ent-user-table th:nth-child(5),
+.ent-user-table td:nth-child(5) { width: 15%; }
+.ent-user-table th:last-child { text-align: center; }
+.ent-user-table td:last-child { text-align: center; }
+
+.ent-user-table td {
+    overflow: hidden;
 }
 
 .ent-user-table td {
-    padding: 10px 12px;
+    padding: 9px 9px;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
     font-size: .74rem;
@@ -8416,26 +8435,50 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 .ent-user-row { transition: background .14s ease; }
 .ent-user-row:hover { background: var(--input-bg-color); }
 .ent-user-row.is-off { opacity: .76; }
-.ent-user-cell { display: flex; min-width: 180px; align-items: center; gap: 10px; }
-.ent-user-cell .ent-user-av { width: 36px; height: 36px; flex: 0 0 36px; grid-row: auto; border-radius: 11px; }
-.ent-user-cell .ent-user-main { gap: 3px; }
-.ent-user-cell .ent-user-main b { color: var(--text-color); font-size: .76rem; }
-.ent-user-cell .ent-user-main small { color: var(--secondary-text-color); font-size: .67rem; }
-.ent-user-tags { display: flex; max-width: 230px; flex-wrap: wrap; gap: 4px; }
-.ent-user-tags .ent-pill { padding: 4px 7px; font-size: .59rem; }
-.ent-user-clinic { display: block; min-width: 120px; max-width: 190px; color: var(--text-color); font-size: .7rem; line-height: 1.4; }
-.ent-user-meta { display: grid; min-width: 135px; gap: 3px; }
-.ent-user-meta > span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
-.ent-user-meta em { color: var(--secondary-text-color); font-size: .59rem; font-style: normal; }
-.ent-user-meta b { color: var(--text-color); font-size: .65rem; font-weight: 680; }
-.ent-user-actions { display: flex; min-width: 260px; flex-wrap: nowrap; gap: 5px; }
-.ent-user-actions .ent-rowbtn { min-height: 31px; padding: 5px 8px; border-radius: 8px; font-size: .61rem; white-space: nowrap; }
-.ent-user-actions .ent-rowbtn.del { margin-left: 0; }
+#panel-users .ent-user-cell { display: flex; min-width: 0; align-items: center; gap: 8px; }
+#panel-users .ent-user-cell .ent-user-av { width: 32px; height: 32px; flex: 0 0 32px; grid-row: auto; border-radius: 10px; }
+#panel-users .ent-user-cell .ent-user-main { min-width: 0; gap: 3px; overflow: hidden; }
+#panel-users .ent-user-cell .ent-user-main b { color: var(--text-color); font-size: .76rem; }
+#panel-users .ent-user-cell .ent-user-main b,
+#panel-users .ent-user-cell .ent-user-main small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#panel-users .ent-user-cell .ent-user-main small { color: var(--secondary-text-color); font-size: .65rem; }
+#panel-users .ent-user-tags { display: flex; max-width: 100%; flex-wrap: wrap; gap: 4px; }
+#panel-users .ent-user-tags .ent-pill { max-width: 100%; padding: 4px 6px; font-size: .57rem; line-height: 1.15; white-space: normal; }
+#panel-users .ent-user-clinic { display: block; max-width: 100%; overflow: hidden; color: var(--text-color); font-size: .68rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+#panel-users .ent-user-meta { display: grid; min-width: 0; gap: 5px; padding-top: 0; border: 0; }
+#panel-users .ent-user-meta > span {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+#panel-users .ent-user-meta em { color: var(--secondary-text-color); font-size: .59rem; font-style: normal; }
+#panel-users .ent-user-meta b { overflow: hidden; color: var(--text-color); font-size: .64rem; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+#panel-users .ent-user-actions { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, 30px); justify-content: center; gap: 3px; margin-top: 0; }
+#panel-users .ent-user-actions .ent-rowbtn { display: inline-flex; width: 30px; min-height: 30px; align-items: center; justify-content: center; gap: 0; padding: 0; border-radius: 9px; font-size: .72rem; }
+#panel-users .ent-user-actions .ent-rowbtn-icon { line-height: 1; }
+#panel-users .ent-user-actions .ent-rowbtn.del { margin-left: 0; }
+.ent-user-action-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+.ent-user-actions .ent-rowbtn:focus-visible { z-index: 1; outline: 3px solid var(--primary-color); outline-offset: 2px; }
 
 .ent-user-modal-card {
     display: flex;
-    width: min(820px, 100%);
-    max-height: min(90vh, 840px);
+    width: min(780px, 100%);
+    max-height: min(88vh, 820px);
     flex-direction: column;
     overflow: hidden;
     padding: 0;
@@ -8448,7 +8491,7 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
     display: flex;
     align-items: center;
     gap: 13px;
-    padding: 20px 24px;
+    padding: 18px 22px;
     border-bottom: 1px solid var(--border-color);
     background:
         radial-gradient(circle at 100% 0, rgba(14, 165, 233, .12), transparent 42%),
@@ -8471,12 +8514,13 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 .ent-user-modal-kicker { color: var(--primary-hover-color); font-size: .62rem; font-weight: 850; letter-spacing: .12em; }
 .ent-user-modal-header h3 { margin: 3px 0 2px; color: var(--text-color); font-size: 1.22rem; }
 .ent-user-modal-header p { margin: 0; color: var(--secondary-text-color); font-size: .76rem; line-height: 1.45; }
-.ent-user-modal-body { display: grid; gap: 12px; overflow-y: auto; padding: 16px 22px 8px; }
-.ent-user-modal-section { min-width: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--panel-bg-color); }
-.ent-user-modal-section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 13px; }
+.ent-user-modal-body { display: grid; gap: 13px; overflow-y: auto; padding: 16px 22px 10px; }
+.ent-user-modal-section { min-width: 0; padding: 15px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--panel-bg-color); }
+.ent-user-modal-section-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 9px; margin-bottom: 13px; }
 .ent-user-modal-section-head b { color: var(--text-color); font-size: .79rem; }
 .ent-user-modal-section-head span { color: var(--secondary-text-color); font-size: .67rem; }
-.ent-user-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
+.ent-user-form-grid,
+.ent-user-doctor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; align-items: start; }
 .ent-user-modal-card .ent-field { min-width: 0; margin: 0; }
 .ent-user-modal-card .ent-field label { margin-bottom: 6px; color: var(--text-color); font-size: .68rem; letter-spacing: .025em; }
 .ent-user-modal-card .ent-field label span { color: var(--secondary-text-color); font-size: .62rem; font-weight: 500; text-transform: none; }
@@ -8501,7 +8545,7 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
     background: var(--input-bg-color);
     cursor: pointer;
 }
-.ent-user-modal-card .ent-field .ent-user-check { display: flex; }
+.ent-user-modal-card .ent-field .ent-user-check { display: flex; width: 100%; }
 .ent-user-check input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 16px; margin: 2px 0 0; accent-color: var(--primary-color); }
 .ent-user-check > span { display: grid; gap: 4px; }
 .ent-user-check b { color: var(--text-color); font-size: .72rem; }
@@ -8512,6 +8556,7 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 .ent-user-active-check { align-self: center; min-height: 42px; }
 .ent-user-modal-card .ent-login-error { display: none; margin: 0; padding: 10px 12px; border: 1px solid var(--danger-color); border-radius: 10px; background: color-mix(in srgb, var(--danger-color) 7%, var(--panel-bg-color)); line-height: 1.45; }
 .ent-user-modal-card .ent-login-error.show { display: block; }
+.ent-user-assignment-section[hidden] { display: none; }
 .ent-user-modal-actions {
     position: sticky;
     bottom: 0;
@@ -8520,6 +8565,8 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
     padding: 13px 22px 18px;
     border-top: 1px solid var(--border-color);
     background: var(--panel-bg-color);
+    justify-content: flex-end;
+    gap: 9px;
 }
 .ent-user-modal-actions .ent-btn { min-width: 112px; }
 
@@ -8540,11 +8587,12 @@ body.dark-mode .ent-user-modal-header { border-color: var(--border-color); backg
     .ent-user-modal-body { gap: 9px; padding: 11px 12px 6px; }
     .ent-user-modal-section { padding: 12px; }
     .ent-user-modal-actions { padding: 11px 12px max(14px, env(safe-area-inset-bottom)); }
-    #panel-users .ent-user-table { min-width: 840px; }
+    .ent-user-table { min-width: 660px; }
 }
 
 @media (max-width: 520px) {
-    .ent-user-form-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .ent-user-form-grid,
+    .ent-user-doctor-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
     .ent-user-modal-header { align-items: flex-start; gap: 10px; }
     .ent-user-modal-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
     .ent-user-modal-header h3 { font-size: 1.05rem; }
