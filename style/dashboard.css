@@ -217,6 +217,21 @@
    statement instead of a title, a pill and a sentence stacked three deep. */
 .ent-dash-titlerow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .ent-dash-titlerow .ent-dash-scope { margin-top: 0; }
+.ent-dash-scope-toggle {
+    margin: 0;
+    padding: 5px 10px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 38%, var(--border-color));
+    border-radius: 999px;
+    color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 8%, var(--bg-color));
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ent-dash-scope-toggle:hover { background: color-mix(in srgb, var(--primary-color) 15%, var(--bg-color)); }
+.ent-dash-scope-toggle:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.ent-dash-scope-toggle[hidden] { display: none; }
 .ent-dash-role {
     margin: 4px 0 0 !important;
     font-size: 0.8rem !important;

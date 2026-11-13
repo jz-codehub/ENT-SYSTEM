@@ -365,7 +365,8 @@
         const username = String(session.user.username || '').trim().toLowerCase();
         const fullName = String(session.user.full_name || '').trim().toLowerCase();
         const assignedDoctor = String(session.user.assigned_doctor_name || '').trim().toLowerCase();
-        const knownDocJessProfile = clinicId.toLowerCase() === '00000000-0000-4000-8000-00000000c11c' ||
+        const knownDocJessProfile = (session.user.role === 'secretary' && session.user.is_super_secretary === true) ||
+            clinicId.toLowerCase() === '00000000-0000-4000-8000-00000000c11c' ||
             username === 'jess' ||
             /jess|jesus/i.test(fullName) ||
             /jess|jesus/i.test(assignedDoctor);

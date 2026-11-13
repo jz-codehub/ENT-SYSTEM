@@ -599,7 +599,7 @@
             // may read and never widens it.
             const rows = await api(
                 'staff_profiles?select=id,username,full_name,role,clinic_id,' +
-                'assigned_doctor_id,is_active,must_change_password' +
+                'assigned_doctor_id,is_super_secretary,is_active,must_change_password' +
                 '&id=eq.' + encodeURIComponent(signedInUser.id));
             const row = (Array.isArray(rows) && rows[0]) ? rows[0] : null;
             // Belt and braces: never trust a row that is not literally mine.

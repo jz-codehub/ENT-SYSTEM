@@ -932,7 +932,8 @@
 // v149: keep the admin bell visible through load errors and polish Messenger.
 // v150: render notifications above header layers, centered on the bell.
 // v151: fix dashboard notification overlay and refresh admin activity actors.
-const CACHE_NAME = 'ent-report-system-v151-notification-panel-fix';
+// v152: ship Super Secretary network access, dashboard and form permissions.
+const CACHE_NAME = 'ent-report-system-v152-super-secretary-network-access';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

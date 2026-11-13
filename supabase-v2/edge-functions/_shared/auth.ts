@@ -216,7 +216,7 @@ export async function authenticate(req) {
 
   const { data: profile, error: pErr } = await admin()
     .from('staff_profiles')
-    .select('id, username, full_name, role, clinic_id, assigned_doctor_id, is_active, must_change_password')
+    .select('id, username, full_name, role, clinic_id, assigned_doctor_id, is_super_secretary, is_active, must_change_password')
     .eq('id', verified.user.id)
     .maybeSingle()
   if (pErr) throw new Error(pErr.message)
@@ -233,6 +233,7 @@ export async function authenticate(req) {
     username: profile.username,
     displayName: profile.full_name || profile.username,
     role: profile.role,
+    isSuperSecretary: !!profile.is_super_secretary,
     // The clinic is a fact in the database: never from the body, the
     // query string, a header, or localStorage.
     clinicId: profile.clinic_id,

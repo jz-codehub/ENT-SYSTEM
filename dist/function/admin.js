@@ -81,6 +81,8 @@
     // (secretary_assignments). Compared against the form on save so
     // set_assignments only fires when the set actually changed.
     let editingExtraIds = [];
+    let extraAssignmentsLoading = false;
+    let extraAssignmentsError = '';
     let liveTimer = null;
 
     /* ------------------------------- utils --------------------------- */
@@ -599,6 +601,8 @@
             + '<small>@' + esc(u.username || '') + ' \u00b7 ' + esc(clinic) + '</small>'
             + '</div>'
             + '<div class="ent-user-tags">' + rolePill(u.role)
+            + (u.role === 'secretary' && u.is_super_secretary
+                ? '<span class="ent-pill is-super-secretary">Super Secretary</span>' : '')
             + (active ? '<span class="ent-pill live">Active</span>'
                 : '<span class="ent-pill idle">Deactivated</span>')
             + '</div>'
@@ -924,22 +928,31 @@
         for (let i = 0; i < opts.length; i++) {
             if (opts[i] && opts[i].value) opts[i].selected = keep.indexOf(opts[i].value) !== -1;
         }
+        syncExtraDoctorsToggle();
+    }
+
+    function syncExtraDoctorsToggle() {
+        const button = byId('fExtraDoctorsToggle');
+        const sel = byId('fExtraDoctors');
+        if (!button || !sel) return;
+        const opts = Array.prototype.filter.call(sel.options || [], function (option) {
+            return option && option.value && !option.disabled;
+        });
+        const allSelected = opts.length > 0 && opts.every(function (option) { return option.selected; });
+        button.disabled = opts.length === 0;
+        button.textContent = allSelected ? 'Clear additional doctors' : 'Select all other doctors';
     }
 
     /* The current junction set for a secretary, straight from the server.
      * Read-only from here (secretary_assignments_read_admin, 0037);
-     * set_assignments is the only writer. An empty answer, an unreadable
-     * table or a pre-0037 database all yield [] — the form then simply shows
-     * no extras, which is true (her primary still governs the shelf). */
+     * set_assignments is the only writer. A failed read must stay visible:
+     * treating it as an empty set could erase assignments on the next save. */
     async function loadSecretaryAssignments(id) {
-        if (!id) { editingExtraIds = []; return []; }
-        try {
-            const rows = await api('secretary_assignments?select=doctor_id&secretary_id=' + encodeURIComponent(id));
-            editingExtraIds = Array.isArray(rows)
-                ? rows.map(r => (r && r.doctor_id) || '').filter(Boolean)
-                : [];
-        } catch (e) { editingExtraIds = []; }
-        return editingExtraIds;
+        if (!id) return [];
+        const rows = await api('secretary_assignments?select=doctor_id&secretary_id=' + encodeURIComponent(id));
+        return Array.isArray(rows)
+            ? rows.map(r => (r && r.doctor_id) || '').filter(Boolean)
+            : [];
     }
 
     /* The extra doctors the form is asking for, as a plain id array with the
@@ -981,7 +994,10 @@
         byId('fRole').value = user ? user.role : 'doctor';
         byId('fSpecialty').value = user ? (user.specialty || '') : '';
         byId('fActive').checked = user ? user.is_active !== false : true;
+        byId('fSuperSecretary').checked = !!(user && user.is_super_secretary);
         byId('fPassword').value = '';
+        extraAssignmentsLoading = !!(user && user.role === 'secretary');
+        extraAssignmentsError = '';
         byId('passwordLabel').textContent = user ? 'New password (blank = keep current)' : 'Password';
         byId('passwordHint').textContent = user
             ? 'Fill this in only if you want to replace their password.'
@@ -994,7 +1010,18 @@
         editingExtraIds = [];
         syncRoleFields();
         if (user && user.role === 'secretary') {
-            loadSecretaryAssignments(user.id).then(populateExtraDoctors);
+            loadSecretaryAssignments(user.id).then(function (ids) {
+                if (editingId !== user.id) return;
+                editingExtraIds = ids;
+                extraAssignmentsLoading = false;
+                populateExtraDoctors();
+            }).catch(function (error) {
+                if (editingId !== user.id) return;
+                extraAssignmentsLoading = false;
+                extraAssignmentsError = (error && error.message) || 'Unknown error';
+                modalError('Could not load additional doctor assignments: '
+                    + extraAssignmentsError + '. Close and reopen this account before saving changes.');
+            });
         }
         modalError('');
         byId('userModal').classList.add('open');
@@ -1014,6 +1041,7 @@
         const active = byId('fActive').checked;
         const password = byId('fPassword').value;
         const assigned = role === 'secretary' ? byId('fAssigned').value : '';
+        const isSuperSecretary = role === 'secretary' && byId('fSuperSecretary').checked;
 
         if (!fullName) return modalError('Please enter the full name.');
         if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
@@ -1023,6 +1051,12 @@
             return modalError('Password must be at least ' + MIN_PASSWORD_LENGTH + ' characters.');
         }
         if (!editingId && !password) return modalError('A new user needs a starting password.');
+        if (role === 'secretary' && extraAssignmentsLoading) {
+            return modalError('Please wait for this secretary\u2019s doctor assignments to load.');
+        }
+        if (role === 'secretary' && extraAssignmentsError) {
+            return modalError('Additional doctor assignments could not be loaded. Close and reopen this account before saving.');
+        }
         if (role === 'secretary' && !assigned) {
             return modalError('Assign this secretary to a doctor first (create a doctor account if none exists).');
         }
@@ -1052,6 +1086,7 @@
                     full_name: fullName,
                     role: role,
                     assigned_doctor_id: assigned || null,
+                    is_super_secretary: isSuperSecretary,
                     specialty: specialty
                 });
                 // is_active is NOT part of the update action: it has its own
@@ -1123,6 +1158,7 @@
                     full_name: fullName,
                     role: role,
                     assigned_doctor_id: assigned || null,
+                    is_super_secretary: isSuperSecretary,
                     specialty: specialty,
                     license_no: '',   // no license field in this form (see the create block)
                     is_active: active
@@ -2615,6 +2651,16 @@ const FLAG_INFO = {
         // 0037: changing the PRIMARY doctor re-fills the "Also works at"
         // options so the new primary is excluded from the extra list.
         byId('fAssigned').addEventListener('change', populateExtraDoctors);
+        byId('fExtraDoctorsToggle').addEventListener('click', function () {
+            const sel = byId('fExtraDoctors');
+            if (!sel) return;
+            const opts = Array.prototype.filter.call(sel.options || [], function (option) {
+                return option && option.value && !option.disabled;
+            });
+            const selectAll = opts.some(function (option) { return !option.selected; });
+            opts.forEach(function (option) { option.selected = selectAll; });
+            syncExtraDoctorsToggle();
+        });
         byId('userModal').addEventListener('click', function (e) {
             if (e.target === byId('userModal')) closeUserModal();
         });

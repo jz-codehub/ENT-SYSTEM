@@ -225,6 +225,7 @@ async function tryCreate(o) {
   el('fPassword').value = o.password
   el('fActive').checked = true
   el('fAssigned').value = o.assigned || ''
+  el('fSuperSecretary').checked = !!o.superSecretary
   el('userModalError').textContent = ''
   await el('userModalSave').fire('click')
   const call = win.fetchLog.find(function (r) {
@@ -270,11 +271,14 @@ is('A6', 'creating a DOCTOR reaches the Edge Function', !!docRes.call,
 
 const secRes = await tryCreate({
   username: 'newsec', fullName: 'New Secretary', role: 'secretary', password: 'Zz!starter1',
-  assigned: ADMIN_PROFILE.id,
+  assigned: ADMIN_PROFILE.id, superSecretary: true,
 })
 is('A7', 'creating a SECRETARY sends its assigned doctor',
    !!secRes.call && !!secRes.call.body.assigned_doctor_id,
    secRes.call ? 'assigned_doctor_id=' + secRes.call.body.assigned_doctor_id : 'no call')
+is('A7b', 'the admin can explicitly provision Super Secretary network access',
+   !!secRes.call && secRes.call.body.is_super_secretary === true,
+   secRes.call ? 'is_super_secretary=' + secRes.call.body.is_super_secretary : 'no call')
 
 /* ---- A8: a secretary with no doctor is refused before any request -- */
 const noDoc = await tryCreate({
@@ -341,6 +345,23 @@ const redundant = same.find(function (r) { return r.body.action === 'set_active'
 is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
    redundant ? 'wrote to the DB for no reason' : 'no redundant write')
 
+/* ---- A13a: the multi-doctor selector has a usable bulk action ------ */
+const extraDoctors = el('fExtraDoctors')
+extraDoctors.options = [
+  { value: 'doctor-a', selected: false, disabled: false },
+  { value: 'doctor-b', selected: false, disabled: false },
+]
+await el('fExtraDoctorsToggle').fire('click')
+const selectedAllDoctors = extraDoctors.options.every(function (option) { return option.selected })
+const clearExtraDoctorsLabel = el('fExtraDoctorsToggle').textContent
+await el('fExtraDoctorsToggle').fire('click')
+is('A13a', 'admins can select and clear all additional doctors in one click',
+   selectedAllDoctors
+     && clearExtraDoctorsLabel === 'Clear additional doctors'
+     && extraDoctors.options.every(function (option) { return !option.selected }),
+   'selected=' + selectedAllDoctors + ', label=' + clearExtraDoctorsLabel
+     + ', cleared=' + extraDoctors.options.every(function (option) { return !option.selected }))
+
 
 /* ---- A14: the Tickets panel and the nav links actually exist ------ */
 {
@@ -405,7 +426,7 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v46-admin-messenger-icon/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v47-super-secretary/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
@@ -985,8 +1006,8 @@ is('A13', 'leaving it ticked does NOT fire a redundant set_active', !redundant,
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v38-activity-actors/.test(html)
-       && /ent-report-system-v151-notification-panel-fix/.test(
+     /admin\.js\?v=v39-super-secretary/.test(html)
+       && /ent-report-system-v152-super-secretary-network-access/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
 

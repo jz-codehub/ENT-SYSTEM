@@ -91,7 +91,7 @@ function domIds() {
 /* ------------------------------------------------------------------ */
 function boot({
   user, team, onLine = true, queue = [], counters = [], directory = null,
-  dashboardSummary, exportPages
+  dashboardSummary, exportPages, assignedDoctors = []
 }) {
   const calls = []
   const nodes = {}
@@ -150,6 +150,7 @@ function boot({
         assignedDoctorId: user.assigned_doctor_id || '',
       }),
       currentUser: () => user,
+      fetchAssignedDoctors: async () => assignedDoctors,
       escapeHtml: v => String(v ?? '').replace(/[&<>'"]/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])),
       logActivity: async () => true,
@@ -721,6 +722,92 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T48', 'snooze hides the reminder for seven days on this account and device',
      saved.snoozedUntil > Date.now()
        && !env.nodes.dashNotificationCenter.innerHTML.includes('Monthly records download'))
+}
+
+/* ---- 10 · a multi-doctor secretary can review every assigned shelf ---- */
+{
+  const SEC = {
+    id: 'sec-christie', username: 'christie', full_name: 'Christie Lilli L. Bajarla',
+    role: 'secretary', assigned_doctor_id: 'doc-jardin',
+    assigned_doctor_name: 'Jesus Jardin', is_active: true
+  }
+  const assignedDoctors = [
+    { doctor_id: 'doc-jardin', doctor_name: 'Jesus Jardin', is_primary: true },
+    { doctor_id: 'doc-other', doctor_name: 'Other Doctor', is_primary: false },
+  ]
+  const counters = [
+    { doctor_id: 'doc-jardin', created_at: new Date().toISOString(), report_type: 'nasal', patient_name: 'Patient One' },
+    { doctor_id: 'doc-other', created_at: new Date().toISOString(), report_type: 'cf4', patient_name: 'Patient Two' },
+    { doctor_id: 'doc-unassigned', created_at: new Date().toISOString(), report_type: 'laryngeal', patient_name: 'Outside Patient' },
+  ]
+  const env = boot({
+    user: SEC, assignedDoctors, counters, team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: request.p_scope_all ? 2 : 1,
+      patient_count: request.p_scope_all ? 2 : 1, endo_count: request.p_scope_all ? 1 : 1,
+      cf4_count: request.p_scope_all ? 1 : 0, nasal_reports: 1, laryngeal_reports: 0,
+      cf4_reports: request.p_scope_all ? 1 : 0, other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  const toggle = env.nodes.dashDoctorScopeToggle
+  ok('T49', 'multi-doctor secretaries get an explicit all-assigned-doctors view',
+     !toggle.hidden && /Show all 2 assigned doctors/.test(toggle.textContent))
+  ok('T50', 'the default view stays on the currently selected doctor',
+     env.win.EntDashboard.getRows().length === 1
+       && env.win.EntDashboard.getRows()[0].doctor_id === 'doc-jardin')
+  if (toggle.listeners.click && toggle.listeners.click[0]) {
+    toggle.listeners.click[0]({})
+    await flush()
+  }
+  const summaryCalls = env.calls.filter(call => call.endpoint.includes('rpc/ent_dashboard_summary'))
+  const allRequest = summaryCalls.length
+    ? JSON.parse(summaryCalls[summaryCalls.length - 1].body)
+    : null
+  ok('T51', 'all-assigned mode includes every linked doctor, but excludes an unrelated doctor',
+     env.win.EntDashboard.getRows().length === 2
+       && env.win.EntDashboard.getRows().every(row =>
+         ['doc-jardin', 'doc-other'].includes(row.doctor_id)))
+  ok('T52', 'all-assigned totals still use the server aggregate under RLS',
+     !!allRequest && allRequest.p_scope_all === true && allRequest.p_doctor_id === null
+       && env.nodes.dashRoleLine.textContent.includes('2 assigned doctors'))
+}
+
+/* ---- 11 · Super Secretaries open in the full clinic-network view ---- */
+{
+  const SUPER = {
+    id: 'sec-super', username: 'supersec', full_name: 'Super Secretary',
+    role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-jardin',
+    assigned_doctor_name: 'Jesus Jardin', is_active: true
+  }
+  const env = boot({
+    user: SUPER,
+    assignedDoctors: [
+      { doctor_id: 'doc-jardin', doctor_name: 'Jesus Jardin', is_primary: true },
+      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', is_primary: false },
+    ],
+    counters: [
+      { doctor_id: 'doc-jardin', created_at: new Date().toISOString(), report_type: 'nasal' },
+      { doctor_id: 'doc-other', created_at: new Date().toISOString(), report_type: 'cf4' },
+      { doctor_id: 'doc-outside', created_at: new Date().toISOString(), report_type: 'laryngeal' },
+    ],
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 2, patient_count: 2, endo_count: 1,
+      cf4_count: 1, nasal_reports: 1, laryngeal_reports: 0, cf4_reports: 1,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  const summaryCall = env.calls.find(call => call.endpoint.includes('rpc/ent_dashboard_summary'))
+  const summaryRequest = summaryCall && JSON.parse(summaryCall.body)
+  ok('T53', 'Super Secretary defaults to all active doctors in her network',
+     env.win.EntDashboard.getRows().length === 2
+       && !env.nodes.dashDoctorScopeToggle.hidden
+       && env.nodes.dashScopePill.textContent.includes('Super Secretary'))
+  ok('T54', 'the default full-network dashboard summary is RLS-scoped',
+     !!summaryRequest && summaryRequest.p_scope_all === true
+       && summaryRequest.p_doctor_id === null)
 }
 
 }

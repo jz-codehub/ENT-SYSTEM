@@ -9,7 +9,7 @@
    - Doctors also see which secretaries are linked to their account.
    - Counting is scoped exactly like function/dbRecords.js:
        doctor    -> rows whose doctor_id is his/her own id
-       secretary -> rows whose doctor_id is her assigned doctor's id
+       secretary -> selected assigned doctor, or all assigned doctors in the dashboard's all-doctors view
        admin     -> whole clinic (admins normally live in admin.html)
    - Cloud first (patient_records). If the cloud cannot be reached the
      counters fall back to this device's local record history so the
@@ -77,6 +77,7 @@
     let medicalDocumentsAvailable = false;
 
     async function canUseMedicalDocuments(user) {
+        if (user && user.role === 'secretary' && user.is_super_secretary === true) return true;
         const clinicId = String(user && user.clinic_id || '').trim();
         const username = String(user.username || '').trim().toLowerCase();
         const fullName = String(user.full_name || '').trim().toLowerCase();
@@ -130,6 +131,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     let me = null;               // signed-in user
     let scopeInfo = null;        // EntAuth.scope()
+    let assignedDoctorRows = [];
     let myName = '';             // lowercased username, for "made by me"
     let growthPeriod = null;     // Activity Growth month the user picked
                                  // ({ y: '2026', m: '10' }); survives the
@@ -568,8 +570,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 p_windows: windows,
-                p_doctor_id: scopeInfo && scopeInfo.doctorId || null,
-                p_scope_all: !!(scopeInfo && (scopeInfo.seeAll || scopeInfo.role === 'admin')),
+                p_doctor_id: scopeInfo && !scopeInfo.allAssigned && scopeInfo.doctorId || null,
+                p_scope_all: !!(scopeInfo && (scopeInfo.seeAll || scopeInfo.role === 'admin'
+                    || scopeInfo.allAssigned)),
                 p_username: myName || null
             })
         });
@@ -835,10 +838,14 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function keepInScope(row) {
         const scope = scopeInfo || {};
         if (scope.seeAll || scope.role === 'admin') return true;   // admins see the clinic
-        const mine = String(scope.doctorId || '').trim();
-        if (!mine) return true;          // nothing to compare against; trust RLS
         const owner = String((row && row.doctor_id) || '').trim();
         if (!owner) return true;         // a device-local row
+        if (scope.allAssigned) {
+            const assigned = Array.isArray(scope.assignedDoctorIds) ? scope.assignedDoctorIds : [];
+            return assigned.indexOf(owner) !== -1;
+        }
+        const mine = String(scope.doctorId || '').trim();
+        if (!mine) return true;          // nothing to compare against; trust RLS
         return owner === mine;
     }
 
@@ -1171,8 +1178,11 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const roleEl = byId('dashRoleLine');
         if (roleEl) {
             roleEl.textContent = user.role === 'secretary'
-                ? 'You work under Dr. ' + (prettyName(user.assigned_doctor_name) || 'your assigned doctor')
-                    + ' \u2014 only this doctor\u2019s patients are counted here.'
+                ? (scopeInfo && scopeInfo.allAssigned
+                    ? 'All patients for your ' + assignedDoctorRows.length
+                        + ' assigned doctors are included. New reports still file under your selected doctor.'
+                    : 'You work under Dr. ' + (prettyName(user.assigned_doctor_name) || 'your assigned doctor')
+                        + ' \u2014 only this doctor\u2019s patients are counted here.')
                 : (user.role === 'admin'
                     ? 'Administrator preview \u2014 these counters cover every doctor of this clinic.'
                     : 'Your own patients: nasal & laryngeal endoscopy reports and CF4 claims.');
@@ -1185,8 +1195,18 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             // role line right below, and it was in the header tagline too -
             // three "Dr. Jesus Jardin" mentions on one screen is noise.
             pill.textContent = user.role === 'secretary'
-                ? 'Secretary'
+                ? (user.is_super_secretary
+                    ? (scopeInfo && scopeInfo.allAssigned ? 'Super Secretary \u00b7 All clinics' : 'Super Secretary')
+                    : (scopeInfo && scopeInfo.allAssigned ? 'Secretary \u00b7 All doctors' : 'Secretary'))
                 : (user.role === 'admin' ? 'Admin' : 'Doctor');
+        }
+        const scopeToggle = byId('dashDoctorScopeToggle');
+        if (scopeToggle && user.role === 'secretary' && assignedDoctorRows.length > 1) {
+            scopeToggle.hidden = false;
+            scopeToggle.setAttribute('aria-pressed', scopeInfo && scopeInfo.allAssigned ? 'true' : 'false');
+            scopeToggle.textContent = scopeInfo && scopeInfo.allAssigned
+                ? 'Show selected doctor only'
+                : 'Show all ' + assignedDoctorRows.length + ' assigned doctors';
         }
 
         /* The header tagline used to be one hardcoded sentence for everyone:
@@ -1208,7 +1228,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const tagText = user.role === 'admin'
             ? 'Clinic-wide preview \u2014 every doctor, every count'
             : (user.role === 'secretary'
-                ? (dr
+                ? (scopeInfo && scopeInfo.allAssigned
+                    ? 'All assigned doctors \u2014 nasal, laryngeal and CF4 records'
+                    : dr
                     ? 'Quick actions and the patient counts for Dr. ' + dr
                     : 'Quick actions and your assigned doctor\u2019s patient counts')
                 : 'Quick actions and your own patient counts');
@@ -3513,6 +3535,14 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             refresh({ push: true });
             retryTeam();               // a failed team lookup gets a second chance here
         });
+        const doctorScopeToggle = byId('dashDoctorScopeToggle');
+        if (doctorScopeToggle) doctorScopeToggle.addEventListener('click', function () {
+            if (busy || !scopeInfo || !Array.isArray(scopeInfo.assignedDoctorIds)
+                || scopeInfo.assignedDoctorIds.length < 2) return;
+            scopeInfo.allAssigned = !scopeInfo.allAssigned;
+            renderAll();
+            refresh({});
+        });
 
         // One delegated listener covers all three quick-action buttons.
         document.addEventListener('click', function (event) {
@@ -3684,6 +3714,22 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             return;
         }
         try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
+        if (me.role === 'secretary' && typeof Auth.fetchAssignedDoctors === 'function') {
+            try {
+                assignedDoctorRows = await Auth.fetchAssignedDoctors(true);
+                assignedDoctorRows = Array.isArray(assignedDoctorRows)
+                    ? assignedDoctorRows.filter(function (doctor) { return doctor && doctor.doctor_id; })
+                    : [];
+                scopeInfo.assignedDoctorIds = assignedDoctorRows.map(function (doctor) {
+                    return String(doctor.doctor_id);
+                });
+                scopeInfo.allAssigned = me.is_super_secretary === true
+                    && scopeInfo.assignedDoctorIds.length > 0;
+            } catch (error) {
+                assignedDoctorRows = [];
+                console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
+            }
+        }
         revealDashboard();
         wireDashActions();
         start();

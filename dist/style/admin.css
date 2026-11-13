@@ -5829,6 +5829,16 @@ body.dark-mode #panel-growth .ent-staff-nums .is-total b { color: #8ed3cc; }
     padding: 4px 7px;
     font-size: .56rem;
 }
+#panel-users .ent-user-tags .ent-pill.is-super-secretary {
+    border-color: #c9b8ef;
+    background: #f0eafd;
+    color: #5b3b97;
+}
+body.dark-mode #panel-users .ent-user-tags .ent-pill.is-super-secretary {
+    border-color: #67558f;
+    background: #322747;
+    color: #d3c3ff;
+}
 
 #panel-users .ent-user-meta {
     gap: 7px;

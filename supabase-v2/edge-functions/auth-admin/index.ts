@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       const covered = await coveredClinicIds(got.user)
       const { data, error } = await admin()
         .from('staff_profiles')
-        .select('id, username, full_name, role, assigned_doctor_id, specialty, license_no, email, phone, is_active, must_change_password, last_login_at, created_at, clinic_id')
+        .select('id, username, full_name, role, assigned_doctor_id, is_super_secretary, specialty, license_no, email, phone, is_active, must_change_password, last_login_at, created_at, clinic_id')
         .in('clinic_id', covered)
         .order('full_name')
       if (error) return json({ ok: false, error: error.message }, 500)
@@ -185,6 +185,7 @@ Deno.serve(async (req) => {
 
       const username = String(body?.username || '').trim().toLowerCase()
       const role = String(body?.role || '')
+      const isSuperSecretary = body?.is_super_secretary === true
       const fullName = String(body?.full_name || '').trim()
       const assigned = body?.assigned_doctor_id ? String(body.assigned_doctor_id) : null
       const email = String(body?.email || '').trim()
@@ -197,6 +198,12 @@ Deno.serve(async (req) => {
       }
       if (!ROLES.includes(role)) {
         return json({ ok: false, error: 'Role must be admin, doctor or secretary.' }, 400)
+      }
+      if (body?.is_super_secretary !== undefined && typeof body.is_super_secretary !== 'boolean') {
+        return json({ ok: false, error: 'is_super_secretary must be a boolean.' }, 400)
+      }
+      if (isSuperSecretary && role !== 'secretary') {
+        return json({ ok: false, error: 'Only a secretary can have Super Secretary access.' }, 400)
       }
       if (role === 'secretary' && !assigned) {
         return json({ ok: false, error: 'A secretary must be assigned to a doctor.' }, 400)
@@ -332,6 +339,7 @@ Deno.serve(async (req) => {
         full_name: fullName,
         role,
         assigned_doctor_id: assigned,
+        is_super_secretary: isSuperSecretary,
         specialty: String(body?.specialty || ''),
         license_no: String(body?.license_no || ''),
         email,
@@ -400,6 +408,16 @@ Deno.serve(async (req) => {
       if (body.license_no !== undefined) patch.license_no = String(body.license_no)
       if (body.email !== undefined) patch.email = String(body.email).trim()
       if (body.phone !== undefined) patch.phone = String(body.phone)
+      if (body.is_super_secretary !== undefined) {
+        if (typeof body.is_super_secretary !== 'boolean') {
+          return json({ ok: false, error: 'is_super_secretary must be a boolean.' }, 400)
+        }
+        const nextRole = body.role === undefined ? tgt.role : String(body.role)
+        if (body.is_super_secretary && nextRole !== 'secretary') {
+          return json({ ok: false, error: 'Only a secretary can have Super Secretary access.' }, 400)
+        }
+        patch.is_super_secretary = body.is_super_secretary
+      }
 
       const roleChanged = body.role !== undefined && body.role !== tgt.role
       const assignChanged = body.assigned_doctor_id !== undefined &&
@@ -443,6 +461,7 @@ Deno.serve(async (req) => {
         }
         patch.role = nextRole
         patch.assigned_doctor_id = nextAssign || null
+        if (nextRole !== 'secretary') patch.is_super_secretary = false
         if (nextClinicId !== tgt.clinic_id) patch.clinic_id = nextClinicId
 
         if (roleChanged || nextClinicId !== tgt.clinic_id) {
@@ -462,6 +481,15 @@ Deno.serve(async (req) => {
         const { error } = await admin().from('staff_profiles').update(patch).eq('id', targetId)
         if (error) return json({ ok: false, error: error.message }, 400)
         await audit(me, 'USER_UPDATED', `Updated ${tgt.username}`, 'staff', targetId)
+      }
+      if (roleChanged && tgt.role === 'secretary' && patch.role !== 'secretary') {
+        const { error } = await admin()
+          .from('secretary_assignments')
+          .delete()
+          .eq('secretary_id', targetId)
+        if (error) {
+          return json({ ok: false, error: 'Role changed, but old doctor assignments could not be cleared: ' + error.message }, 400)
+        }
       }
       return json({ ok: true })
     }
@@ -708,15 +736,17 @@ Deno.serve(async (req) => {
       }
 
       // Replace the set: remove what is no longer wanted, add what is new.
-      // A failure to delete the stale rows is not fatal (the primary arm
-      // still works), but a failure to insert the wanted ones is - the
-      // admin asked for access that would silently not exist.
-      const { error: delErr } = await admin()
+      // An empty set needs an unfiltered delete; PostgREST cannot express an
+      // empty `not in` list, and ignoring that error would leave old access.
+      let delQuery = admin()
         .from('secretary_assignments')
         .delete()
         .eq('secretary_id', targetId)
-        .not('doctor_id', 'in', `(${clean.map((d) => `"${d}"`).join(',')})`)
-      if (delErr && clean.length) {
+      if (clean.length) {
+        delQuery = delQuery.not('doctor_id', 'in', `(${clean.map((d) => `"${d}"`).join(',')})`)
+      }
+      const { error: delErr } = await delQuery
+      if (delErr) {
         return json({ ok: false, error: 'Could not update assignments: ' + delErr.message }, 400)
       }
       if (clean.length) {
