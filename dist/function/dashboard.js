@@ -83,6 +83,10 @@
         if (user.role !== 'secretary') {
             return String(user.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
         }
+        // Auth.guard validates the Super Secretary's working clinic with the server.
+        const activeClinicId = String(scope && (scope.activeClinicId
+            || (user.is_super_secretary === true && scope.workingClinicId)) || '').trim();
+        if (activeClinicId) return activeClinicId === DOC_JESS_CLINIC_ID;
         const selectedId = String(scope && scope.doctorId || '').trim();
         const selected = (Array.isArray(doctors) ? doctors : []).find(function (doctor) {
             return String(doctor.doctor_id || '').trim() === selectedId;

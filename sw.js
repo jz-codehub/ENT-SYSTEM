@@ -938,7 +938,8 @@
 // v163: use the normal dashboard and selected-clinic scope for Super Secretaries.
 // v165: highlight Super Secretary identity, active clinic and clinic-only actions.
 // v166: hide the duplicate header switcher and polish the clinic picker modal.
-const CACHE_NAME = 'ent-report-system-v166-super-secretary-clinic-picker';
+// v167: keep Doc Jess medical documents visible from the validated clinic context.
+const CACHE_NAME = 'ent-report-system-v167-doc-jess-clinic-actions';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

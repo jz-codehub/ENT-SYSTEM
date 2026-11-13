@@ -172,6 +172,8 @@ function boot({
         doctorId: user.role === 'doctor' ? user.id : (user.assigned_doctor_id || ''),
         seeAll: false, label: user.full_name || user.username,
         assignedDoctorId: user.assigned_doctor_id || '',
+        workingClinicId: user.workingClinicId || '',
+        activeClinicId: user.activeClinicId || '',
       }),
       currentUser: () => user,
       fetchAssignedDoctors: async () => assignedDoctors,
@@ -890,11 +892,11 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v39-super-secretary-polish/.test(indexHtml)
+     /dashboard\.js\?v=v40-active-clinic-docs/.test(indexHtml)
        && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
        && /auth\.js\?v=v36k-clinic-picker/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v166-super-secretary-clinic-picker/.test(serviceWorker))
+       && /ent-report-system-v167-doc-jess-clinic-actions/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
@@ -949,6 +951,27 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      jessEnv.reportButtons.every(button => button.hidden === false)
        && jessEnv.medicalDocumentFilters.every(option => option.hidden === false)
        && jessEnv.nodes.dashClinicSwitchBtn.hidden === true)
+
+  const JESS_CONTEXT_WITH_TEMPORARY_LOOKUP_FAILURE = {
+    id: 'sec-jess-context', username: 'secretary', full_name: 'Clinic Secretary',
+    role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-jess',
+    workingClinicId: '00000000-0000-4000-8000-00000000c11c',
+    is_active: true,
+  }
+  const jessContextEnv = boot({
+    user: JESS_CONTEXT_WITH_TEMPORARY_LOOKUP_FAILURE,
+    assignedDoctors: [],
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T59', 'Doc Jess documents remain visible from the validated active-clinic context during a doctor-list lookup failure',
+     jessContextEnv.reportButtons.every(button => button.hidden === false)
+       && jessContextEnv.medicalDocumentFilters.every(option => option.hidden === false))
 }
 
 }
