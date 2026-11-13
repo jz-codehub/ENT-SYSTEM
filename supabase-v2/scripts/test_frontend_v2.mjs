@@ -903,6 +903,13 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        && abstractJs.includes('window.EntAuth.getClinicIdentity(activeClinicId)')
        && !/knownDocJessProfile|assignedToDocJess|jess\|jesus/i.test(abstractJs),
      'active clinic identity is checked without a profile-name bypass')
+  const abstractPageHtml = readFileSync(join(APP, 'pages', 'abstract.html'), 'utf8')
+  const certificatePageHtml = readFileSync(join(APP, 'pages', 'medicalCertificate.html'), 'utf8')
+  is('DOC1', 'medical document pages omit workspace instructions and keep editable print forms',
+     !/class="document-workspace\b/.test(abstractPageHtml + certificatePageHtml)
+       && abstractPageHtml.includes('<main class="sheet">')
+       && certificatePageHtml.includes('<main class="certificate">'),
+     'both document forms remain available without the extra intro panel')
   sessionRow = previousProfile
   sent = previousSent
 }
