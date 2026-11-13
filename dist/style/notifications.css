@@ -154,5 +154,5 @@
 
 @media (max-width: 720px) {
     .ent-messages-link { width: 36px; min-width: 36px; padding: 7px; }
-    .ent-messages-link > span:not([data-message-unread-count]) { display: none; }
+    .ent-messages-link > .ent-messages-label { display: none; }
 }

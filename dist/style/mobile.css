@@ -2534,7 +2534,7 @@
         padding: 7px;
     }
 
-    .ent-dash-page > .header .ent-messages-link span {
+    .ent-dash-page > .header .ent-messages-link > .ent-messages-label {
         display: none;
     }
 

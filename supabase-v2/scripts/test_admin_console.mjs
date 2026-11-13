@@ -439,7 +439,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v55-account-form-one-column/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v56-messenger-badge/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
@@ -999,7 +999,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'tables scroll safely on small screens and all panels preserve dark theme contrast')
 
   is('A76f', 'admin header keeps the Messenger control icon-only',
-     /\.ent-admin-actions > \.ent-messages-link span\s*\{\s*display:\s*none;\s*\}/.test(css)
+     /\.ent-admin-actions > \.ent-messages-link > \.ent-messages-label\s*\{\s*display:\s*none;\s*\}/.test(css)
        && /\.ent-admin-actions > \.ent-messages-link\s*\{[^}]*width:\s*36px;/.test(css),
      'the chat icon remains accessible without its text label')
 }
@@ -1056,8 +1056,8 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v45-user-modal-refine/.test(html)
-       && /admin\.css\?v=v55-account-form-one-column/.test(html)
-       && /ent-report-system-v174-document-intro-removed/.test(
+       && /admin\.css\?v=v56-messenger-badge/.test(html)
+       && /ent-report-system-v175-messenger-badge-visible/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

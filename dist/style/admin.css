@@ -110,7 +110,7 @@ body:not(.dark-mode) {
     gap: 0;
     padding: 7px;
 }
-.ent-admin-actions > .ent-messages-link span { display: none; }
+.ent-admin-actions > .ent-messages-link > .ent-messages-label { display: none; }
 .ent-conn {
     display: inline-flex;
     align-items: center;
