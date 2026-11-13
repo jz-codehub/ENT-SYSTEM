@@ -1985,6 +1985,7 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
     flex: 1 1 auto;
     flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
     gap: 9px;
     min-width: 0;
 }
