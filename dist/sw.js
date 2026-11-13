@@ -936,7 +936,7 @@
 // v153: refresh the admin script with the valid secretary-assignment filter.
 // v154: ship the dedicated Super Secretary network workbench.
 // v163: use the normal dashboard and selected-clinic scope for Super Secretaries.
-const CACHE_NAME = 'ent-report-system-v163-super-secretary-dashboard';
+const CACHE_NAME = 'ent-report-system-v164-active-clinic-scope';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

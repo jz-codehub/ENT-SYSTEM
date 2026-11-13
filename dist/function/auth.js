@@ -126,21 +126,33 @@
        assigned_doctor_id, extras in secretary_assignments) but files onto
        exactly ONE shelf at a time, so the app must know which. The choice
        lives in SESSION STORAGE because it is a per-login convenience, not a
-       fact about the account: the real check is ent_is_my_doctor() in the
-       database, re-run on every read/write/stamp, so a forged value here is
-       refused server-side and falls back to her primary. It is dropped on
-       sign-out (clearSession) so the next person on this device inherits no
-       shelf. It is written ONLY by the picker below, from rows the server
-       sent, so the browser never invents a doctor id of its own. */
+       fact about the account. For Super Secretaries, the active clinic is
+       also bound to the authenticated session and checked by RLS; the
+       network-wide doctor list is only for switching. It is dropped on
+       sign-out so the next account inherits no selection. */
     const WORKING_DOCTOR_KEY = 'ent_working_doctor_v1';
+    const SUPER_WORKING_DOCTOR_KEY = 'ent_super_secretary_working_doctor_v1';
     // Set once the picker has been shown this session so it does not nag on
     // every page load; a secretary can reopen it from the header chip.
     const WORKING_PROMPTED_KEY = 'ent_working_prompted_v1';
     // In-memory cache of rpc/my_assigned_doctors (null = not fetched yet).
     let assignedDoctorsCache = null;
+    let activeClinicContextDoctorId = '';
+    let activeClinicContextError = null;
+    let clinicContextWarningShown = false;
 
     /** The stored working choice { id, name, clinic }, or null. Never throws. */
     function workingChoice() {
+        const user = currentUser();
+        if (user && user.is_super_secretary === true) {
+            try {
+                const shared = window.localStorage.getItem(SUPER_WORKING_DOCTOR_KEY);
+                if (shared) {
+                    const value = JSON.parse(shared);
+                    if (value && value.user_id === user.id && value.id) return value;
+                }
+            } catch (e) { /* use the current tab's choice */ }
+        }
         try {
             const raw = window.sessionStorage.getItem(WORKING_DOCTOR_KEY);
             if (!raw) return null;
@@ -157,10 +169,110 @@
                 window.sessionStorage.removeItem(WORKING_DOCTOR_KEY);
             }
         } catch (e) { /* private mode: the primary stays the shelf */ }
+        const user = currentUser();
+        if (user && user.is_super_secretary === true) {
+            try {
+                if (choice && choice.id) {
+                    window.localStorage.setItem(SUPER_WORKING_DOCTOR_KEY, JSON.stringify(
+                        Object.assign({}, choice, { user_id: user.id })
+                    ));
+                } else {
+                    window.localStorage.removeItem(SUPER_WORKING_DOCTOR_KEY);
+                }
+            } catch (e) { /* the server still validates this tab's selection */ }
+        }
     }
 
     function clearWorkingChoice() {
         try { window.sessionStorage.removeItem(WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
+        try { window.localStorage.removeItem(SUPER_WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
+    }
+
+    function bindSuperSecretaryChoiceSync(user) {
+        if (!user || user.is_super_secretary !== true || typeof window.addEventListener !== 'function') return;
+        window.addEventListener('storage', function (event) {
+            if (!event || event.key !== SUPER_WORKING_DOCTOR_KEY) return;
+            try {
+                if (event.newValue) {
+                    const choice = JSON.parse(event.newValue);
+                    if (!choice || choice.user_id !== user.id || !choice.id) return;
+                    window.sessionStorage.setItem(WORKING_DOCTOR_KEY, JSON.stringify(choice));
+                } else {
+                    window.sessionStorage.removeItem(WORKING_DOCTOR_KEY);
+                }
+            } catch (error) {
+                console.error('[Auth] Could not sync the active clinic between tabs:', error);
+                return;
+            }
+            if (window.location && typeof window.location.reload === 'function') {
+                window.location.reload();
+            }
+        });
+    }
+
+    async function setActiveClinicContext(doctorId) {
+        const id = String(doctorId || '').trim();
+        if (!id) throw new Error('Choose a doctor in the clinic you want to open.');
+        const clinicId = await api('rpc/ent_set_active_clinic', {
+            method: 'POST',
+            body: JSON.stringify({ p_doctor: id })
+        });
+        if (typeof clinicId !== 'string' || !clinicId.trim()) {
+            throw new Error('The database did not confirm the selected clinic.');
+        }
+        activeClinicContextDoctorId = id;
+        activeClinicContextError = null;
+        clinicContextWarningShown = false;
+        return clinicId;
+    }
+
+    async function ensureSuperSecretaryClinicContext(user) {
+        if (!user || user.role !== 'secretary' || user.is_super_secretary !== true || offlineSessionActive) return;
+        const doctors = await fetchAssignedDoctors(true, true);
+        const current = workingChoice();
+        let selected = current && doctors.find(function (doctor) {
+            return String(doctor.doctor_id) === String(current.id);
+        });
+        if (current && !selected) clearWorkingChoice();
+        if (!selected) {
+            selected = doctors.find(function (doctor) { return doctor.is_primary; }) || null;
+        }
+        if (!selected) {
+            throw new Error('No active doctor was found in your managed clinic network.');
+        }
+        if (activeClinicContextDoctorId === String(selected.doctor_id)) return;
+        const activeClinicId = await api('rpc/ent_ensure_active_clinic', {
+            method: 'POST',
+            body: JSON.stringify({ p_doctor: String(selected.doctor_id) })
+        });
+        if (typeof activeClinicId !== 'string' || !activeClinicId.trim()) {
+            throw new Error('The database did not confirm the active clinic.');
+        }
+        let contextDoctor = selected;
+        if (String(selected.clinic_id || '') !== activeClinicId) {
+            contextDoctor = doctors.find(function (doctor) {
+                return String(doctor.clinic_id || '') === activeClinicId;
+            }) || null;
+            if (!contextDoctor) {
+                throw new Error('The active clinic is no longer in your managed network.');
+            }
+            setWorkingChoice({
+                id: String(contextDoctor.doctor_id),
+                name: contextDoctor.doctor_name || '',
+                clinic: contextDoctor.clinic_name || '',
+                clinic_id: contextDoctor.clinic_id || ''
+            });
+        }
+        activeClinicContextDoctorId = String(contextDoctor.doctor_id);
+        activeClinicContextError = null;
+    }
+
+    function showClinicContextError() {
+        if (clinicContextWarningShown) return;
+        clinicContextWarningShown = true;
+        if (typeof window.alert === 'function') {
+            window.alert('Could not verify the active clinic. Reconnect and reload before opening clinic records.');
+        }
     }
 
     function client() {
@@ -676,6 +788,9 @@
         // the next secretary is asked afresh. The RPC cache goes too.
         assignedDoctorsCache = null;
         clearWorkingChoice();
+        activeClinicContextDoctorId = '';
+        activeClinicContextError = null;
+        clinicContextWarningShown = false;
         try { window.sessionStorage.removeItem(WORKING_PROMPTED_KEY); } catch (e) { /* ignore */ }
         // The photo service token dies with the session, so a signed-out
         // device cannot ask for photos.
@@ -734,6 +849,14 @@
                 // sends it to the login screen, which explains the flow.
                 // Nothing is ever fabricated here.
                 if (!buildSafeUser() && isOfflineNow()) hydrateOfflineSession();
+                if (buildSafeUser() && !offlineSessionActive) {
+                    try {
+                        await ensureSuperSecretaryClinicContext(buildSafeUser());
+                    } catch (error) {
+                        activeClinicContextError = error;
+                        console.error('[Auth] Could not establish the active clinic context:', error);
+                    }
+                }
                 readyResolved = true;
                 return buildSafeUser();
             })();
@@ -743,7 +866,11 @@
 
     /** Force a profile re-read, e.g. after a role change. */
     async function refreshProfile() {
-        if (signedInUser) await loadProfile();
+        if (signedInUser) {
+            await loadProfile();
+            activeClinicContextError = null;
+            await ensureSuperSecretaryClinicContext(buildSafeUser());
+        }
         return buildSafeUser();
     }
 
@@ -775,10 +902,14 @@
         const box = document.createElement('div');
         box.id = 'entClinicPicker';
         box.className = 'ent-modal';
+        const pickerUser = currentUser();
+        const pickerHint = pickerUser && pickerUser.is_super_secretary === true
+            ? 'Only records from the selected clinic are shown. New reports are filed under the selected doctor.'
+            : 'Records you save go onto the selected doctor&rsquo;s shelf. '
+                + 'You can switch anytime from the pill beside your name.';
         box.innerHTML = '<div class="ent-modal-card" style="max-width:440px;">'
             + '<h3>Which clinic are you working at today?</h3>'
-            + '<p class="ent-hint">Records you save go onto the selected doctor&rsquo;s shelf. '
-            + 'You can switch anytime from the pill beside your name.</p>'
+            + '<p class="ent-hint">' + pickerHint + '</p>'
             + '<div class="ent-clinic-list">' + options + '</div>'
             + '<div class="ent-modal-actions">'
             + '<button type="button" class="ent-btn" id="entClinicCancel">Keep current</button>'
@@ -798,9 +929,27 @@
             const id = String(btn.getAttribute('data-id') || '');
             const doc = doctors.filter(function (d) { return String(d.doctor_id) === id; })[0];
             if (!doc) return;
-            setWorkingChoice({ id: id, name: doc.doctor_name || '', clinic: doc.clinic_name || '' });
-            close();
-            if (window.location && typeof window.location.reload === 'function') window.location.reload();
+            const user = currentUser();
+            const contextReady = user && user.is_super_secretary === true
+                ? setActiveClinicContext(id)
+                : Promise.resolve();
+            contextReady.then(function () {
+                setWorkingChoice({
+                    id: id,
+                    name: doc.doctor_name || '',
+                    clinic: doc.clinic_name || '',
+                    clinic_id: doc.clinic_id || ''
+                });
+                close();
+                if (window.location && typeof window.location.reload === 'function') window.location.reload();
+            }).catch(function (error) {
+                console.error('[Auth] Could not switch the active clinic:', error);
+                activeClinicContextError = error;
+                showClinicContextError();
+                if (window.location && typeof window.location.reload === 'function') {
+                    window.location.reload();
+                }
+            });
         });
 
         box.classList.add('open');
@@ -812,7 +961,7 @@
      * resolved from auth.uid() server-side (0037). Non-secretaries and a
      * missing/un-deployed RPC yield [], so a single-doctor secretary keeps
      * working exactly as before. */
-    function fetchAssignedDoctors(force) {
+    function fetchAssignedDoctors(force, strict) {
         const user = currentUser();
         if (!user || user.role !== 'secretary') return Promise.resolve([]);
         if (assignedDoctorsCache && !force) return Promise.resolve(assignedDoctorsCache);
@@ -823,7 +972,11 @@
                     : [];
                 return assignedDoctorsCache;
             })
-            .catch(function () { assignedDoctorsCache = []; return assignedDoctorsCache; });
+            .catch(function (error) {
+                assignedDoctorsCache = [];
+                if (strict) throw error;
+                return assignedDoctorsCache;
+            });
     }
 
     /* Called once per page load from boot(). For a single-doctor secretary
@@ -890,13 +1043,9 @@
             };
         }
         // secretary. 0037: she may work under her primary OR any doctor in
-        // secretary_assignments. The "working today at ..." choice (session
-        // storage, set by the picker) names WHICH shelf she is on right now;
-        // with no choice she is on her primary's — the pre-0037 behaviour and
-        // the safe default. The database re-derives the real scope on every
-        // request via ent_is_my_doctor(), so this only decides which shelf the
-        // browser ASKS about and writes under; a forged id is refused there
-        // and falls back to her primary.
+        // secretary_assignments. The "working today at ..." choice names
+        // where new reports are filed. A Super Secretary's active clinic is
+        // separately validated by the database before protected pages load.
         const primary = user.assigned_doctor_id || '';
         const choice = workingChoice();
         const usingChoice = !!(choice && choice.id);
@@ -912,7 +1061,8 @@
             assignedDoctorId: primary,
             // Non-empty only when she is shelved under a NON-primary doctor.
             workingDoctorId: (usingChoice && choice.id !== primary) ? choice.id : '',
-            workingClinicName: usingChoice ? (choice.clinic || '') : ''
+            workingClinicName: usingChoice ? (choice.clinic || '') : '',
+            workingClinicId: usingChoice ? (choice.clinic_id || '') : ''
         };
     }
 
@@ -1418,6 +1568,10 @@
                 // screen explains the flow.
                 sendToLogin(); return null; 
             }
+            if (activeClinicContextError && s.user.role === 'secretary' && s.user.is_super_secretary === true) {
+                showClinicContextError();
+                return null;
+            }
             if (opts.roles && opts.roles.indexOf(s.user.role) === -1) {
                 if (typeof opts.onDenied === 'function') return opts.onDenied(s);
                 window.location.replace(pageUrl('index.html') + '?denied=1');
@@ -1691,6 +1845,11 @@
             window.location.replace(pageUrl('login.html') + `?next=${next}`);
             return;
         }
+        if (activeClinicContextError && user.role === 'secretary' && user.is_super_secretary === true) {
+            showClinicContextError();
+            return;
+        }
+        bindSuperSecretaryChoiceSync(user);
 
         if (offlineSessionActive && OFFLINE_ALLOWED_PAGES.indexOf(page) === -1) {
             window.location.replace(pageUrl('offlineWorkspace.html'));

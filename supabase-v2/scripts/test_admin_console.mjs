@@ -1057,7 +1057,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v45-user-modal-refine/.test(html)
        && /admin\.css\?v=v55-account-form-one-column/.test(html)
-       && /ent-report-system-v163-super-secretary-dashboard/.test(
+       && /ent-report-system-v164-active-clinic-scope/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

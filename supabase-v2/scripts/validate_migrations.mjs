@@ -349,6 +349,26 @@ const TRG_34 = (M34_ASSERTS.match(/CREATE\s+TRIGGER\s+([a-z0-9_]+)/i) || [])[1] 
 chk('V5.27', 'the trigger 0039 looks for is the exact trigger 0034 creates',
   TRG_39 !== '' && TRG_39 === TRG_34,
   `0039 asks pg_trigger for '${TRG_39}'; 0034 CREATEs '${TRG_34}'`)
+const M51 = stripComments(raw('0051_super_secretary_active_clinic.sql'))
+chk('V5.28', 'Super Secretary clinic context is bound to the authenticated session',
+  M51.includes('PRIMARY KEY (user_id, session_id)')
+    && M51.includes("auth.jwt() ->> 'session_id'")
+    && M51.includes('ent_set_active_clinic'))
+chk('V5.29', 'clinic switching validates the doctor against the managed network',
+  M51.includes('ent_super_secretary_network_doctor(p_doctor)')
+    && M51.includes('outside your managed clinic network'))
+chk('V5.30', 'report and photo read/write policies all enforce the active clinic',
+  ['reports_select_owner', 'reports_insert_owner', 'reports_update_owner',
+    'photos_select_owner', 'photos_insert_owner', 'photos_update_owner'].every(name => {
+    const start = M51.lastIndexOf(`CREATE POLICY ${name} ON public.`)
+    if (start < 0) return false
+    const end = M51.indexOf(';', start)
+    return end > start && M51.slice(start, end).includes('ent_super_secretary_context_matches')
+  }))
+chk('V5.31', 'SECURITY DEFINER patient index and full-record checks apply the active clinic too',
+  M51.includes('AND public.ent_super_secretary_context_matches(r.clinic_id)')
+    && M51.includes('CREATE OR REPLACE FUNCTION public.ent_may_open_report(p_report uuid)')
+    && M51.includes('public.ent_may_open_report(r.id)'))
 console.log('')
 console.log('  the resulting matrix, read straight off the SQL above:')
 console.log('')
@@ -398,9 +418,13 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0048 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0051 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
+  'sign in as a Super Secretary and verify switching clinic changes the',
+  '   active-clinic context before reports, DB Records, photos and summaries load',
+  'verify the selected clinic can see all its doctors, while another network',
+  '   clinic, the View All index, and medical-document actions stay isolated',
   'run scripts/diagnose_delete.mjs there: ent_may_soft_delete must answer TRUE',
   '   for a doctor on his own row and for an assigned secretary',
   'sign in as admin / doctor / secretary and repeat BOTH reported actions â€”',

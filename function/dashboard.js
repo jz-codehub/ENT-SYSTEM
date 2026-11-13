@@ -74,51 +74,19 @@
         }
     };
     const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
+    const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
     let medicalDocumentsAvailable = false;
 
-    async function canUseMedicalDocuments(user) {
-        if (user && user.role === 'secretary' && user.is_super_secretary === true) return true;
-        const clinicId = String(user && user.clinic_id || '').trim();
-        const username = String(user.username || '').trim().toLowerCase();
-        const fullName = String(user.full_name || '').trim().toLowerCase();
-        const assignedDoctor = String(user.assigned_doctor_name || '').trim().toLowerCase();
-        if (clinicId.toLowerCase() === '00000000-0000-4000-8000-00000000c11c' ||
-            username === 'jess' ||
-            /jess|jesus/i.test(fullName) ||
-            /jess|jesus/i.test(assignedDoctor)) {
-            return true;
+    function canUseMedicalDocuments(user, scope, doctors) {
+        if (!user) return false;
+        if (user.role !== 'secretary') {
+            return String(user.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
         }
-        if (user.role === 'secretary' && typeof Auth.fetchAssignedDoctors === 'function') {
-            const doctors = await Auth.fetchAssignedDoctors(true);
-            if (doctors.some(function (doctor) {
-                return /jess|jesus/i.test(String(doctor.doctor_name || '')) ||
-                    /jess|jesus/i.test(String(doctor.clinic_name || ''));
-            })) {
-                return true;
-            }
-        }
-        if (user.role === 'secretary' && !/jess|jesus/i.test(assignedDoctor)) {
-            try {
-                const doctorName = await api('rpc/my_assigned_doctor_name', {
-                    method: 'POST',
-                    body: '{}'
-                });
-                if (typeof doctorName === 'string' && /jess|jesus/i.test(doctorName)) return true;
-            } catch (error) {
-                console.warn('[Dashboard] Could not verify the secretary assigned doctor:', error);
-            }
-        }
-        if (!clinicId) return false;
-        const clinics = await api('clinics?select=id,code,name&id=eq.' + encodeURIComponent(clinicId));
-        const clinic = Array.isArray(clinics)
-            ? clinics.find(function (row) { return String(row.id || '') === clinicId; })
-            : null;
-        return !!clinic && (
-            String(clinic.code || '').toLowerCase() === 'main_clinic' ||
-            String(clinic.code || '').toLowerCase() === 'jess' ||
-            /^ent clinic doc jess$/i.test(String(clinic.name || '').trim()) ||
-            String(clinic.name || '').trim().toLowerCase() === 'doc jess'
-        );
+        const selectedId = String(scope && scope.doctorId || '').trim();
+        const selected = (Array.isArray(doctors) ? doctors : []).find(function (doctor) {
+            return String(doctor.doctor_id || '').trim() === selectedId;
+        });
+        return !!selected && String(selected.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
     }
 // Weekday names for the chart column labels - every activity chart (the
 // month grid and the three split charts) prints a three-letter day under
@@ -828,7 +796,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
      *
      * RLS is the access control; this is the COUNTING rule, and it is a second
      * opinion rather than a replacement. A doctor counts his own shelf, a
-     * secretary her assigned doctor's shelf, an admin the whole clinic.
+     * secretary her assigned doctors, and a Super Secretary every doctor in
+     * the selected clinic only; an admin counts the whole clinic.
      *
      * Rows with no doctor_id are this DEVICE's own history (loadDeviceRows
      * stamps them with the local username), and they are kept - they were
@@ -1174,10 +1143,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const selectedDoctorName = prettyName(
             selectedDoctor && selectedDoctor.doctor_name || user.assigned_doctor_name
         );
-        const selectedClinicName = String(selectedDoctor && selectedDoctor.clinic_name || '').trim();
-        const selectedWorkLabel = selectedClinicName
-            ? selectedClinicName + (selectedDoctorName ? ' \u00b7 Dr. ' + selectedDoctorName : '')
-            : selectedDoctorName ? 'Dr. ' + selectedDoctorName : 'your selected clinic';
         const first = greetingName(user);
         const greetEl = byId('dashGreeting');
         if (greetEl) {
@@ -1194,8 +1159,11 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (roleEl) {
             roleEl.textContent = user.role === 'secretary'
                 ? (user.is_super_secretary === true
-                    ? (scopeInfo && scopeInfo.doctorId
-                        ? 'Viewing ' + selectedWorkLabel + '. Use Switch clinic in your profile to move between clinics.'
+                    ? (scopeInfo && scopeInfo.activeClinicId
+                        ? 'Showing all records for ' + (scopeInfo.activeClinicName || 'the selected clinic')
+                            + ' (' + (scopeInfo.assignedDoctorIds || []).length + ' doctor'
+                            + ((scopeInfo.assignedDoctorIds || []).length === 1 ? '' : 's') + '). New reports are filed under Dr. '
+                            + (selectedDoctorName || 'your selected doctor') + '.'
                         : 'Choose a clinic using Switch clinic in your profile.')
                     : (scopeInfo && scopeInfo.allAssigned
                     ? 'All patients for your ' + assignedDoctorRows.length
@@ -1215,7 +1183,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             // three "Dr. Jesus Jardin" mentions on one screen is noise.
             pill.textContent = user.role === 'secretary'
                 ? (user.is_super_secretary
-                    ? 'Super Secretary'
+                    ? 'Super Secretary \u00b7 ' + (scopeInfo && scopeInfo.activeClinicName || 'Choose a clinic')
                     : (scopeInfo && scopeInfo.allAssigned ? 'Secretary \u00b7 All doctors' : 'Secretary'))
                 : (user.role === 'admin' ? 'Admin' : 'Doctor');
         }
@@ -1251,7 +1219,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             ? 'Clinic-wide preview \u2014 every doctor, every count'
             : (user.role === 'secretary'
                 ? (user.is_super_secretary === true
-                    ? 'Use Switch clinic in your profile to view another clinic.'
+                    ? (scopeInfo && scopeInfo.activeClinicName
+                        ? 'Only ' + scopeInfo.activeClinicName + ' records are shown. Use Switch clinic to change clinics.'
+                        : 'Use Switch clinic in your profile to choose a clinic.')
                     : (scopeInfo && scopeInfo.allAssigned
                     ? 'All assigned doctors \u2014 nasal, laryngeal and CF4 records'
                     : dr
@@ -3720,17 +3690,13 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (!session || !session.user) return;
         me = session.user;
         myName = String(me.username || '').trim().toLowerCase();
-        try {
-            medicalDocumentsAvailable = await canUseMedicalDocuments(me);
-        } catch (error) {
-            medicalDocumentsAvailable = false;
-            console.warn('[Dashboard] Could not verify medical-document clinic access:', error);
-        }
-        document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
-            .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
+        try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
 
         if (me.role === 'admin') {                    // admins live in admin.html
             scopeInfo = { role: 'admin', doctorId: '', seeAll: true };
+            medicalDocumentsAvailable = canUseMedicalDocuments(me, scopeInfo, []);
+            document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
+                .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
             showAdminGate();
             return;
         }
@@ -3745,15 +3711,37 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 assignedDoctorRows = Array.isArray(assignedDoctorRows)
                     ? assignedDoctorRows.filter(function (doctor) { return doctor && doctor.doctor_id; })
                     : [];
-                scopeInfo.assignedDoctorIds = assignedDoctorRows.map(function (doctor) {
-                    return String(doctor.doctor_id);
-                });
-                scopeInfo.allAssigned = false;
+                if (me.is_super_secretary === true) {
+                    const selectedId = String(scopeInfo.doctorId || '').trim();
+                    const selected = assignedDoctorRows.find(function (doctor) {
+                        return String(doctor.doctor_id || '').trim() === selectedId;
+                    }) || null;
+                    const activeClinicId = String(selected && selected.clinic_id || '').trim();
+                    const clinicDoctors = activeClinicId
+                        ? assignedDoctorRows.filter(function (doctor) {
+                            return String(doctor.clinic_id || '').trim() === activeClinicId;
+                        })
+                        : [];
+                    scopeInfo.activeClinicId = activeClinicId;
+                    scopeInfo.activeClinicName = String(selected && selected.clinic_name || '').trim();
+                    scopeInfo.assignedDoctorIds = clinicDoctors.map(function (doctor) {
+                        return String(doctor.doctor_id);
+                    });
+                    scopeInfo.allAssigned = clinicDoctors.length > 0;
+                } else {
+                    scopeInfo.assignedDoctorIds = assignedDoctorRows.map(function (doctor) {
+                        return String(doctor.doctor_id);
+                    });
+                    scopeInfo.allAssigned = false;
+                }
             } catch (error) {
                 assignedDoctorRows = [];
                 console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
             }
         }
+        medicalDocumentsAvailable = canUseMedicalDocuments(me, scopeInfo, assignedDoctorRows);
+        document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
+            .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
         revealDashboard();
         wireDashActions();
         start();

@@ -361,73 +361,29 @@
         }
         const session = await window.EntAuth.guard();
         if (!session || !session.user) return;
-        const clinicId = String(session.user.clinic_id || '').trim();
-        const username = String(session.user.username || '').trim().toLowerCase();
-        const fullName = String(session.user.full_name || '').trim().toLowerCase();
-        const assignedDoctor = String(session.user.assigned_doctor_name || '').trim().toLowerCase();
-        const knownDocJessProfile = (session.user.role === 'secretary' && session.user.is_super_secretary === true) ||
-            clinicId.toLowerCase() === '00000000-0000-4000-8000-00000000c11c' ||
-            username === 'jess' ||
-            /jess|jesus/i.test(fullName) ||
-            /jess|jesus/i.test(assignedDoctor);
-        let assignedToDocJess = false;
+        const docJessClinicId = '00000000-0000-4000-8000-00000000c11c';
+        let activeClinicId = String(session.user.clinic_id || '').trim();
         if (session.user.role === 'secretary' &&
             typeof window.EntAuth.fetchAssignedDoctors === 'function') {
+            let doctors;
             try {
-                const doctors = await window.EntAuth.fetchAssignedDoctors(true);
-                assignedToDocJess = doctors.some(doctor =>
-                    /jess|jesus/i.test(String(doctor.doctor_name || '')) ||
-                    /jess|jesus/i.test(String(doctor.clinic_name || ''))
-                );
+                doctors = await window.EntAuth.fetchAssignedDoctors(true, true);
             } catch (error) {
-                console.warn('Could not verify the secretary doctor assignment:', error);
-            }
-        }
-        if (session.user.role === 'secretary' && !assignedToDocJess && !/jess|jesus/i.test(assignedDoctor)) {
-            try {
-                const doctorName = await window.EntSupabase.apiRequest(
-                    'rpc/my_assigned_doctor_name',
-                    { method: 'POST', body: '{}' }
-                );
-                assignedToDocJess = typeof doctorName === 'string' && /jess|jesus/i.test(doctorName);
-            } catch (error) {
-                console.warn('Could not verify the secretary assigned doctor:', error);
-            }
-        }
-        if (!clinicId && !knownDocJessProfile && !assignedToDocJess) {
-            setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
-            window.location.replace('../index.html?denied=medical-documents');
-            return;
-        }
-        if (!knownDocJessProfile && !assignedToDocJess) {
-            if (!clinicId) {
-                setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
-                window.location.replace('../index.html?denied=medical-documents');
-                return;
-            }
-            let clinics;
-            try {
-                clinics = await window.EntSupabase.apiRequest(
-                    'clinics?select=id,code,name&id=eq.' + encodeURIComponent(clinicId));
-            } catch (error) {
-                console.error('Could not verify access to medical documents:', error);
+                console.error('Could not verify the active clinic for medical documents:', error);
                 setStatus('Could not verify clinic access. Return to the dashboard and try again while online.', true);
                 window.location.replace('../index.html?denied=medical-documents');
                 return;
             }
-            const clinic = Array.isArray(clinics)
-                ? clinics.find(row => String(row.id || '') === clinicId)
-                : null;
-            if (!clinic || (
-                String(clinic.code || '').toLowerCase() !== 'main_clinic' &&
-                String(clinic.code || '').toLowerCase() !== 'jess' &&
-                !/^ent clinic doc jess$/i.test(String(clinic.name || '').trim()) &&
-                String(clinic.name || '').trim().toLowerCase() !== 'doc jess'
-            )) {
-                setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
-                window.location.replace('../index.html?denied=medical-documents');
-                return;
-            }
+            const scope = window.EntAuth.scope();
+            const selectedDoctor = Array.isArray(doctors) && doctors.find(doctor =>
+                String(doctor.doctor_id || '') === String(scope && scope.doctorId || '')
+            );
+            activeClinicId = String(selectedDoctor && selectedDoctor.clinic_id || '').trim();
+        }
+        if (activeClinicId !== docJessClinicId) {
+            setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
+            window.location.replace('../index.html?denied=medical-documents');
+            return;
         }
         draftStorageKey = `${draftStoragePrefix}:${session.user.id}`;
         if (isDirty) {

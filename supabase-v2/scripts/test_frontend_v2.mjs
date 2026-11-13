@@ -69,6 +69,13 @@ function makeWindow() {
         }
         return jsonResponse(200, { ok: true, count: 0, paths: [] })
       }
+      if (String(url).includes('/rpc/my_assigned_doctors')) {
+        return jsonResponse(200, win.__assignedDoctorRows || [])
+      }
+      if (String(url).includes('/rpc/ent_ensure_active_clinic')) {
+        win.__clinicContextDoctor = JSON.parse(opts.body || '{}').p_doctor || ''
+        return jsonResponse(200, win.__activeClinicId || '')
+      }
       return jsonResponse(restStatus, Array.isArray(sessionRow) ? sessionRow : [])
     },
     supabase: {
@@ -795,6 +802,49 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        && offlineCss.includes('@media (max-width: 520px)')
        && /ent-report-system-v\d+-[^'"]+/.test(sw),
      'report actions, connection status, logout behavior and mobile-friendly cards')
+}
+
+{
+  const previousProfile = sessionRow
+  const previousSent = sent
+  sessionRow = [{
+    id: 'super-1', username: 'supersec', role: 'secretary', is_active: true,
+    is_super_secretary: true, assigned_doctor_id: 'doc-north',
+  }]
+  sent = []
+  const superWin = makeWindow()
+  superWin.document.readyState = 'loading'
+  superWin.__session = { access_token: 'SUPER-JWT', user: { id: 'super-1' } }
+  superWin.__assignedDoctorRows = [
+    { doctor_id: 'doc-north', doctor_name: 'North Doctor', clinic_id: 'clinic-north', is_primary: true },
+    { doctor_id: 'doc-jess', doctor_name: 'Jess Doctor', clinic_id: 'clinic-jess', is_primary: false },
+  ]
+  superWin.__activeClinicId = 'clinic-jess'
+  for (const f of ['supabaseClient.js', 'photoStore.js', 'auth.js']) {
+    const code = readFileSync(join(APP, 'function', f), 'utf8')
+    vm.createContext(superWin)
+    vm.runInContext(code, superWin, { filename: 'super-' + f })
+  }
+  const superAuth = superWin.EntAuth
+  const guarded = await superAuth.guard()
+  const contextCall = sent.find(request => request.url.includes('/rpc/ent_ensure_active_clinic'))
+  const contextRequest = contextCall && JSON.parse(contextCall.body || '{}')
+  is('T12', 'guard waits for server context before exposing Super Secretary pages',
+     !!guarded && superWin.__clinicContextDoctor === 'doc-north'
+       && contextRequest && contextRequest.p_doctor === 'doc-north',
+     contextRequest ? `validated doctor=${contextRequest.p_doctor}` : 'no ensure-context RPC')
+  is('T13', 'a pre-existing session clinic is synchronized to the selected network clinic',
+     superAuth.scope().doctorId === 'doc-jess'
+       && superAuth.workingDoctor().clinic_id === 'clinic-jess',
+     `working doctor=${superAuth.scope().doctorId}`)
+  const abstractJs = readFileSync(join(APP, 'function', 'abstract.js'), 'utf8')
+  is('T14', 'direct medical-document pages require the active Doc Jess clinic id',
+     abstractJs.includes("const docJessClinicId = '00000000-0000-4000-8000-00000000c11c'")
+       && abstractJs.includes('activeClinicId !== docJessClinicId')
+       && !/knownDocJessProfile|assignedToDocJess|jess\|jesus/i.test(abstractJs),
+     'identity and Super Secretary status no longer bypass the clinic gate')
+  sessionRow = previousProfile
+  sent = previousSent
 }
   console.log(`==== ${failed === 0 ? 'ALL FUNCTIONAL TESTS PASSED' : failed + ' FAILED'} · ${passed + failed} tests ====`)
   console.log('')

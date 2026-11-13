@@ -97,6 +97,10 @@ function boot({
   const nodes = {}
   const downloads = []
   const downloadBlobs = []
+  const reportButtons = [
+    { ...makeNode('abstract-action'), hidden: false, getAttribute: name => name === 'data-report-type' ? 'abstract' : null },
+    { ...makeNode('certificate-action'), hidden: false, getAttribute: name => name === 'data-report-type' ? 'medicalCertificate' : null },
+  ]
   const bodyClasses = new Set()
   for (const id of domIds()) nodes[id] = makeNode(id)
   nodes.dashPeriodSelect = makeNode('dashPeriodSelect')
@@ -126,7 +130,9 @@ function boot({
       },
       addEventListener: (t, fn) => { (docListeners[t] = docListeners[t] || []).push(fn) },
       getElementById: id => nodes[id] || null,
-      querySelector: () => null, querySelectorAll: () => [],
+      querySelector: () => null,
+      querySelectorAll: selector => selector === '[data-report-type="abstract"], [data-report-type="medicalCertificate"]'
+        ? reportButtons : [],
       createElement: tag => {
         const element = makeNode('new-' + Math.random())
         if (String(tag).toLowerCase() === 'a') {
@@ -215,7 +221,7 @@ function boot({
   const src = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dashboard.js' })
-  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav, bodyClasses }
+  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav, bodyClasses, reportButtons }
 }
 
 
@@ -785,7 +791,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && env.nodes.dashRoleLine.textContent.includes('2 assigned doctors'))
 }
 
-/* ---- 11 · Super Secretaries use the selected clinic dashboard -------- */
+/* ---- 11 · Super Secretaries see only the selected clinic ------------- */
 {
   const SUPER = {
     id: 'sec-super', username: 'supersec', full_name: 'Super Secretary',
@@ -797,12 +803,15 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     assignedDoctors: [
       { doctor_id: 'doc-jardin', doctor_name: 'Jesus Jardin', clinic_id: 'clinic-north',
         clinic_name: 'ENT North', is_primary: true },
-      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', clinic_id: 'clinic-south',
+      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', clinic_id: 'clinic-north',
+        clinic_name: 'ENT North', is_primary: false },
+      { doctor_id: 'doc-south', doctor_name: 'South Doctor', clinic_id: 'clinic-south',
         clinic_name: 'ENT South', is_primary: false },
     ],
     counters: [
       { doctor_id: 'doc-jardin', created_at: new Date().toISOString(), report_type: 'nasal' },
       { doctor_id: 'doc-other', created_at: new Date().toISOString(), report_type: 'cf4' },
+      { doctor_id: 'doc-south', created_at: new Date().toISOString(), report_type: 'cf4' },
       { doctor_id: 'doc-outside', created_at: new Date().toISOString(), report_type: 'laryngeal' },
     ],
     team: { kind: 'rows', rows: [] },
@@ -818,11 +827,13 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
   const summaryCall = env.calls.find(call => call.endpoint.includes('rpc/ent_dashboard_summary'))
   const summaryRequest = summaryCall && JSON.parse(summaryCall.body)
-  ok('T53', 'Super Secretary defaults to the currently selected doctor',
-     env.win.EntDashboard.getRows().length === 1
-       && env.win.EntDashboard.getRows()[0].doctor_id === 'doc-jardin'
+  ok('T53', 'Super Secretary dashboard includes every doctor in the selected clinic only',
+     env.win.EntDashboard.getRows().length === 2
+       && env.win.EntDashboard.getRows().every(row =>
+         ['doc-jardin', 'doc-other'].includes(row.doctor_id))
        && env.nodes.dashDoctorScopeToggle.hidden
-       && env.nodes.dashScopePill.textContent.includes('Super Secretary'))
+       && env.nodes.dashScopePill.textContent.includes('ENT North')
+       && env.nodes.dashRoleLine.textContent.includes('2 doctors'))
   const superToggle = env.nodes.dashDoctorScopeToggle.listeners.click
   if (superToggle && superToggle[0]) {
     superToggle[0]({})
@@ -830,17 +841,17 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   }
   const afterToggleCall = env.calls.filter(call => call.endpoint.includes('rpc/ent_dashboard_summary')).pop()
   const afterToggleRequest = afterToggleCall && JSON.parse(afterToggleCall.body)
-  ok('T53a', 'Super Secretary cannot expand the dashboard to all assigned doctors',
-     env.win.EntDashboard.getRows().length === 1
-       && !!afterToggleRequest && afterToggleRequest.p_scope_all === false
-       && afterToggleRequest.p_doctor_id === 'doc-jardin')
-  ok('T54', 'Super Secretary summary is limited to the selected doctor',
-     !!summaryRequest && summaryRequest.p_scope_all === false
-       && summaryRequest.p_doctor_id === 'doc-jardin')
+  ok('T53a', 'the clinic-scope toggle stays hidden and cannot expose another clinic',
+     env.win.EntDashboard.getRows().length === 2
+       && !!afterToggleRequest && afterToggleRequest.p_scope_all === true
+       && afterToggleRequest.p_doctor_id === null)
+  ok('T54', 'Super Secretary summary requests all rows, with database RLS enforcing the active clinic',
+     !!summaryRequest && summaryRequest.p_scope_all === true
+       && summaryRequest.p_doctor_id === null)
   ok('T55', 'Super Secretaries use the normal dashboard and can switch clinics from the profile menu',
      !indexHtml.includes('ent-ss-workspace')
        && !env.bodyClasses.has('ent-super-secretary')
-       && /ENT North.*Switch clinic/.test(env.nodes.dashRoleLine.textContent)
+       && /ENT North.*New reports are filed/.test(env.nodes.dashRoleLine.textContent)
        && indexHtml.includes('id="dashQuickActions"'))
   const dashboardCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
   ok('T55a', 'the dashboard no longer adds a separate Super Secretary layout',
@@ -848,9 +859,58 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && !dashboardCss.includes('ent-ss-workspace'))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v37-standard-secretary-dashboard/.test(indexHtml)
+     /dashboard\.js\?v=v38-active-clinic/.test(indexHtml)
        && /dashboard\.css\?v=v37-standard-secretary-dashboard/.test(indexHtml)
-       && /ent-report-system-v163-super-secretary-dashboard/.test(serviceWorker))
+       && /ent-report-system-v164-active-clinic-scope/.test(serviceWorker))
+}
+
+/* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
+{
+  const SUPER_WITH_JESS_NETWORK = {
+    id: 'sec-super', username: 'jess', full_name: 'Jesus Jardin',
+    role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-other',
+    is_active: true,
+  }
+  const env = boot({
+    user: SUPER_WITH_JESS_NETWORK,
+    assignedDoctors: [
+      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', clinic_id: 'clinic-south',
+        clinic_name: 'ENT South', is_primary: true },
+      { doctor_id: 'doc-jess', doctor_name: 'Jesus Jardin', clinic_id: '00000000-0000-4000-8000-00000000c11c',
+        clinic_name: 'Doc Jess', is_primary: false },
+    ],
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T57', 'Jess names and access to a Jess doctor elsewhere do not unlock documents for another active clinic',
+     env.reportButtons.every(button => button.hidden === true))
+
+  const JESS_ACTIVE = {
+    id: 'sec-jess', username: 'secretary', full_name: 'Clinic Secretary',
+    role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-jess',
+    is_active: true,
+  }
+  const jessEnv = boot({
+    user: JESS_ACTIVE,
+    assignedDoctors: [
+      { doctor_id: 'doc-jess', doctor_name: 'Jesus Jardin', clinic_id: '00000000-0000-4000-8000-00000000c11c',
+        clinic_name: 'Doc Jess', is_primary: true },
+    ],
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T58', 'the same document actions are available while the active clinic is Doc Jess',
+     jessEnv.reportButtons.every(button => button.hidden === false))
 }
 
 }

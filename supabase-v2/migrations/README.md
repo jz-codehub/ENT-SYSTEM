@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0048_dashboard_summary_counts.sql`). Isa-isa; hintayin ang
+   (ngayon: `0051_super_secretary_active_clinic.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -58,6 +58,11 @@ separate files, walang all-in-one.
    araw na kailangan ng dashboard; hindi nito dina-download ang lahat ng
    patient records. I-apply muna ito bago i-deploy ang matching browser build.
    Mananatiling tig-3,000-row bounded ang recent-patient at follow-up panels.
+
+9. Ang `0051_super_secretary_active_clinic.sql` ay nagtatali ng napiling
+   clinic sa authenticated session at nililimitahan ang Super Secretary sa
+   records ng clinic na iyon. Kailangan itong i-apply bago i-deploy ang
+   browser code na tumatawag sa `ent_set_active_clinic`.
 
 ## Mga tuntunin
 
