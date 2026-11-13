@@ -935,7 +935,7 @@
 // v152: ship Super Secretary network access, dashboard and form permissions.
 // v153: refresh the admin script with the valid secretary-assignment filter.
 // v154: ship the dedicated Super Secretary network workbench.
-const CACHE_NAME = 'ent-report-system-v158-compact-admin-actions';
+const CACHE_NAME = 'ent-report-system-v159-actions-fit-no-shadow';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

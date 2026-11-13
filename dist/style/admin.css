@@ -8423,7 +8423,7 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
     right: 0;
     z-index: 1;
     text-align: center;
-    box-shadow: -7px 0 12px rgba(20, 42, 55, .08);
+    box-shadow: none;
 }
 .ent-user-table th:last-child { background: var(--input-bg-color); }
 .ent-user-table td:last-child { background: var(--panel-bg-color); }
@@ -8468,8 +8468,9 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 }
 #panel-users .ent-user-meta em { color: var(--secondary-text-color); font-size: .59rem; font-style: normal; }
 #panel-users .ent-user-meta b { overflow: hidden; color: var(--text-color); font-size: .64rem; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
-#panel-users .ent-user-actions { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; gap: 3px; margin-top: 0; }
-#panel-users .ent-user-actions .ent-rowbtn { display: inline-flex; width: 34px; min-width: 0; min-height: 28px; flex: 0 0 34px; align-items: center; justify-content: center; padding: 2px; border-radius: 7px; font-size: .5rem; font-weight: 760; line-height: 1; white-space: nowrap; }
+#panel-users .ent-user-actions { display: grid; width: 100%; max-width: 148px; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; justify-content: center; gap: 4px; margin: 0 auto; }
+#panel-users .ent-user-actions .ent-rowbtn { display: inline-flex; width: 100%; min-width: 0; min-height: 28px; align-items: center; justify-content: center; padding: 4px 5px; border-radius: 7px; box-shadow: none; font-size: .58rem; font-weight: 760; line-height: 1; white-space: nowrap; }
+#panel-users .ent-user-actions .ent-rowbtn:hover { box-shadow: none; }
 #panel-users .ent-user-actions .ent-rowbtn.del { margin-left: 0; }
 #panel-users .ent-user-actions .ent-rowbtn:focus-visible { z-index: 2; outline: 3px solid var(--primary-color); outline-offset: 2px; }
 
