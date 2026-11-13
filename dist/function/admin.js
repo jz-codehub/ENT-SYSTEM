@@ -949,7 +949,7 @@
      * treating it as an empty set could erase assignments on the next save. */
     async function loadSecretaryAssignments(id) {
         if (!id) return [];
-        const rows = await api('secretary_assignments?select=doctor_id&secretary_id=' + encodeURIComponent(id));
+        const rows = await api('secretary_assignments?select=doctor_id&secretary_id=eq.' + encodeURIComponent(id));
         return Array.isArray(rows)
             ? rows.map(r => (r && r.doctor_id) || '').filter(Boolean)
             : [];

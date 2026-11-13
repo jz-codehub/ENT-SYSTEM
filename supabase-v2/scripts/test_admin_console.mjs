@@ -362,6 +362,19 @@ is('A13a', 'admins can select and clear all additional doctors in one click',
    'selected=' + selectedAllDoctors + ', label=' + clearExtraDoctorsLabel
      + ', cleared=' + extraDoctors.options.every(function (option) { return !option.selected }))
 
+/* ---- A13b: editing a secretary reads the junction with valid PostgREST syntax */
+win.fetchLog.length = 0
+const secretaryCard = { dataset: { id: SECRETARY_PROFILE.id } }
+const secretaryEditButton = { dataset: { act: 'edit' }, closest: () => secretaryCard }
+await el('usersGrid').fire('click', { target: { closest: () => secretaryEditButton } })
+const assignmentRead = win.fetchLog.find(function (r) {
+  return r.url.indexOf('/rest/v1/secretary_assignments?') !== -1
+})
+is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignment lookup',
+   !!assignmentRead
+     && assignmentRead.url.indexOf('secretary_id=eq.' + SECRETARY_PROFILE.id) !== -1,
+   assignmentRead ? assignmentRead.url : 'no assignment query was sent')
+
 
 /* ---- A14: the Tickets panel and the nav links actually exist ------ */
 {
