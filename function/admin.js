@@ -613,19 +613,18 @@
             + esc(relTime(u.last_login_at)) + '</b></span></div></td>'
             + '<td data-label="Actions"><div class="ent-user-actions">'
             + '<button type="button" class="ent-rowbtn edit" data-act="edit" aria-label="Edit ' + accessibleName + '" title="Edit account">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#9998;</span><span class="ent-user-action-text">Edit</span></button>'
+            + 'Edit</button>'
             + '<button type="button" class="ent-rowbtn key" data-act="password" aria-label="Set password for ' + accessibleName + '" title="Set password">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128273;</span><span class="ent-user-action-text">Password</span></button>'
+            + 'Pass</button>'
             + '<button type="button" class="ent-rowbtn ' + (active ? 'off' : 'on') + '" data-act="toggle"'
             + ' aria-label="' + (active ? 'Deactivate ' : 'Activate ') + accessibleName + '"'
             + ' title="' + (active ? 'Deactivate account' : 'Activate account') + '">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">' + (active ? '&#128683;' : '&#10004;') + '</span>'
-            + '<span class="ent-user-action-text">' + (active ? 'Deactivate' : 'Activate') + '</span></button>'
+            + (active ? 'Disable' : 'Enable') + '</button>'
             // Delete remains the last, destructive action. It asks for the
             // admin's own password before doing anything; see auth-admin.
             + '<button type="button" class="ent-rowbtn del" data-act="delete" aria-label="Delete ' + accessibleName + '"'
             + ' title="Delete account permanently">'
-            + '<span class="ent-rowbtn-icon" aria-hidden="true">&#128465;</span><span class="ent-user-action-text">Delete</span></button>'
+            + 'Delete</button>'
             + '</div></td>'
             + '</tr>';
     }

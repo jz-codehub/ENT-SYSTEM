@@ -3796,8 +3796,8 @@ body.ent-super-secretary .ent-dash-main:not([hidden]) {
 }
 body.ent-super-secretary .ent-dash-hero { order: 0; }
 body.ent-super-secretary #dashNotices { order: 1; }
-body.ent-super-secretary #superSecretaryWorkspace { order: 2; }
-body.ent-super-secretary #dashQuickActions { order: 3; }
+body.ent-super-secretary #dashQuickActions { order: 2; }
+body.ent-super-secretary #superSecretaryWorkspace { order: 3; }
 body.ent-super-secretary #dashRecentCard { order: 4; }
 body.ent-super-secretary #dashTilesCard { order: 5; }
 body.ent-super-secretary #dashTeamCard { order: 6; }

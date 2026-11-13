@@ -835,11 +835,15 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && !superSecretaryMarkup.includes('Find / open patient records')
        && !superSecretaryMarkup.includes('data-report-type=')
        && indexHtml.includes('id="dashQuickActions"'))
+  const dashboardCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
+  ok('T55b', 'Super Secretary quick actions appear before the workspace and other dashboard content',
+     /body\.ent-super-secretary #dashQuickActions\s*\{\s*order:\s*2;\s*\}/.test(dashboardCss)
+       && /body\.ent-super-secretary #superSecretaryWorkspace\s*\{\s*order:\s*3;\s*\}/.test(dashboardCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the dedicated workspace ships with fresh script, style and service-worker versions',
      /dashboard\.js\?v=v36ad/.test(indexHtml)
-       && /dashboard\.css\?v=v36abf/.test(indexHtml)
-       && /ent-report-system-v157-admin-actions-shortcuts/.test(serviceWorker))
+       && /dashboard\.css\?v=v36abg/.test(indexHtml)
+       && /ent-report-system-v158-compact-admin-actions/.test(serviceWorker))
 }
 
 }

@@ -8387,7 +8387,7 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 
 .ent-user-table {
     width: 100%;
-    min-width: 840px;
+    min-width: 760px;
     table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
@@ -8414,9 +8414,9 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 .ent-user-table th:nth-child(3),
 .ent-user-table td:nth-child(3) { width: 13%; }
 .ent-user-table th:nth-child(4),
-.ent-user-table td:nth-child(4) { width: 22%; }
+.ent-user-table td:nth-child(4) { width: 27%; }
 .ent-user-table th:nth-child(5),
-.ent-user-table td:nth-child(5) { width: 27%; }
+.ent-user-table td:nth-child(5) { width: 22%; }
 .ent-user-table th:last-child,
 .ent-user-table td:last-child {
     position: sticky;
@@ -8468,13 +8468,9 @@ body.dark-mode .ent-admin-header #entUserChip .ent-user-avatar {
 }
 #panel-users .ent-user-meta em { color: var(--secondary-text-color); font-size: .59rem; font-style: normal; }
 #panel-users .ent-user-meta b { overflow: hidden; color: var(--text-color); font-size: .64rem; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
-#panel-users .ent-user-actions { display: grid; width: 100%; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: center; gap: 5px; margin-top: 0; }
-#panel-users .ent-user-actions .ent-rowbtn { display: inline-flex; width: 100%; min-height: 32px; align-items: center; justify-content: center; gap: 4px; padding: 4px 5px; border-radius: 8px; font-size: .58rem; line-height: 1.15; white-space: nowrap; }
-#panel-users .ent-user-actions .ent-rowbtn-icon { flex: 0 0 auto; font-size: .65rem; line-height: 1; }
+#panel-users .ent-user-actions { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; gap: 3px; margin-top: 0; }
+#panel-users .ent-user-actions .ent-rowbtn { display: inline-flex; width: 34px; min-width: 0; min-height: 28px; flex: 0 0 34px; align-items: center; justify-content: center; padding: 2px; border-radius: 7px; font-size: .5rem; font-weight: 760; line-height: 1; white-space: nowrap; }
 #panel-users .ent-user-actions .ent-rowbtn.del { margin-left: 0; }
-.ent-user-action-text {
-    white-space: nowrap;
-}
 #panel-users .ent-user-actions .ent-rowbtn:focus-visible { z-index: 2; outline: 3px solid var(--primary-color); outline-offset: 2px; }
 
 .ent-user-modal-card {
@@ -8590,7 +8586,7 @@ body.dark-mode .ent-user-modal-header { border-color: var(--border-color); backg
     .ent-user-modal-body { gap: 9px; padding: 11px 12px 6px; }
     .ent-user-modal-section { padding: 12px; }
     .ent-user-modal-actions { padding: 11px 12px max(14px, env(safe-area-inset-bottom)); }
-    .ent-user-table { min-width: 840px; }
+    .ent-user-table { min-width: 760px; }
 }
 
 @media (max-width: 520px) {
