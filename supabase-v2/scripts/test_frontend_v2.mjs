@@ -128,7 +128,7 @@ const need = {
   EntSupabase: ['apiRequest', 'isConfigured', 'getConfig', 'getClient', 'getAccessToken', 'onAuthChange'],
   EntAuth: ['login', 'logout', 'setPassword', 'guard', 'boot', 'ready', 'refreshProfile',
             'scope', 'currentUser', 'isAdmin', 'readSession', 'logActivity', 'escapeHtml',
-            'isDocJessClinic', 'getClinicName']
+            'isDocJessClinic', 'getClinicIdentity', 'getClinicName']
 }
 const missing = []
 for (const [ns, members] of Object.entries(need)) {
@@ -212,17 +212,19 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
   is('T7b', 'a live profile becomes the current user',
      r8.success === true && !!me && me.role === 'doctor' && me.username === 'testdoc1',
      me ? `${me.username}/${me.role}` : 'no user')
-  is('T7c', 'Doc Jess clinic identity accepts its preserved legacy UUID by canonical name',
-     A.isDocJessClinic('legacy-main-clinic-id', 'Doc Jess')
-       && A.isDocJessClinic('legacy-main-clinic-id', 'DOC JESS')
-       && !A.isDocJessClinic('another-clinic-id', 'ENT South'),
+  is('T7c', 'Doc Jess clinic identity accepts its known clinic names and stable codes',
+     A.isDocJessClinic('legacy-main-clinic-id', 'Doc Jess ENT Clinic')
+       && A.isDocJessClinic('legacy-main-clinic-id', 'ENT-clinic doc. Jess Jardin')
+       && A.isDocJessClinic('another-clinic-id', '', 'ent-jess')
+       && !A.isDocJessClinic('another-clinic-id', 'ENT South', 'ent-south'),
      'a different clinic name remains denied')
-  clinicRows = [{ id: 'legacy-main-clinic-id', name: 'Doc Jess' }]
-  const resolvedClinicName = await A.getClinicName('legacy-main-clinic-id')
-  is('T7c2', 'clinic name lookup resolves the authenticated clinic row',
-     resolvedClinicName === 'Doc Jess'
-       && sent.some(r => r.url.includes('/clinics?id=eq.legacy-main-clinic-id&select=name')),
-     resolvedClinicName || 'clinic name not returned')
+  clinicRows = [{ id: 'legacy-main-clinic-id', name: 'ENT-clinic doc. Jess Jardin', code: 'ent-jess' }]
+  const resolvedClinic = await A.getClinicIdentity('legacy-main-clinic-id')
+  is('T7c2', 'clinic identity lookup resolves the authenticated clinic name and stable code',
+     resolvedClinic.name === 'ENT-clinic doc. Jess Jardin'
+       && resolvedClinic.code === 'ent-jess'
+       && sent.some(r => r.url.includes('/clinics?id=eq.legacy-main-clinic-id&select=name,code')),
+     JSON.stringify(resolvedClinic))
   clinicRows = []
 
   const forbidden = ['clinic_id', 'doctor_id', 'created_by'].filter(k => k in ({ record_key: 'x', payload: {} }))
@@ -896,9 +898,9 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
 
   const abstractJs = readFileSync(join(APP, 'function', 'abstract.js'), 'utf8')
   is('T14', 'direct medical-document pages require the active Doc Jess clinic identity',
-     abstractJs.includes('window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)')
+     abstractJs.includes('window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName, activeClinicCode)')
        && abstractJs.includes('activeClinicName = String(selectedDoctor && selectedDoctor.clinic_name')
-       && abstractJs.includes('window.EntAuth.getClinicName(activeClinicId)')
+       && abstractJs.includes('window.EntAuth.getClinicIdentity(activeClinicId)')
        && !/knownDocJessProfile|assignedToDocJess|jess\|jesus/i.test(abstractJs),
      'active clinic identity is checked without a profile-name bypass')
   sessionRow = previousProfile

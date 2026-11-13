@@ -91,7 +91,7 @@ function domIds() {
 /* ------------------------------------------------------------------ */
 function boot({
   user, team, onLine = true, queue = [], counters = [], directory = null,
-  dashboardSummary, exportPages, assignedDoctors = [], clinicNameLookup
+  dashboardSummary, exportPages, assignedDoctors = [], clinicIdentityLookup
 }) {
   const calls = []
   const nodes = {}
@@ -178,9 +178,14 @@ function boot({
       currentUser: () => user,
       fetchAssignedDoctors: async () => assignedDoctors,
       openClinicPicker: doctors => clinicPickerCalls.push(doctors),
-      isDocJessClinic: (clinicId, clinicName) =>
+      isDocJessClinic: (clinicId, clinicName, clinicCode) =>
         String(clinicId || '').trim() === '00000000-0000-4000-8000-00000000c11c'
-        || String(clinicName || '').trim().toLowerCase() === 'doc jess',
+        || ['main_clinic', 'jess', 'ent-jess'].includes(String(clinicCode || '').trim().toLowerCase())
+        || ['doc jess', 'doc jess ent clinic', 'ent clinic doc jess', 'ent clinic doc jess jardin']
+          .includes(String(clinicName || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()),
+      getClinicIdentity: async clinicId => clinicIdentityLookup
+        ? clinicIdentityLookup(clinicId)
+        : { name: '', code: '' },
       getClinicName: async clinicId => clinicNameLookup ? clinicNameLookup(clinicId) : '',
       escapeHtml: v => String(v ?? '').replace(/[&<>'"]/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])),
@@ -896,11 +901,11 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v41-doc-jess-legacy-clinic/.test(indexHtml)
+     /dashboard\.js\?v=v42-doc-jess-clinic-code/.test(indexHtml)
        && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
-       && /auth\.js\?v=v36l-doc-jess-legacy-clinic/.test(indexHtml)
+       && /auth\.js\?v=v36m-doc-jess-clinic-code/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v168-doc-jess-legacy-clinic/.test(serviceWorker))
+       && /ent-report-system-v169-doc-jess-clinic-code/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
@@ -986,7 +991,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     user: JESS_LEGACY_CLINIC_ID,
     assignedDoctors: [
       { doctor_id: 'doc-jess-legacy', doctor_name: 'Doc Jess Jardin',
-        clinic_id: 'legacy-main-clinic-id', clinic_name: 'Doc Jess', is_primary: true },
+        clinic_id: 'legacy-main-clinic-id', clinic_name: 'Doc Jess ENT Clinic', is_primary: true },
     ],
     team: { kind: 'rows', rows: [] },
     dashboardSummary: request => request.p_windows.map(window => ({
@@ -996,7 +1001,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     })),
   })
   await flush()
-  ok('T60', 'Doc Jess actions recognize the canonical clinic name when the database has a legacy clinic UUID',
+  ok('T60', 'Doc Jess actions recognize the clinic display name used by the live clinic picker',
      jessLegacyEnv.reportButtons.every(button => button.hidden === false)
        && jessLegacyEnv.medicalDocumentFilters.every(option => option.hidden === false))
 
@@ -1006,7 +1011,9 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
       role: 'doctor', clinic_id: 'legacy-main-clinic-id', is_active: true,
     },
     team: { kind: 'rows', rows: [] },
-    clinicNameLookup: async clinicId => clinicId === 'legacy-main-clinic-id' ? 'Doc Jess' : '',
+    clinicIdentityLookup: async clinicId => clinicId === 'legacy-main-clinic-id'
+      ? { name: 'ENT-clinic doc. Jess Jardin', code: 'ent-jess' }
+      : { name: '', code: '' },
     dashboardSummary: request => request.p_windows.map(window => ({
       bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
       cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
@@ -1014,9 +1021,34 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     })),
   })
   await flush()
-  ok('T61', 'a Doc Jess doctor resolves its authenticated clinic name before showing document actions',
+  ok('T61', 'a Doc Jess doctor resolves its authenticated clinic code before showing document actions',
      jessDoctorEnv.reportButtons.every(button => button.hidden === false)
        && jessDoctorEnv.medicalDocumentFilters.every(option => option.hidden === false))
+
+  const jessSecretaryByCodeEnv = boot({
+    user: {
+      id: 'sec-jess-code', username: 'secretary', full_name: 'Clinic Secretary',
+      role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-jess-code',
+      is_active: true,
+    },
+    assignedDoctors: [
+      { doctor_id: 'doc-jess-code', doctor_name: 'Doc Jess Jardin',
+        clinic_id: 'legacy-jess-code-id', clinic_name: 'Jess Clinic', is_primary: true },
+    ],
+    team: { kind: 'rows', rows: [] },
+    clinicIdentityLookup: async clinicId => clinicId === 'legacy-jess-code-id'
+      ? { name: 'ENT-clinic doc. Jess Jardin', code: 'ent-jess' }
+      : { name: '', code: '' },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T62', 'a Super Secretary resolves the active clinic code when the picker name is stale',
+     jessSecretaryByCodeEnv.reportButtons.every(button => button.hidden === false)
+       && jessSecretaryByCodeEnv.medicalDocumentFilters.every(option => option.hidden === false))
 }
 
 }

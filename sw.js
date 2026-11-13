@@ -940,7 +940,8 @@
 // v166: hide the duplicate header switcher and polish the clinic picker modal.
 // v167: keep Doc Jess medical documents visible from the validated clinic context.
 // v168: recognize the preserved clinic UUID by its authenticated clinic name.
-const CACHE_NAME = 'ent-report-system-v168-doc-jess-legacy-clinic';
+// v169: identify Doc Jess by the clinic's stable code as well as display name.
+const CACHE_NAME = 'ent-report-system-v169-doc-jess-clinic-code';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

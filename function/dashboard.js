@@ -91,10 +91,11 @@
         const activeClinicId = String(scope && (scope.activeClinicId
             || (user.is_super_secretary === true && scope.workingClinicId)
             || selectedClinicId) || '').trim();
-        const activeClinicName = selected && selectedClinicId === activeClinicId
-            ? selected.clinic_name
-            : (user.is_super_secretary === true && scope && scope.workingClinicName);
-        return Auth.isDocJessClinic(activeClinicId, activeClinicName);
+        const activeClinicName = scope && scope.activeClinicName
+            || (selected && selectedClinicId === activeClinicId
+                ? selected.clinic_name
+                : (user.is_super_secretary === true && scope && scope.workingClinicName));
+        return Auth.isDocJessClinic(activeClinicId, activeClinicName, scope && scope.activeClinicCode);
     }
 
     function setMedicalDocumentAvailability(available) {
@@ -3814,11 +3815,36 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
             }
         }
-        if (me.role === 'doctor'
-            && !Auth.isDocJessClinic(me.clinic_id, me.clinic_name)
-            && typeof Auth.getClinicName === 'function') {
+        const selectedSecretaryDoctor = me.role === 'secretary'
+            ? assignedDoctorRows.find(function (doctor) {
+                return String(doctor.doctor_id || '').trim() === String(scopeInfo.doctorId || '').trim();
+            })
+            : null;
+        const medicalDocumentClinicId = me.role === 'secretary'
+            ? String(scopeInfo.activeClinicId
+                || (me.is_super_secretary === true && scopeInfo.workingClinicId)
+                || (selectedSecretaryDoctor && selectedSecretaryDoctor.clinic_id) || '').trim()
+            : String(me.clinic_id || '').trim();
+        const medicalDocumentClinicName = me.role === 'secretary'
+            ? String(scopeInfo.activeClinicName
+                || (selectedSecretaryDoctor && selectedSecretaryDoctor.clinic_name)
+                || scopeInfo.workingClinicName || '').trim()
+            : String(me.clinic_name || '').trim();
+        const medicalDocumentClinicCode = me.role === 'secretary'
+            ? String(scopeInfo.activeClinicCode || '').trim()
+            : String(me.clinic_code || '').trim();
+        if (!Auth.isDocJessClinic(
+            medicalDocumentClinicId, medicalDocumentClinicName, medicalDocumentClinicCode
+        ) && medicalDocumentClinicId && typeof Auth.getClinicIdentity === 'function') {
             try {
-                me.clinic_name = await Auth.getClinicName(me.clinic_id);
+                const clinic = await Auth.getClinicIdentity(medicalDocumentClinicId);
+                if (me.role === 'secretary') {
+                    if (clinic.name) scopeInfo.activeClinicName = clinic.name;
+                    if (clinic.code) scopeInfo.activeClinicCode = clinic.code;
+                } else {
+                    if (clinic.name) me.clinic_name = clinic.name;
+                    if (clinic.code) me.clinic_code = clinic.code;
+                }
             } catch (error) {
                 console.error('[Dashboard] Could not verify the clinic for medical documents:', error);
             }

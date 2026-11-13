@@ -363,6 +363,7 @@
         if (!session || !session.user) return;
         let activeClinicId = String(session.user.clinic_id || '').trim();
         let activeClinicName = String(session.user.clinic_name || '').trim();
+        let activeClinicCode = String(session.user.clinic_code || '').trim();
         if (session.user.role === 'secretary' &&
             typeof window.EntAuth.fetchAssignedDoctors === 'function') {
             let doctors;
@@ -378,15 +379,20 @@
             const selectedDoctor = Array.isArray(doctors) && doctors.find(doctor =>
                 String(doctor.doctor_id || '') === String(scope && scope.doctorId || '')
             );
-            activeClinicId = String(selectedDoctor && selectedDoctor.clinic_id || '').trim();
+            activeClinicId = String(selectedDoctor && selectedDoctor.clinic_id
+                || scope && scope.workingClinicId
+                || session.user.clinic_id || '').trim();
             activeClinicName = String(selectedDoctor && selectedDoctor.clinic_name
                 || scope && scope.workingClinicName || '').trim();
+            activeClinicCode = '';
         }
-        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)
-            && session.user.role !== 'secretary'
-            && typeof window.EntAuth.getClinicName === 'function') {
+        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName, activeClinicCode)
+            && activeClinicId
+            && typeof window.EntAuth.getClinicIdentity === 'function') {
             try {
-                activeClinicName = await window.EntAuth.getClinicName(activeClinicId);
+                const clinic = await window.EntAuth.getClinicIdentity(activeClinicId);
+                activeClinicName = clinic.name;
+                activeClinicCode = clinic.code;
             } catch (error) {
                 console.error('Could not verify the clinic for medical documents:', error);
                 setStatus('Could not verify clinic access. Return to the dashboard and try again while online.', true);
@@ -394,7 +400,7 @@
                 return;
             }
         }
-        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)) {
+        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName, activeClinicCode)) {
             setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
             window.location.replace('../index.html?denied=medical-documents');
             return;

@@ -133,7 +133,7 @@
     const WORKING_DOCTOR_KEY = 'ent_working_doctor_v1';
     const SUPER_WORKING_DOCTOR_KEY = 'ent_super_secretary_working_doctor_v1';
     const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
-    const DOC_JESS_CLINIC_NAME = 'Doc Jess';
+    const DOC_JESS_CLINIC_CODES = ['main_clinic', 'jess', 'ent-jess'];
     // Set once the picker has been shown this session so it does not nag on
     // every page load; a secretary can reopen it from the header chip.
     const WORKING_PROMPTED_KEY = 'ent_working_prompted_v1';
@@ -143,17 +143,32 @@
     let activeClinicContextError = null;
     let clinicContextWarningShown = false;
 
-    function isDocJessClinic(clinicId, clinicName) {
+    function isDocJessClinic(clinicId, clinicName, clinicCode) {
         if (String(clinicId || '').trim() === DOC_JESS_CLINIC_ID) return true;
-        // 0002 preserves any pre-existing main_clinic UUID; 0046 fixes its name.
-        return String(clinicName || '').trim().toLowerCase() === DOC_JESS_CLINIC_NAME.toLowerCase();
+        const code = String(clinicCode || '').trim().toLowerCase();
+        if (DOC_JESS_CLINIC_CODES.indexOf(code) !== -1 || /^ent-jess-[a-z0-9]+$/.test(code)) return true;
+        const name = String(clinicName || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        return [
+            'doc jess',
+            'doc jess ent clinic',
+            'ent clinic doc jess',
+            'ent clinic doc jess jardin'
+        ].indexOf(name) !== -1;
+    }
+
+    async function getClinicIdentity(clinicId) {
+        const id = String(clinicId || '').trim();
+        if (!id) return { name: '', code: '' };
+        const rows = await api('clinics?id=eq.' + encodeURIComponent(id) + '&select=name,code');
+        const clinic = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        return {
+            name: String(clinic && clinic.name || '').trim(),
+            code: String(clinic && clinic.code || '').trim()
+        };
     }
 
     async function getClinicName(clinicId) {
-        const id = String(clinicId || '').trim();
-        if (!id) return '';
-        const rows = await api('clinics?id=eq.' + encodeURIComponent(id) + '&select=name');
-        return Array.isArray(rows) && rows[0] ? String(rows[0].name || '').trim() : '';
+        return (await getClinicIdentity(clinicId)).name;
     }
 
     /** The stored working choice { id, name, clinic }, or null. Never throws. */
@@ -2055,6 +2070,7 @@
         fetchAssignedDoctors,
         openClinicPicker,
         isDocJessClinic,
+        getClinicIdentity,
         getClinicName,
         workingDoctor: workingChoice,
         // Page URLs, resolved against this page's own depth. Shared with
