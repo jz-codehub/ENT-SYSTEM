@@ -439,7 +439,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v53-user-modal-refine/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v55-account-form-one-column/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
@@ -493,8 +493,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
       '.ent-user-assignment-section[hidden]', '#panel-users .ent-users-note'].every(function (rule) {
         return adminCss2.includes(rule)
       })
-      && /\.ent-user-doctor-grid \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/.test(adminCss2)
-      && /@media \(max-width: 560px\) \{\s*\.ent-user-doctor-grid \{ grid-template-columns: minmax\(0, 1fr\);/.test(adminCss2)
+      && /\.ent-user-doctor-grid \{ grid-template-columns: minmax\(0, 1fr\);/.test(adminCss2)
       && /\.ent-user-modal-close \{[\s\S]*?min-width: 0;[\s\S]*?box-shadow: none;/.test(adminCss2)
        && /@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-user-modal-card[\s\S]*?body\.dark-mode #panel-users/.test(adminCss2),
      'table rows stay contained and modal access fields reflow cleanly in small and dark displays')
@@ -1057,10 +1056,14 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v45-user-modal-refine/.test(html)
-       && /admin\.css\?v=v53-user-modal-refine/.test(html)
-       && /ent-report-system-v160-user-modal-refine/.test(
+       && /admin\.css\?v=v55-account-form-one-column/.test(html)
+       && /ent-report-system-v163-super-secretary-dashboard/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
+  is('A77g', 'the account form and doctor assignments use one column',
+     /\.ent-user-form-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css)
+       && /\.ent-user-doctor-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css),
+     'long labels and clinic selectors have the full dialog width')
 
   const chromeCss = css.slice(css.indexOf('/* ---------- Primary-color admin header and navigation ---------- */'))
   is('A77f', 'the admin header and sidebar use the system primary color in both themes',

@@ -75,7 +75,6 @@
     };
     const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
     let medicalDocumentsAvailable = false;
-    let assignedDoctorsLoadError = false;
 
     async function canUseMedicalDocuments(user) {
         if (user && user.role === 'secretary' && user.is_super_secretary === true) return true;
@@ -1162,72 +1161,23 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
 
     /* --------------------------- rendering --------------------------- */
-    function superSecretaryClinics() {
-        const clinics = new Map();
-        assignedDoctorRows.forEach(function (doctor) {
-            const clinicId = String(doctor.clinic_id || '').trim();
-            const clinicName = String(doctor.clinic_name || '').trim();
-            const key = clinicId || clinicName.toLowerCase() || 'unknown';
-            if (!clinics.has(key)) {
-                clinics.set(key, {
-                    name: clinicName || 'Clinic details unavailable',
-                    doctors: []
-                });
-            }
-            clinics.get(key).doctors.push(doctor);
-        });
-        return Array.from(clinics.values()).map(function (clinic) {
-            clinic.doctors.sort(function (a, b) {
-                return String(a.doctor_name || '').localeCompare(String(b.doctor_name || ''));
-            });
-            return clinic;
-        }).sort(function (a, b) { return a.name.localeCompare(b.name); });
-    }
-
-    function renderSuperSecretaryWorkspace() {
-        const workspace = byId('superSecretaryWorkspace');
-        if (!workspace || !me || me.role !== 'secretary' || me.is_super_secretary !== true) return;
-        workspace.hidden = false;
-
-        const clinics = superSecretaryClinics();
-        const doctorCount = byId('superSecretaryDoctorCount');
-        const clinicCount = byId('superSecretaryClinicCount');
-        const scopeNote = byId('superSecretaryScopeNote');
-        const clinicList = byId('superSecretaryClinicList');
-        if (doctorCount) doctorCount.textContent = String(assignedDoctorRows.length);
-        if (clinicCount) clinicCount.textContent = String(clinics.length);
-
-        if (scopeNote) {
-            scopeNote.textContent = assignedDoctorsLoadError
-                ? 'Clinic coverage could not be loaded. Use Refresh to try again.'
-                : assignedDoctorRows.length
-                    ? 'Access is limited to active doctors in this admin-managed clinic network.'
-                    : 'No active doctors were returned for this clinic network.';
-        }
-        if (!clinicList) return;
-        if (assignedDoctorsLoadError) {
-            clinicList.innerHTML = '<p class="ent-ss-empty">Clinic coverage could not be loaded. Refresh the dashboard to try again.</p>';
-            return;
-        }
-        if (!clinics.length) {
-            clinicList.innerHTML = '<p class="ent-ss-empty">No active doctor assignments are available.</p>';
-            return;
-        }
-        clinicList.innerHTML = clinics.map(function (clinic) {
-            const names = clinic.doctors.map(function (doctor) {
-                return '<li><span class="ent-ss-doctor-dot" aria-hidden="true"></span>'
-                    + esc(doctor.doctor_name || 'Doctor') + '</li>';
-            }).join('');
-            return '<section class="ent-ss-clinic">'
-                + '<div class="ent-ss-clinic-title"><h4>' + esc(clinic.name) + '</h4>'
-                + '<span>' + clinic.doctors.length + ' active doctor'
-                + (clinic.doctors.length === 1 ? '' : 's') + '</span></div>'
-                + '<ul>' + names + '</ul></section>';
-        }).join('');
+    function selectedAssignedDoctor() {
+        const selectedId = String(scopeInfo && scopeInfo.doctorId || '').trim();
+        return assignedDoctorRows.find(function (doctor) {
+            return String(doctor.doctor_id || '').trim() === selectedId;
+        }) || null;
     }
 
     function renderHero(data) {
         const user = me || {};
+        const selectedDoctor = selectedAssignedDoctor();
+        const selectedDoctorName = prettyName(
+            selectedDoctor && selectedDoctor.doctor_name || user.assigned_doctor_name
+        );
+        const selectedClinicName = String(selectedDoctor && selectedDoctor.clinic_name || '').trim();
+        const selectedWorkLabel = selectedClinicName
+            ? selectedClinicName + (selectedDoctorName ? ' \u00b7 Dr. ' + selectedDoctorName : '')
+            : selectedDoctorName ? 'Dr. ' + selectedDoctorName : 'your selected clinic';
         const first = greetingName(user);
         const greetEl = byId('dashGreeting');
         if (greetEl) {
@@ -1244,8 +1194,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (roleEl) {
             roleEl.textContent = user.role === 'secretary'
                 ? (user.is_super_secretary === true
-                    ? 'Network workspace \u00b7 ' + assignedDoctorRows.length + ' active doctors across '
-                        + superSecretaryClinics().length + ' clinics. Records stay within your admin-managed network.'
+                    ? (scopeInfo && scopeInfo.doctorId
+                        ? 'Viewing ' + selectedWorkLabel + '. Use Switch clinic in your profile to move between clinics.'
+                        : 'Choose a clinic using Switch clinic in your profile.')
                     : (scopeInfo && scopeInfo.allAssigned
                     ? 'All patients for your ' + assignedDoctorRows.length
                         + ' assigned doctors are included. New reports still file under your selected doctor.'
@@ -1264,17 +1215,20 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             // three "Dr. Jesus Jardin" mentions on one screen is noise.
             pill.textContent = user.role === 'secretary'
                 ? (user.is_super_secretary
-                    ? (scopeInfo && scopeInfo.allAssigned ? 'Super Secretary \u00b7 All clinics' : 'Super Secretary')
+                    ? 'Super Secretary'
                     : (scopeInfo && scopeInfo.allAssigned ? 'Secretary \u00b7 All doctors' : 'Secretary'))
                 : (user.role === 'admin' ? 'Admin' : 'Doctor');
         }
         const scopeToggle = byId('dashDoctorScopeToggle');
-        if (scopeToggle && user.role === 'secretary' && assignedDoctorRows.length > 1) {
-            scopeToggle.hidden = false;
-            scopeToggle.setAttribute('aria-pressed', scopeInfo && scopeInfo.allAssigned ? 'true' : 'false');
-            scopeToggle.textContent = scopeInfo && scopeInfo.allAssigned
-                ? 'Show selected doctor only'
-                : 'Show all ' + assignedDoctorRows.length + ' assigned doctors';
+        if (scopeToggle && user.role === 'secretary') {
+            const canExpandScope = user.is_super_secretary !== true && assignedDoctorRows.length > 1;
+            scopeToggle.hidden = !canExpandScope;
+            if (canExpandScope) {
+                scopeToggle.setAttribute('aria-pressed', scopeInfo && scopeInfo.allAssigned ? 'true' : 'false');
+                scopeToggle.textContent = scopeInfo && scopeInfo.allAssigned
+                    ? 'Show selected doctor only'
+                    : 'Show all ' + assignedDoctorRows.length + ' assigned doctors';
+            }
         }
 
         /* The header tagline used to be one hardcoded sentence for everyone:
@@ -1297,7 +1251,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             ? 'Clinic-wide preview \u2014 every doctor, every count'
             : (user.role === 'secretary'
                 ? (user.is_super_secretary === true
-                    ? 'Patient records and forms across your ENT clinic network'
+                    ? 'Use Switch clinic in your profile to view another clinic.'
                     : (scopeInfo && scopeInfo.allAssigned
                     ? 'All assigned doctors \u2014 nasal, laryngeal and CF4 records'
                     : dr
@@ -1308,18 +1262,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const tagEl = byId(tid);
             if (tagEl) tagEl.textContent = tagText;
         });
-        if (user.is_super_secretary === true) {
-            const quickTitle = byId('dashQuickActionsTitle');
-            const quickHint = byId('dashQuickActionsHint');
-            const tilesTitle = byId('dashTilesTitle');
-            const recentTitle = byId('dashRecentTitle');
-            const recentHint = byId('dashRecentHint');
-            if (quickTitle) quickTitle.textContent = 'Forms across your network';
-            if (quickHint) quickHint.textContent = 'Choose a form; it will be filed under the currently selected doctor.';
-            if (tilesTitle) tilesTitle.textContent = 'Network patient activity';
-            if (recentTitle) recentTitle.textContent = 'Patient records across your network';
-            if (recentHint) recentHint.textContent = 'Search by patient, date, report type or hospital; open a record from its row.';
-        }
 
         // The initials avatar with a role ring. Two letters from the display
         // name (or the username), coloured by role. Pure decoration, but it
@@ -3388,7 +3330,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const data = computeAll();
         dashboardData = data;
         renderHero(data);
-        renderSuperSecretaryWorkspace();
         renderNotices();
         renderTiles(data);
         renderSplitCharts(data);
@@ -3620,6 +3561,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         });
         const doctorScopeToggle = byId('dashDoctorScopeToggle');
         if (doctorScopeToggle) doctorScopeToggle.addEventListener('click', function () {
+            if (me && me.is_super_secretary === true) return;
             if (busy || !scopeInfo || !Array.isArray(scopeInfo.assignedDoctorIds)
                 || scopeInfo.assignedDoctorIds.length < 2) return;
             scopeInfo.allAssigned = !scopeInfo.allAssigned;
@@ -3777,12 +3719,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const session = await Auth.guard();
         if (!session || !session.user) return;
         me = session.user;
-        const isSuperSecretary = me.role === 'secretary' && me.is_super_secretary === true;
-        const superSecretaryWorkspace = byId('superSecretaryWorkspace');
-        if (superSecretaryWorkspace) superSecretaryWorkspace.hidden = !isSuperSecretary;
-        if (isSuperSecretary && document.body && document.body.classList) {
-            document.body.classList.add('ent-super-secretary');
-        }
         myName = String(me.username || '').trim().toLowerCase();
         try {
             medicalDocumentsAvailable = await canUseMedicalDocuments(me);
@@ -3804,7 +3740,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         }
         try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
         if (me.role === 'secretary' && typeof Auth.fetchAssignedDoctors === 'function') {
-            assignedDoctorsLoadError = false;
             try {
                 assignedDoctorRows = await Auth.fetchAssignedDoctors(true);
                 assignedDoctorRows = Array.isArray(assignedDoctorRows)
@@ -3813,15 +3748,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 scopeInfo.assignedDoctorIds = assignedDoctorRows.map(function (doctor) {
                     return String(doctor.doctor_id);
                 });
-                scopeInfo.allAssigned = me.is_super_secretary === true
-                    && scopeInfo.assignedDoctorIds.length > 0;
+                scopeInfo.allAssigned = false;
             } catch (error) {
                 assignedDoctorRows = [];
-                assignedDoctorsLoadError = true;
                 console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
             }
         }
-        renderSuperSecretaryWorkspace();
         revealDashboard();
         wireDashActions();
         start();

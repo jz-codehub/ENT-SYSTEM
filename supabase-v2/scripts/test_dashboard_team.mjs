@@ -761,8 +761,9 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   const toggle = env.nodes.dashDoctorScopeToggle
   ok('T49', 'multi-doctor secretaries get an explicit all-assigned-doctors view',
      !toggle.hidden && /Show all 2 assigned doctors/.test(toggle.textContent))
-  ok('T49a', 'the dedicated Super Secretary workspace stays hidden for regular secretaries',
-     env.nodes.superSecretaryWorkspace.hidden
+  const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
+  ok('T49a', 'all secretaries use the same dashboard without a separate network workspace',
+     !indexHtml.includes('ent-ss-workspace')
        && !env.bodyClasses.has('ent-super-secretary'))
   ok('T50', 'the default view stays on the currently selected doctor',
      env.win.EntDashboard.getRows().length === 1
@@ -784,7 +785,7 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && env.nodes.dashRoleLine.textContent.includes('2 assigned doctors'))
 }
 
-/* ---- 11 · Super Secretaries open in the full clinic-network view ---- */
+/* ---- 11 · Super Secretaries use the selected clinic dashboard -------- */
 {
   const SUPER = {
     id: 'sec-super', username: 'supersec', full_name: 'Super Secretary',
@@ -806,44 +807,50 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     ],
     team: { kind: 'rows', rows: [] },
     dashboardSummary: request => request.p_windows.map(window => ({
-      bucket_key: window.bucket_key, reports: 2, patient_count: 2, endo_count: 1,
-      cf4_count: 1, nasal_reports: 1, laryngeal_reports: 0, cf4_reports: 1,
+      bucket_key: window.bucket_key, reports: request.p_scope_all ? 2 : 1,
+      patient_count: request.p_scope_all ? 2 : 1, endo_count: 1,
+      cf4_count: request.p_scope_all ? 1 : 0, nasal_reports: 1, laryngeal_reports: 0,
+      cf4_reports: request.p_scope_all ? 1 : 0,
       other_reports: 0, mine: 0,
     })),
   })
   await flush()
+  const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
   const summaryCall = env.calls.find(call => call.endpoint.includes('rpc/ent_dashboard_summary'))
   const summaryRequest = summaryCall && JSON.parse(summaryCall.body)
-  ok('T53', 'Super Secretary defaults to all active doctors in her network',
-     env.win.EntDashboard.getRows().length === 2
-       && !env.nodes.dashDoctorScopeToggle.hidden
+  ok('T53', 'Super Secretary defaults to the currently selected doctor',
+     env.win.EntDashboard.getRows().length === 1
+       && env.win.EntDashboard.getRows()[0].doctor_id === 'doc-jardin'
+       && env.nodes.dashDoctorScopeToggle.hidden
        && env.nodes.dashScopePill.textContent.includes('Super Secretary'))
-  ok('T54', 'the default full-network dashboard summary is RLS-scoped',
-     !!summaryRequest && summaryRequest.p_scope_all === true
-       && summaryRequest.p_doctor_id === null)
-  ok('T55', 'Super Secretaries get a distinct network workbench and clinic roster',
-     !env.nodes.superSecretaryWorkspace.hidden
-       && env.bodyClasses.has('ent-super-secretary')
-       && env.nodes.superSecretaryDoctorCount.textContent === '2'
-       && env.nodes.superSecretaryClinicCount.textContent === '2'
-       && env.nodes.superSecretaryClinicList.innerHTML.includes('ENT North')
-       && env.nodes.superSecretaryClinicList.innerHTML.includes('Other Doctor'))
-  const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
-  const superSecretaryMarkup = (indexHtml.match(/<section class="ent-ss-workspace"[\s\S]*?<\/section>/) || [''])[0]
-  ok('T55a', 'the Super Secretary workspace avoids repeating dashboard form shortcuts',
-     !!superSecretaryMarkup
-       && !superSecretaryMarkup.includes('Find / open patient records')
-       && !superSecretaryMarkup.includes('data-report-type=')
+  const superToggle = env.nodes.dashDoctorScopeToggle.listeners.click
+  if (superToggle && superToggle[0]) {
+    superToggle[0]({})
+    await flush()
+  }
+  const afterToggleCall = env.calls.filter(call => call.endpoint.includes('rpc/ent_dashboard_summary')).pop()
+  const afterToggleRequest = afterToggleCall && JSON.parse(afterToggleCall.body)
+  ok('T53a', 'Super Secretary cannot expand the dashboard to all assigned doctors',
+     env.win.EntDashboard.getRows().length === 1
+       && !!afterToggleRequest && afterToggleRequest.p_scope_all === false
+       && afterToggleRequest.p_doctor_id === 'doc-jardin')
+  ok('T54', 'Super Secretary summary is limited to the selected doctor',
+     !!summaryRequest && summaryRequest.p_scope_all === false
+       && summaryRequest.p_doctor_id === 'doc-jardin')
+  ok('T55', 'Super Secretaries use the normal dashboard and can switch clinics from the profile menu',
+     !indexHtml.includes('ent-ss-workspace')
+       && !env.bodyClasses.has('ent-super-secretary')
+       && /ENT North.*Switch clinic/.test(env.nodes.dashRoleLine.textContent)
        && indexHtml.includes('id="dashQuickActions"'))
   const dashboardCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
-  ok('T55b', 'Super Secretary quick actions appear before the workspace and other dashboard content',
-     /body\.ent-super-secretary #dashQuickActions\s*\{\s*order:\s*2;\s*\}/.test(dashboardCss)
-       && /body\.ent-super-secretary #superSecretaryWorkspace\s*\{\s*order:\s*3;\s*\}/.test(dashboardCss))
+  ok('T55a', 'the dashboard no longer adds a separate Super Secretary layout',
+     !dashboardCss.includes('ent-super-secretary')
+       && !dashboardCss.includes('ent-ss-workspace'))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
-  ok('T56', 'the dedicated workspace ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v36ad/.test(indexHtml)
-       && /dashboard\.css\?v=v36abg/.test(indexHtml)
-       && /ent-report-system-v160-user-modal-refine/.test(serviceWorker))
+  ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
+     /dashboard\.js\?v=v37-standard-secretary-dashboard/.test(indexHtml)
+       && /dashboard\.css\?v=v37-standard-secretary-dashboard/.test(indexHtml)
+       && /ent-report-system-v163-super-secretary-dashboard/.test(serviceWorker))
 }
 
 }

@@ -8660,8 +8660,8 @@ body.dark-mode .ent-user-modal-kicker { color: var(--primary-color); }
 .ent-user-modal-section-head { align-items: baseline; gap: 5px 10px; margin-bottom: 12px; }
 .ent-user-modal-section-head b { font-size: .82rem; font-weight: 760; }
 .ent-user-modal-section-head span { font-size: .68rem; }
-.ent-user-form-grid { gap: 15px 18px; }
-.ent-user-doctor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ent-user-form-grid { grid-template-columns: minmax(0, 1fr); gap: 15px; }
+.ent-user-doctor-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 #assignedWrap, #extraWrap { min-width: 0; }
 
 .ent-user-modal-card .ent-field label {
@@ -8687,6 +8687,7 @@ body.dark-mode .ent-user-modal-kicker { color: var(--primary-color); }
 
 .ent-user-modal-card .ent-field .ent-hint { font-size: .67rem; }
 .ent-user-check { min-height: 100%; align-items: flex-start; padding: 12px 13px; border-radius: 11px; }
+.ent-user-active-check { align-self: stretch; min-height: 42px; }
 .ent-user-check:hover { border-color: color-mix(in srgb, var(--primary-color) 44%, var(--border-color)); }
 .ent-user-check b { font-size: .74rem; }
 .ent-user-check small { font-size: .66rem; }
@@ -8717,14 +8718,13 @@ body.dark-mode .ent-user-modal-close { background: var(--input-bg-color); }
     .ent-user-modal-body { padding: 2px 16px 8px; }
     .ent-user-modal-section { padding: 15px 0; }
     .ent-user-modal-actions { padding: 12px 16px max(14px, env(safe-area-inset-bottom)); }
-    .ent-user-form-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-    .ent-user-active-check { align-self: stretch; }
+    .ent-user-form-grid { gap: 12px; }
     .ent-user-modal-section-head { align-items: flex-start; flex-direction: column; gap: 3px; }
     .ent-user-modal-actions .ent-btn { flex: 1 1 0; min-width: 0; }
 }
 
 @media (max-width: 560px) {
-    .ent-user-doctor-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .ent-user-doctor-grid { gap: 12px; }
     .ent-user-modal-header { gap: 10px; }
     .ent-user-modal-close { width: 36px; height: 36px; flex-basis: 36px; }
 }
