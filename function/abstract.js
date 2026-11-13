@@ -361,8 +361,8 @@
         }
         const session = await window.EntAuth.guard();
         if (!session || !session.user) return;
-        const docJessClinicId = '00000000-0000-4000-8000-00000000c11c';
         let activeClinicId = String(session.user.clinic_id || '').trim();
+        let activeClinicName = String(session.user.clinic_name || '').trim();
         if (session.user.role === 'secretary' &&
             typeof window.EntAuth.fetchAssignedDoctors === 'function') {
             let doctors;
@@ -379,8 +379,22 @@
                 String(doctor.doctor_id || '') === String(scope && scope.doctorId || '')
             );
             activeClinicId = String(selectedDoctor && selectedDoctor.clinic_id || '').trim();
+            activeClinicName = String(selectedDoctor && selectedDoctor.clinic_name
+                || scope && scope.workingClinicName || '').trim();
         }
-        if (activeClinicId !== docJessClinicId) {
+        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)
+            && session.user.role !== 'secretary'
+            && typeof window.EntAuth.getClinicName === 'function') {
+            try {
+                activeClinicName = await window.EntAuth.getClinicName(activeClinicId);
+            } catch (error) {
+                console.error('Could not verify the clinic for medical documents:', error);
+                setStatus('Could not verify clinic access. Return to the dashboard and try again while online.', true);
+                window.location.replace('../index.html?denied=medical-documents');
+                return;
+            }
+        }
+        if (!window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)) {
             setStatus('Clinical Abstract and Medical Certificate are currently available only to Doc Jess clinic.', true);
             window.location.replace('../index.html?denied=medical-documents');
             return;

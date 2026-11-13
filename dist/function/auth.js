@@ -132,6 +132,8 @@
        sign-out so the next account inherits no selection. */
     const WORKING_DOCTOR_KEY = 'ent_working_doctor_v1';
     const SUPER_WORKING_DOCTOR_KEY = 'ent_super_secretary_working_doctor_v1';
+    const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
+    const DOC_JESS_CLINIC_NAME = 'Doc Jess';
     // Set once the picker has been shown this session so it does not nag on
     // every page load; a secretary can reopen it from the header chip.
     const WORKING_PROMPTED_KEY = 'ent_working_prompted_v1';
@@ -140,6 +142,19 @@
     let activeClinicContextDoctorId = '';
     let activeClinicContextError = null;
     let clinicContextWarningShown = false;
+
+    function isDocJessClinic(clinicId, clinicName) {
+        if (String(clinicId || '').trim() === DOC_JESS_CLINIC_ID) return true;
+        // 0002 preserves any pre-existing main_clinic UUID; 0046 fixes its name.
+        return String(clinicName || '').trim().toLowerCase() === DOC_JESS_CLINIC_NAME.toLowerCase();
+    }
+
+    async function getClinicName(clinicId) {
+        const id = String(clinicId || '').trim();
+        if (!id) return '';
+        const rows = await api('clinics?id=eq.' + encodeURIComponent(id) + '&select=name');
+        return Array.isArray(rows) && rows[0] ? String(rows[0].name || '').trim() : '';
+    }
 
     /** The stored working choice { id, name, clinic }, or null. Never throws. */
     function workingChoice() {
@@ -2039,6 +2054,8 @@
         // 0037 cross-clinic secretary: the "working today at ..." picker.
         fetchAssignedDoctors,
         openClinicPicker,
+        isDocJessClinic,
+        getClinicName,
         workingDoctor: workingChoice,
         // Page URLs, resolved against this page's own depth. Shared with
         // dashboard.js, admin.js and draftsBrowser.js so a link to the

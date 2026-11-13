@@ -91,7 +91,7 @@ function domIds() {
 /* ------------------------------------------------------------------ */
 function boot({
   user, team, onLine = true, queue = [], counters = [], directory = null,
-  dashboardSummary, exportPages, assignedDoctors = []
+  dashboardSummary, exportPages, assignedDoctors = [], clinicNameLookup
 }) {
   const calls = []
   const nodes = {}
@@ -178,6 +178,10 @@ function boot({
       currentUser: () => user,
       fetchAssignedDoctors: async () => assignedDoctors,
       openClinicPicker: doctors => clinicPickerCalls.push(doctors),
+      isDocJessClinic: (clinicId, clinicName) =>
+        String(clinicId || '').trim() === '00000000-0000-4000-8000-00000000c11c'
+        || String(clinicName || '').trim().toLowerCase() === 'doc jess',
+      getClinicName: async clinicId => clinicNameLookup ? clinicNameLookup(clinicId) : '',
       escapeHtml: v => String(v ?? '').replace(/[&<>'"]/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])),
       logActivity: async () => true,
@@ -892,11 +896,11 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v40-active-clinic-docs/.test(indexHtml)
+     /dashboard\.js\?v=v41-doc-jess-legacy-clinic/.test(indexHtml)
        && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
-       && /auth\.js\?v=v36k-clinic-picker/.test(indexHtml)
+       && /auth\.js\?v=v36l-doc-jess-legacy-clinic/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v167-doc-jess-clinic-actions/.test(serviceWorker))
+       && /ent-report-system-v168-doc-jess-legacy-clinic/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
@@ -972,6 +976,47 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T59', 'Doc Jess documents remain visible from the validated active-clinic context during a doctor-list lookup failure',
      jessContextEnv.reportButtons.every(button => button.hidden === false)
        && jessContextEnv.medicalDocumentFilters.every(option => option.hidden === false))
+
+  const JESS_LEGACY_CLINIC_ID = {
+    id: 'sec-jess-legacy', username: 'secretary', full_name: 'Clinic Secretary',
+    role: 'secretary', is_super_secretary: true, assigned_doctor_id: 'doc-jess-legacy',
+    is_active: true,
+  }
+  const jessLegacyEnv = boot({
+    user: JESS_LEGACY_CLINIC_ID,
+    assignedDoctors: [
+      { doctor_id: 'doc-jess-legacy', doctor_name: 'Doc Jess Jardin',
+        clinic_id: 'legacy-main-clinic-id', clinic_name: 'Doc Jess', is_primary: true },
+    ],
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T60', 'Doc Jess actions recognize the canonical clinic name when the database has a legacy clinic UUID',
+     jessLegacyEnv.reportButtons.every(button => button.hidden === false)
+       && jessLegacyEnv.medicalDocumentFilters.every(option => option.hidden === false))
+
+  const jessDoctorEnv = boot({
+    user: {
+      id: 'doc-jess-legacy', username: 'jess', full_name: 'Doc Jess',
+      role: 'doctor', clinic_id: 'legacy-main-clinic-id', is_active: true,
+    },
+    team: { kind: 'rows', rows: [] },
+    clinicNameLookup: async clinicId => clinicId === 'legacy-main-clinic-id' ? 'Doc Jess' : '',
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T61', 'a Doc Jess doctor resolves its authenticated clinic name before showing document actions',
+     jessDoctorEnv.reportButtons.every(button => button.hidden === false)
+       && jessDoctorEnv.medicalDocumentFilters.every(option => option.hidden === false))
 }
 
 }

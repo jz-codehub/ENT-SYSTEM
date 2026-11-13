@@ -30,6 +30,7 @@ let sent = []
 let signInResult = { data: { user: null }, error: null }
 let sessionRow = null
 let restStatus = 200
+let clinicRows = []
 // When set, the stub Edge Function answers `download` with exactly these
 // rows. The REAL function returns objects — { path, mime, base64, bytes } —
 // not data URLs, which is the shape downloadAsBase64() has to convert.
@@ -76,6 +77,7 @@ function makeWindow() {
         win.__clinicContextDoctor = JSON.parse(opts.body || '{}').p_doctor || ''
         return jsonResponse(200, win.__activeClinicId || '')
       }
+      if (String(url).includes('/clinics?')) return jsonResponse(restStatus, clinicRows)
       return jsonResponse(restStatus, Array.isArray(sessionRow) ? sessionRow : [])
     },
     supabase: {
@@ -125,7 +127,8 @@ const S = win.EntSupabase, A = win.EntAuth
 const need = {
   EntSupabase: ['apiRequest', 'isConfigured', 'getConfig', 'getClient', 'getAccessToken', 'onAuthChange'],
   EntAuth: ['login', 'logout', 'setPassword', 'guard', 'boot', 'ready', 'refreshProfile',
-            'scope', 'currentUser', 'isAdmin', 'readSession', 'logActivity', 'escapeHtml']
+            'scope', 'currentUser', 'isAdmin', 'readSession', 'logActivity', 'escapeHtml',
+            'isDocJessClinic', 'getClinicName']
 }
 const missing = []
 for (const [ns, members] of Object.entries(need)) {
@@ -209,6 +212,18 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
   is('T7b', 'a live profile becomes the current user',
      r8.success === true && !!me && me.role === 'doctor' && me.username === 'testdoc1',
      me ? `${me.username}/${me.role}` : 'no user')
+  is('T7c', 'Doc Jess clinic identity accepts its preserved legacy UUID by canonical name',
+     A.isDocJessClinic('legacy-main-clinic-id', 'Doc Jess')
+       && A.isDocJessClinic('legacy-main-clinic-id', 'DOC JESS')
+       && !A.isDocJessClinic('another-clinic-id', 'ENT South'),
+     'a different clinic name remains denied')
+  clinicRows = [{ id: 'legacy-main-clinic-id', name: 'Doc Jess' }]
+  const resolvedClinicName = await A.getClinicName('legacy-main-clinic-id')
+  is('T7c2', 'clinic name lookup resolves the authenticated clinic row',
+     resolvedClinicName === 'Doc Jess'
+       && sent.some(r => r.url.includes('/clinics?id=eq.legacy-main-clinic-id&select=name')),
+     resolvedClinicName || 'clinic name not returned')
+  clinicRows = []
 
   const forbidden = ['clinic_id', 'doctor_id', 'created_by'].filter(k => k in ({ record_key: 'x', payload: {} }))
   is('T8', 'a report write carries no clinic_id / doctor_id / created_by',
@@ -880,11 +895,12 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
      `options=${clinicOptionCount}, active=${modal.innerHTML.includes('aria-pressed="true"')}, role=${modal.attributes.role}`)
 
   const abstractJs = readFileSync(join(APP, 'function', 'abstract.js'), 'utf8')
-  is('T14', 'direct medical-document pages require the active Doc Jess clinic id',
-     abstractJs.includes("const docJessClinicId = '00000000-0000-4000-8000-00000000c11c'")
-       && abstractJs.includes('activeClinicId !== docJessClinicId')
+  is('T14', 'direct medical-document pages require the active Doc Jess clinic identity',
+     abstractJs.includes('window.EntAuth.isDocJessClinic(activeClinicId, activeClinicName)')
+       && abstractJs.includes('activeClinicName = String(selectedDoctor && selectedDoctor.clinic_name')
+       && abstractJs.includes('window.EntAuth.getClinicName(activeClinicId)')
        && !/knownDocJessProfile|assignedToDocJess|jess\|jesus/i.test(abstractJs),
-     'identity and Super Secretary status no longer bypass the clinic gate')
+     'active clinic identity is checked without a profile-name bypass')
   sessionRow = previousProfile
   sent = previousSent
 }

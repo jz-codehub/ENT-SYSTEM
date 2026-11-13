@@ -75,23 +75,26 @@
     };
     const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
     const MEDICAL_DOCUMENT_TYPES = ['abstract', 'medicalCertificate'];
-    const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
     let medicalDocumentsAvailable = false;
 
     function canUseMedicalDocuments(user, scope, doctors) {
         if (!user) return false;
         if (user.role !== 'secretary') {
-            return String(user.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
+            return Auth.isDocJessClinic(user.clinic_id, user.clinic_name);
         }
         // Auth.guard validates the Super Secretary's working clinic with the server.
-        const activeClinicId = String(scope && (scope.activeClinicId
-            || (user.is_super_secretary === true && scope.workingClinicId)) || '').trim();
-        if (activeClinicId) return activeClinicId === DOC_JESS_CLINIC_ID;
         const selectedId = String(scope && scope.doctorId || '').trim();
         const selected = (Array.isArray(doctors) ? doctors : []).find(function (doctor) {
             return String(doctor.doctor_id || '').trim() === selectedId;
         });
-        return !!selected && String(selected.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
+        const selectedClinicId = String(selected && selected.clinic_id || '').trim();
+        const activeClinicId = String(scope && (scope.activeClinicId
+            || (user.is_super_secretary === true && scope.workingClinicId)
+            || selectedClinicId) || '').trim();
+        const activeClinicName = selected && selectedClinicId === activeClinicId
+            ? selected.clinic_name
+            : (user.is_super_secretary === true && scope && scope.workingClinicName);
+        return Auth.isDocJessClinic(activeClinicId, activeClinicName);
     }
 
     function setMedicalDocumentAvailability(available) {
@@ -3809,6 +3812,15 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             } catch (error) {
                 assignedDoctorRows = [];
                 console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
+            }
+        }
+        if (me.role === 'doctor'
+            && !Auth.isDocJessClinic(me.clinic_id, me.clinic_name)
+            && typeof Auth.getClinicName === 'function') {
+            try {
+                me.clinic_name = await Auth.getClinicName(me.clinic_id);
+            } catch (error) {
+                console.error('[Dashboard] Could not verify the clinic for medical documents:', error);
             }
         }
         setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, assignedDoctorRows));
