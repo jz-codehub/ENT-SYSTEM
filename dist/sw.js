@@ -934,7 +934,8 @@
 // v151: fix dashboard notification overlay and refresh admin activity actors.
 // v152: ship Super Secretary network access, dashboard and form permissions.
 // v153: refresh the admin script with the valid secretary-assignment filter.
-const CACHE_NAME = 'ent-report-system-v153-admin-assignment-filter';
+// v154: ship the dedicated Super Secretary network workbench.
+const CACHE_NAME = 'ent-report-system-v154-super-secretary-workbench';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

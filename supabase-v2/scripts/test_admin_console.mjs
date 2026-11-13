@@ -1020,7 +1020,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v40-super-secretary-assignment-filter/.test(html)
-       && /ent-report-system-v153-admin-assignment-filter/.test(
+       && /ent-report-system-v154-super-secretary-workbench/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
 

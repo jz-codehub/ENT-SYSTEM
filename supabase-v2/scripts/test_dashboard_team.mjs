@@ -97,6 +97,7 @@ function boot({
   const nodes = {}
   const downloads = []
   const downloadBlobs = []
+  const bodyClasses = new Set()
   for (const id of domIds()) nodes[id] = makeNode(id)
   nodes.dashPeriodSelect = makeNode('dashPeriodSelect')
 
@@ -115,7 +116,14 @@ function boot({
     localStorage: storage, sessionStorage: storage,
     document: {
       readyState: 'complete', hidden: false,
-      body: { classList: { contains: () => false }, insertAdjacentHTML() {}, appendChild() {} },
+      body: {
+        classList: {
+          add: name => bodyClasses.add(name),
+          remove: name => bodyClasses.delete(name),
+          contains: name => bodyClasses.has(name),
+        },
+        insertAdjacentHTML() {}, appendChild() {}
+      },
       addEventListener: (t, fn) => { (docListeners[t] = docListeners[t] || []).push(fn) },
       getElementById: id => nodes[id] || null,
       querySelector: () => null, querySelectorAll: () => [],
@@ -207,7 +215,7 @@ function boot({
   const src = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dashboard.js' })
-  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav }
+  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav, bodyClasses }
 }
 
 
@@ -753,6 +761,9 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   const toggle = env.nodes.dashDoctorScopeToggle
   ok('T49', 'multi-doctor secretaries get an explicit all-assigned-doctors view',
      !toggle.hidden && /Show all 2 assigned doctors/.test(toggle.textContent))
+  ok('T49a', 'the dedicated Super Secretary workspace stays hidden for regular secretaries',
+     env.nodes.superSecretaryWorkspace.hidden
+       && !env.bodyClasses.has('ent-super-secretary'))
   ok('T50', 'the default view stays on the currently selected doctor',
      env.win.EntDashboard.getRows().length === 1
        && env.win.EntDashboard.getRows()[0].doctor_id === 'doc-jardin')
@@ -783,8 +794,10 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   const env = boot({
     user: SUPER,
     assignedDoctors: [
-      { doctor_id: 'doc-jardin', doctor_name: 'Jesus Jardin', is_primary: true },
-      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', is_primary: false },
+      { doctor_id: 'doc-jardin', doctor_name: 'Jesus Jardin', clinic_id: 'clinic-north',
+        clinic_name: 'ENT North', is_primary: true },
+      { doctor_id: 'doc-other', doctor_name: 'Other Doctor', clinic_id: 'clinic-south',
+        clinic_name: 'ENT South', is_primary: false },
     ],
     counters: [
       { doctor_id: 'doc-jardin', created_at: new Date().toISOString(), report_type: 'nasal' },
@@ -808,6 +821,19 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T54', 'the default full-network dashboard summary is RLS-scoped',
      !!summaryRequest && summaryRequest.p_scope_all === true
        && summaryRequest.p_doctor_id === null)
+  ok('T55', 'Super Secretaries get a distinct network workbench and clinic roster',
+     !env.nodes.superSecretaryWorkspace.hidden
+       && env.bodyClasses.has('ent-super-secretary')
+       && env.nodes.superSecretaryDoctorCount.textContent === '2'
+       && env.nodes.superSecretaryClinicCount.textContent === '2'
+       && env.nodes.superSecretaryClinicList.innerHTML.includes('ENT North')
+       && env.nodes.superSecretaryClinicList.innerHTML.includes('Other Doctor'))
+  const indexHtml = readFileSync(join(APP, 'index.html'), 'utf8')
+  const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
+  ok('T56', 'the dedicated workspace ships with fresh script, style and service-worker versions',
+     /dashboard\.js\?v=v36ad/.test(indexHtml)
+       && /dashboard\.css\?v=v36abe/.test(indexHtml)
+       && /ent-report-system-v154-super-secretary-workbench/.test(serviceWorker))
 }
 
 }

@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="./style/index.css?v=v33y">
     <link rel="stylesheet" href="./style/auth.css?v=v33al">
-    <link rel="stylesheet" href="./style/dashboard.css?v=v36abd">
+    <link rel="stylesheet" href="./style/dashboard.css?v=v36abe">
     <link rel="stylesheet" href="./style/notifications.css?v=v3-notification-panel">
     <link rel="stylesheet" href="./style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="./style/mobile.css?v=v26-header-actions">
@@ -158,12 +158,54 @@
             </div>
         </section>
 
+        <section class="ent-ss-workspace" id="superSecretaryWorkspace" hidden
+                 aria-labelledby="superSecretaryTitle">
+            <header class="ent-ss-heading">
+                <div>
+                    <p class="ent-ss-eyebrow">ALL-CLINIC OPERATIONS</p>
+                    <h2 id="superSecretaryTitle">Super Secretary Workspace</h2>
+                    <p>Find patient records and open the forms you handle across your clinic network.</p>
+                </div>
+                <span class="ent-ss-network-badge">Managed clinic network</span>
+            </header>
+            <div class="ent-ss-overview">
+                <div class="ent-ss-stat">
+                    <span>Active doctors</span>
+                    <strong id="superSecretaryDoctorCount">0</strong>
+                </div>
+                <div class="ent-ss-stat">
+                    <span>Clinics covered</span>
+                    <strong id="superSecretaryClinicCount">0</strong>
+                </div>
+                <p class="ent-ss-scope-note" id="superSecretaryScopeNote" role="status" aria-live="polite">
+                    Loading your network coverage&hellip;
+                </p>
+            </div>
+            <nav class="ent-ss-shortcuts" aria-label="Super Secretary work shortcuts">
+                <a class="ent-ss-open-records" href="#dashRecentCard">Find / open patient records</a>
+                <button type="button" data-report-type="nasal">Nasal</button>
+                <button type="button" data-report-type="laryngeal">Laryngeal</button>
+                <button type="button" data-report-type="cf4">CF4</button>
+                <button type="button" data-report-type="abstract">Clinical Abstract</button>
+                <button type="button" data-report-type="medicalCertificate">Medical Certificate</button>
+            </nav>
+            <div class="ent-ss-clinic-roster">
+                <div class="ent-ss-roster-head">
+                    <h3>Doctors in your network</h3>
+                    <span>New forms are filed under the currently selected doctor.</span>
+                </div>
+                <div class="ent-ss-clinic-list" id="superSecretaryClinicList">
+                    <p class="ent-empty">Loading clinic coverage&hellip;</p>
+                </div>
+            </div>
+        </section>
+
         <div id="dashNotices"></div>
 
-        <section class="ent-card">
+        <section class="ent-card" id="dashQuickActions">
             <div class="ent-card-head">
-                <h3>Quick actions</h3>
-                <span class="ent-hint">Tap a type to start &mdash; works even without internet</span>
+                <h3 id="dashQuickActionsTitle">Quick actions</h3>
+                <span class="ent-hint" id="dashQuickActionsHint">Tap a type to start &mdash; works even without internet</span>
             </div>
             <div class="ent-quick-grid">
                 <button type="button" class="ent-quick" data-report-type="nasal">
@@ -233,9 +275,9 @@
             </div>
         </section>
 
-        <section class="ent-card">
+        <section class="ent-card" id="dashTilesCard">
             <div class="ent-card-head">
-                <h3>Patients you handled</h3>
+                <h3 id="dashTilesTitle">Patients you handled</h3>
                 <span class="ent-hint">One visit is counted once &middot; the same patient on a different date counts again</span>
             </div>
             <div class="ent-dash-tiles" id="dashTiles">
@@ -412,10 +454,10 @@
             </div>
         </div>
 
-        <section class="ent-card">
+        <section class="ent-card" id="dashRecentCard">
             <div class="ent-card-head">
-                <h3>Latest patients</h3>
-                <span class="ent-hint">Newest first &middot; the card on the right is when it was entered</span>
+                <h3 id="dashRecentTitle">Latest patients</h3>
+                <span class="ent-hint" id="dashRecentHint">Newest first &middot; the card on the right is when it was entered</span>
             </div>
             <div class="ent-recent-filters no-print" role="search" aria-label="Filter recent patient records">
                 <label class="ent-recent-search">
@@ -560,7 +602,7 @@
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
     <script src="function/index.js?v=v35e"></script>
-    <script src="function/dashboard.js?v=v36ac" defer></script>
+    <script src="function/dashboard.js?v=v36ad" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">
         <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>
