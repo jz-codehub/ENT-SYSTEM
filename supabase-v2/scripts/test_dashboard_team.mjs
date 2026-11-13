@@ -101,6 +101,12 @@ function boot({
     { ...makeNode('abstract-action'), hidden: false, getAttribute: name => name === 'data-report-type' ? 'abstract' : null },
     { ...makeNode('certificate-action'), hidden: false, getAttribute: name => name === 'data-report-type' ? 'medicalCertificate' : null },
   ]
+  const medicalDocumentFilters = [
+    { ...makeNode('abstract-filter'), hidden: false },
+    { ...makeNode('certificate-filter'), hidden: false },
+  ]
+  const profileSwitchButton = makeNode('profile-switch')
+  const clinicPickerCalls = []
   const bodyClasses = new Set()
   for (const id of domIds()) nodes[id] = makeNode(id)
   nodes.dashPeriodSelect = makeNode('dashPeriodSelect')
@@ -130,9 +136,13 @@ function boot({
       },
       addEventListener: (t, fn) => { (docListeners[t] = docListeners[t] || []).push(fn) },
       getElementById: id => nodes[id] || null,
-      querySelector: () => null,
-      querySelectorAll: selector => selector === '[data-report-type="abstract"], [data-report-type="medicalCertificate"]'
-        ? reportButtons : [],
+      querySelector: selector => selector === '#entUserChip .ent-user-switch'
+        ? profileSwitchButton : null,
+      querySelectorAll: selector => {
+        if (selector === '[data-report-type="abstract"], [data-report-type="medicalCertificate"]') return reportButtons
+        if (selector === '[data-medical-document-filter]') return medicalDocumentFilters
+        return []
+      },
       createElement: tag => {
         const element = makeNode('new-' + Math.random())
         if (String(tag).toLowerCase() === 'a') {
@@ -165,6 +175,7 @@ function boot({
       }),
       currentUser: () => user,
       fetchAssignedDoctors: async () => assignedDoctors,
+      openClinicPicker: doctors => clinicPickerCalls.push(doctors),
       escapeHtml: v => String(v ?? '').replace(/[&<>'"]/g, c =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])),
       logActivity: async () => true,
@@ -221,7 +232,10 @@ function boot({
   const src = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dashboard.js' })
-  return { win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav, bodyClasses, reportButtons }
+  return {
+    win, nodes, calls, downloads, downloadBlobs, docListeners, winListeners, nav,
+    bodyClasses, reportButtons, medicalDocumentFilters, clinicPickerCalls, profileSwitchButton,
+  }
 }
 
 
@@ -832,7 +846,12 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
        && env.win.EntDashboard.getRows().every(row =>
          ['doc-jardin', 'doc-other'].includes(row.doctor_id))
        && env.nodes.dashDoctorScopeToggle.hidden
-       && env.nodes.dashScopePill.textContent.includes('ENT North')
+       && env.nodes.dashScopePill.textContent === 'Super Secretary'
+       && env.nodes.dashScopePill.className.includes('is-super-secretary')
+       && env.nodes.dashClinicContext.hidden === false
+       && env.nodes.dashClinicName.textContent === 'ENT North'
+       && env.nodes.dashClinicSwitchBtn.hidden === false
+       && env.profileSwitchButton.hidden === true
        && env.nodes.dashRoleLine.textContent.includes('2 doctors'))
   const superToggle = env.nodes.dashDoctorScopeToggle.listeners.click
   if (superToggle && superToggle[0]) {
@@ -848,20 +867,29 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T54', 'Super Secretary summary requests all rows, with database RLS enforcing the active clinic',
      !!summaryRequest && summaryRequest.p_scope_all === true
        && summaryRequest.p_doctor_id === null)
-  ok('T55', 'Super Secretaries use the normal dashboard and can switch clinics from the profile menu',
+  ok('T55', 'Super Secretaries use the normal dashboard with a visible active-clinic switcher',
      !indexHtml.includes('ent-ss-workspace')
        && !env.bodyClasses.has('ent-super-secretary')
        && /ENT North.*New reports are filed/.test(env.nodes.dashRoleLine.textContent)
-       && indexHtml.includes('id="dashQuickActions"'))
+       && indexHtml.includes('id="dashQuickActions"')
+       && /id="dashClinicSwitchBtn"[\s\S]*?<span>Switch clinic<\/span>/.test(indexHtml))
+  const switchListeners = env.nodes.dashClinicSwitchBtn.listeners.click || []
+  if (switchListeners[0]) {
+    switchListeners[0]({})
+    await flush()
+  }
+  ok('T55b', 'the visible clinic switcher opens the server-backed clinic picker',
+     env.clinicPickerCalls.length === 1
+       && env.clinicPickerCalls[0].length === 3)
   const dashboardCss = readFileSync(join(APP, 'style', 'dashboard.css'), 'utf8')
   ok('T55a', 'the dashboard no longer adds a separate Super Secretary layout',
      !dashboardCss.includes('ent-super-secretary')
        && !dashboardCss.includes('ent-ss-workspace'))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v38-active-clinic/.test(indexHtml)
-       && /dashboard\.css\?v=v37-standard-secretary-dashboard/.test(indexHtml)
-       && /ent-report-system-v164-active-clinic-scope/.test(serviceWorker))
+     /dashboard\.js\?v=v39-super-secretary-polish/.test(indexHtml)
+       && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
+       && /ent-report-system-v165-super-secretary-polish/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */
@@ -881,14 +909,17 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
     ],
     team: { kind: 'rows', rows: [] },
     dashboardSummary: request => request.p_windows.map(window => ({
-      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
-      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      bucket_key: window.bucket_key, reports: 1, patient_count: 1, endo_count: 1,
+      cf4_count: 0, nasal_reports: 1, laryngeal_reports: 0, cf4_reports: 0,
       other_reports: 0, mine: 0,
     })),
   })
   await flush()
   ok('T57', 'Jess names and access to a Jess doctor elsewhere do not unlock documents for another active clinic',
-     env.reportButtons.every(button => button.hidden === true))
+     env.reportButtons.every(button => button.hidden === true)
+       && env.medicalDocumentFilters.every(option => option.hidden === true)
+       && !env.nodes.dashMix.innerHTML.includes('Clinical Abstract')
+       && !env.nodes.dashMix.innerHTML.includes('Medical Certificate'))
 
   const JESS_ACTIVE = {
     id: 'sec-jess', username: 'secretary', full_name: 'Clinic Secretary',
@@ -910,7 +941,9 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   })
   await flush()
   ok('T58', 'the same document actions are available while the active clinic is Doc Jess',
-     jessEnv.reportButtons.every(button => button.hidden === false))
+     jessEnv.reportButtons.every(button => button.hidden === false)
+       && jessEnv.medicalDocumentFilters.every(option => option.hidden === false)
+       && jessEnv.nodes.dashClinicSwitchBtn.hidden === true)
 }
 
 }

@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="./style/index.css?v=v33y">
     <link rel="stylesheet" href="./style/auth.css?v=v33al">
-    <link rel="stylesheet" href="./style/dashboard.css?v=v37-standard-secretary-dashboard">
+    <link rel="stylesheet" href="./style/dashboard.css?v=v38-super-secretary-polish">
     <link rel="stylesheet" href="./style/notifications.css?v=v3-notification-panel">
     <link rel="stylesheet" href="./style/messages.css?v=v10-messenger-refresh">
     <link rel="stylesheet" href="./style/mobile.css?v=v26-header-actions">
@@ -90,6 +90,31 @@
                                     aria-pressed="false" hidden>Show all assigned doctors</button>
                         </div>
                         <p class="ent-dash-role" id="dashRoleLine">Loading your workspace&hellip;</p>
+                        <div class="ent-dash-clinic-context" id="dashClinicContext" hidden>
+                            <span class="ent-dash-clinic-mark" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 21h18M5 21V7l7-4 7 4v14"/>
+                                    <path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/>
+                                </svg>
+                            </span>
+                            <span class="ent-dash-clinic-copy">
+                                <small>Active clinic</small>
+                                <strong id="dashClinicName"></strong>
+                            </span>
+                            <span class="ent-dash-clinic-limit">Only this clinic&rsquo;s records</span>
+                            <button type="button" class="ent-dash-clinic-switch" id="dashClinicSwitchBtn" hidden>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                     aria-hidden="true">
+                                    <path d="M20 7h-9a4 4 0 0 0-4 4v1"/>
+                                    <path d="m16 3 4 4-4 4"/>
+                                    <path d="M4 17h9a4 4 0 0 0 4-4v-1"/>
+                                    <path d="m8 21-4-4 4-4"/>
+                                </svg>
+                                <span>Switch clinic</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="ent-dash-statusrow">
@@ -438,8 +463,8 @@
                         <option value="nasal">Nasal</option>
                         <option value="laryngeal">Laryngeal</option>
                         <option value="cf4">CF4</option>
-                        <option value="abstract">Clinical abstract</option>
-                        <option value="medicalCertificate">Medical certificate</option>
+                        <option value="abstract" data-medical-document-filter hidden>Clinical abstract</option>
+                        <option value="medicalCertificate" data-medical-document-filter hidden>Medical certificate</option>
                         </select>
                     </label>
                     <label class="ent-recent-filter">
@@ -560,7 +585,7 @@
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
     <script src="function/index.js?v=v35e"></script>
-    <script src="function/dashboard.js?v=v38-active-clinic" defer></script>
+    <script src="function/dashboard.js?v=v39-super-secretary-polish" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">
         <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>

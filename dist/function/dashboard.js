@@ -74,6 +74,7 @@
         }
     };
     const TYPE_ORDER = ['nasal', 'laryngeal', 'cf4', 'abstract', 'medicalCertificate'];
+    const MEDICAL_DOCUMENT_TYPES = ['abstract', 'medicalCertificate'];
     const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
     let medicalDocumentsAvailable = false;
 
@@ -87,6 +88,19 @@
             return String(doctor.doctor_id || '').trim() === selectedId;
         });
         return !!selected && String(selected.clinic_id || '').trim() === DOC_JESS_CLINIC_ID;
+    }
+
+    function setMedicalDocumentAvailability(available) {
+        medicalDocumentsAvailable = available === true;
+        document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
+            .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
+        document.querySelectorAll('[data-medical-document-filter]')
+            .forEach(function (option) { option.hidden = !medicalDocumentsAvailable; });
+        const recentType = byId('dashRecentType');
+        if (recentType && !medicalDocumentsAvailable
+            && MEDICAL_DOCUMENT_TYPES.indexOf(recentType.value) !== -1) {
+            recentType.value = '';
+        }
     }
 // Weekday names for the chart column labels - every activity chart (the
 // month grid and the three split charts) prints a three-letter day under
@@ -1139,10 +1153,29 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     function renderHero(data) {
         const user = me || {};
+        const isSuperSecretary = user.role === 'secretary' && user.is_super_secretary === true;
         const selectedDoctor = selectedAssignedDoctor();
         const selectedDoctorName = prettyName(
             selectedDoctor && selectedDoctor.doctor_name || user.assigned_doctor_name
         );
+        const activeClinicName = String(scopeInfo && scopeInfo.activeClinicName || '').trim();
+        const clinicContext = byId('dashClinicContext');
+        const clinicNameEl = byId('dashClinicName');
+        const clinicSwitchBtn = byId('dashClinicSwitchBtn');
+        if (clinicContext) clinicContext.hidden = !isSuperSecretary || !activeClinicName;
+        if (clinicNameEl) clinicNameEl.textContent = activeClinicName;
+        if (clinicSwitchBtn) {
+            const clinicIds = assignedDoctorRows.map(function (doctor) {
+                return String(doctor && doctor.clinic_id || '').trim();
+            }).filter(function (id, index, ids) {
+                return id && ids.indexOf(id) === index;
+            });
+            clinicSwitchBtn.hidden = !isSuperSecretary || clinicIds.length < 2;
+        }
+        if (isSuperSecretary && typeof document.querySelector === 'function') {
+            const profileSwitch = document.querySelector('#entUserChip .ent-user-switch');
+            if (profileSwitch) profileSwitch.hidden = true;
+        }
         const first = greetingName(user);
         const greetEl = byId('dashGreeting');
         if (greetEl) {
@@ -1177,13 +1210,14 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         const pill = byId('dashScopePill');
         if (pill) {
-            pill.className = 'ent-dash-scope role-' + (user.role || '');
+            pill.className = 'ent-dash-scope role-' + (user.role || '')
+                + (isSuperSecretary ? ' is-super-secretary' : '');
             // ROLE ONLY. The doctor's name is already the subject of the
             // role line right below, and it was in the header tagline too -
             // three "Dr. Jesus Jardin" mentions on one screen is noise.
             pill.textContent = user.role === 'secretary'
                 ? (user.is_super_secretary
-                    ? 'Super Secretary \u00b7 ' + (scopeInfo && scopeInfo.activeClinicName || 'Choose a clinic')
+                    ? 'Super Secretary'
                     : (scopeInfo && scopeInfo.allAssigned ? 'Secretary \u00b7 All doctors' : 'Secretary'))
                 : (user.role === 'admin' ? 'Admin' : 'Doctor');
         }
@@ -1220,7 +1254,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             : (user.role === 'secretary'
                 ? (user.is_super_secretary === true
                     ? (scopeInfo && scopeInfo.activeClinicName
-                        ? 'Only ' + scopeInfo.activeClinicName + ' records are shown. Use Switch clinic to change clinics.'
+                        ? 'Current clinic: ' + scopeInfo.activeClinicName + ' \u00b7 showing only its records.'
                         : 'Use Switch clinic in your profile to choose a clinic.')
                     : (scopeInfo && scopeInfo.allAssigned
                     ? 'All assigned doctors \u2014 nasal, laryngeal and CF4 records'
@@ -2121,7 +2155,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         // The shares add
         // up over their own sum - not over bucket.reports, which also
         // carries "other" rows this dashboard has no tile for.
-        const total = TYPE_ORDER.reduce(function (s, t) { return s + (types[t] || 0); }, 0);
+        const visibleTypes = medicalDocumentsAvailable
+            ? TYPE_ORDER
+            : TYPE_ORDER.filter(function (type) {
+                return MEDICAL_DOCUMENT_TYPES.indexOf(type) === -1;
+            });
+        const total = visibleTypes.reduce(function (s, t) { return s + (types[t] || 0); }, 0);
         const hint = byId('dashMixHint');
         if (hint) {
             hint.textContent = periodLabel + ' \u00b7 ' + total
@@ -2136,12 +2175,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         // individual cards. Same hues as the bars below, so the summary and
         // the detail are visibly the same data.
         const mixBar = '<div class="ent-mix-summary" title="Share of ' + esc(periodLabel.toLowerCase()) + ' reports">'
-            + TYPE_ORDER.filter(function (t) { return (types[t] || 0) > 0; }).map(function (t) {
+            + visibleTypes.filter(function (t) { return (types[t] || 0) > 0; }).map(function (t) {
                 return '<span class="ent-mix-summary-seg" style="flex:' + (types[t] || 0)
                     + ';background:' + colors[t] + '"></span>';
             }).join('')
             + '</div>';
-        box.innerHTML = mixBar + TYPE_ORDER.map(function (t) {
+        box.innerHTML = mixBar + visibleTypes.map(function (t) {
             const n = types[t] || 0;
             const pct = Math.round((n / total) * 100);
             // The type's own hue rides along as --ent-hue so CSS can tint
@@ -3290,6 +3329,37 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function wireDashActions() {
         const exportBtn = byId('dashExportBtn');
         if (exportBtn) exportBtn.addEventListener('click', exportDashboardCsv);
+        const clinicSwitchBtn = byId('dashClinicSwitchBtn');
+        if (clinicSwitchBtn) clinicSwitchBtn.addEventListener('click', function () {
+            if (!me || me.role !== 'secretary' || me.is_super_secretary !== true) return;
+            if (typeof Auth.fetchAssignedDoctors !== 'function'
+                || typeof Auth.openClinicPicker !== 'function') {
+                const error = new Error('The active-clinic switcher is unavailable.');
+                console.error('[Dashboard] Could not open the clinic switcher:', error);
+                if (typeof window.alert === 'function') {
+                    window.alert('Clinic switching is unavailable. Refresh the dashboard and try again.');
+                }
+                return;
+            }
+            Auth.fetchAssignedDoctors(true, true).then(function (doctors) {
+                const clinicIds = Array.isArray(doctors)
+                    ? doctors.map(function (doctor) {
+                        return String(doctor && doctor.clinic_id || '').trim();
+                    }).filter(function (id, index, ids) {
+                        return id && ids.indexOf(id) === index;
+                    })
+                    : [];
+                if (clinicIds.length < 2) {
+                    throw new Error('No other active clinic is available to switch to.');
+                }
+                Auth.openClinicPicker(doctors);
+            }).catch(function (error) {
+                console.error('[Dashboard] Could not load clinics for the switcher:', error);
+                if (typeof window.alert === 'function') {
+                    window.alert('Could not load your clinics. Check your connection and try again.');
+                }
+            });
+        });
         const mixPeriod = byId('dashMixPeriod');
         if (mixPeriod) mixPeriod.addEventListener('change', function () {
             renderReportMixPeriod(mixPeriod.value);
@@ -3694,9 +3764,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         if (me.role === 'admin') {                    // admins live in admin.html
             scopeInfo = { role: 'admin', doctorId: '', seeAll: true };
-            medicalDocumentsAvailable = canUseMedicalDocuments(me, scopeInfo, []);
-            document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
-                .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
+            setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, []));
             showAdminGate();
             return;
         }
@@ -3739,9 +3807,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 console.warn('[Dashboard] Could not load assigned doctors for the dashboard:', error);
             }
         }
-        medicalDocumentsAvailable = canUseMedicalDocuments(me, scopeInfo, assignedDoctorRows);
-        document.querySelectorAll('[data-report-type="abstract"], [data-report-type="medicalCertificate"]')
-            .forEach(function (button) { button.hidden = !medicalDocumentsAvailable; });
+        setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, assignedDoctorRows));
         revealDashboard();
         wireDashActions();
         start();
