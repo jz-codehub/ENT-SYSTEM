@@ -941,7 +941,8 @@
 // v167: keep Doc Jess medical documents visible from the validated clinic context.
 // v168: recognize the preserved clinic UUID by its authenticated clinic name.
 // v169: identify Doc Jess by the clinic's stable code as well as display name.
-const CACHE_NAME = 'ent-report-system-v169-doc-jess-clinic-code';
+// v172: keep mobile Messenger badges visible alongside live unread counts.
+const CACHE_NAME = 'ent-report-system-v172-messenger-unread';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

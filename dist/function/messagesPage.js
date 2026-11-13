@@ -6,6 +6,7 @@
 
     var me = null;
     var conversations = [];
+    var unreadMessageCount = 0;
     var currentId = '';
     var currentChannel = null;
     var searchTimer = 0;
@@ -96,14 +97,12 @@
         widget.classList.add('is-open');
         var button = document.querySelector('[data-messages-toggle]');
         if (button) button.setAttribute('aria-expanded', 'true');
-        if (conversationId && uuid(conversationId)) {
-            loadConversations().then(function () {
-                return openConversation(conversationId);
-            }).catch(function (error) {
-                console.error('[Messages] Could not open the requested conversation.', error);
-                notice('Could not open that conversation. Try refreshing messages.', true);
-            });
-        }
+        loadConversations().then(function () {
+            if (conversationId && uuid(conversationId)) return openConversation(conversationId);
+        }).catch(function (error) {
+            console.error('[Messages] Could not refresh conversations when opening Messenger.', error);
+            notice('Could not refresh messages. Check your connection and try again.', true);
+        });
     }
 
     function hideWidget() {
@@ -180,10 +179,15 @@
             var unread = Number(item.unread_count || 0);
             return '<button type="button" class="messages-conversation'
                 + (item.conversation_id === currentId ? ' is-active' : '')
+                + (unread ? ' is-unread' : '')
                 + '" data-conversation-id="' + esc(item.conversation_id) + '">'
                 + '<span class="messages-conversation-avatar" aria-hidden="true">'
                 + esc(initials(item.title)) + '</span>'
-                + '<span class="messages-conversation-copy"><strong>' + esc(item.title) + '</strong>'
+                + '<span class="messages-conversation-copy"><span class="messages-conversation-topline">'
+                + '<strong>' + esc(item.title) + '</strong>'
+                + (item.last_message_at ? '<time datetime="' + esc(item.last_message_at) + '">'
+                    + esc(displayTime(item.last_message_at)) + '</time>' : '')
+                + '</span>'
                 + '<small>' + esc(item.last_message || (item.kind === 'clinic' ? 'Clinic group chat' : item.peer_clinic || 'Direct message')) + '</small></span>'
                 + (unread ? '<span class="messages-conversation-unread" aria-label="' + unread + ' unread">'
                     + (unread > 99 ? '99+' : unread) + '</span>' : '')
@@ -191,10 +195,28 @@
         }).join('');
     }
 
+    function renderUnreadCount() {
+        unreadMessageCount = conversations.reduce(function (total, item) {
+            return total + Math.max(0, Number(item.unread_count) || 0);
+        }, 0);
+        document.dispatchEvent(new CustomEvent('ent:messages-unread-updated', {
+            detail: { count: unreadMessageCount }
+        }));
+    }
+
+    function unreadForStaff(userId) {
+        return conversations.reduce(function (total, item) {
+            if (item.kind !== 'direct' || String(item.peer_id || '') !== String(userId || '')) return total;
+            return total + Math.max(0, Number(item.unread_count) || 0);
+        }, 0);
+    }
+
     async function loadConversations() {
         var rows = await apiJson('/rpc/ent_my_chat_conversations');
         conversations = Array.isArray(rows) ? rows : [];
+        renderUnreadCount();
         renderConversations();
+        if (activeList === 'people') renderStaff(directoryRows);
         return conversations;
     }
 
@@ -311,12 +333,17 @@
         if (count) count.textContent = onlineCount ? onlineCount + ' online' : '';
         box.innerHTML = rows.map(function (staff) {
             var presence = presenceStatus(staff.last_seen_at);
+            var unread = unreadForStaff(staff.user_id);
             return '<button type="button" class="messages-staff-result"'
                 + ' data-staff-id="' + esc(staff.user_id) + '">'
                 + '<span class="messages-staff-avatar-wrap"><span class="messages-staff-avatar" aria-hidden="true">'
                 + esc(initials(staff.full_name)) + '</span><i class="messages-avatar-presence '
                 + (presence.online ? 'is-online' : '') + '" aria-hidden="true"></i></span>'
-                + '<span class="messages-staff-copy"><strong>' + esc(staff.full_name || 'Clinic staff') + '</strong>'
+                + '<span class="messages-staff-copy"><span class="messages-staff-name"><strong>'
+                + esc(staff.full_name || 'Clinic staff') + '</strong>'
+                + (unread ? '<span class="messages-staff-unread" aria-label="' + unread + ' unread messages">'
+                    + (unread > 99 ? '99+' : unread) + '</span>' : '')
+                + '</span>'
                 + '<small>' + esc([staff.role_name, staff.clinic_name].filter(Boolean).join(' · ')) + '</small>'
                 + '<span class="messages-staff-presence ' + (presence.online ? 'is-online' : 'is-offline') + '">'
                 + '<i aria-hidden="true"></i>' + esc(presence.label) + '</span></span>'
@@ -421,6 +448,11 @@
         document.addEventListener('ent:open-messages', function (event) {
             showWidget(event.detail && event.detail.conversationId);
         });
+        document.addEventListener('ent:notifications-updated', function () {
+            loadConversations().catch(function (error) {
+                console.warn('[Messages] Could not refresh unread counts after notifications changed.', error);
+            });
+        });
         document.addEventListener('click', function (event) {
             var toggle = event.target.closest('[data-messages-toggle]');
             if (toggle) {
@@ -500,6 +532,9 @@
         window.addEventListener('offline', function () { setConnection(false); });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
+                loadConversations().catch(function (error) {
+                    console.warn('[Messages] Could not refresh conversations after returning to the app.', error);
+                });
                 if (currentId) {
                     loadMessages(currentId).catch(function (error) {
                         console.warn('[Messages] Background refresh failed.', error);
@@ -513,13 +548,16 @@
             }
         });
         window.setInterval(function () {
-            if (!document.hidden && widget && !widget.hidden) {
-                if (currentId) {
+            if (!document.hidden && navigator.onLine) {
+                loadConversations().catch(function (error) {
+                    console.warn('[Messages] Periodic conversation refresh failed.', error);
+                });
+                if (widget && !widget.hidden && currentId) {
                     loadMessages(currentId).catch(function (error) {
                         console.warn('[Messages] Periodic refresh failed.', error);
                     });
                 }
-                if (activeList === 'people') {
+                if (widget && !widget.hidden && activeList === 'people') {
                     searchStaff(byId('staffSearch').value, true).catch(function (error) {
                         console.warn('[Messages] Presence refresh failed.', error);
                     });
@@ -545,6 +583,10 @@
             byId('conversationList').innerHTML = '<p class="messages-empty is-error">Could not load conversations.</p>';
         }
     }
+
+    window.EntMessagesPage = {
+        getUnreadCount: function () { return unreadMessageCount; }
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {

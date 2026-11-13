@@ -7,6 +7,7 @@
 
     var rows = [];
     var unreadCount = 0;
+    var unreadMessageCount = 0;
     var loadState = 'loading';
     var panelOpen = false;
     var userId = '';
@@ -31,6 +32,28 @@
 
     function notifyDashboard() {
         document.dispatchEvent(new CustomEvent('ent:notifications-updated'));
+    }
+
+    function renderMessageBadge() {
+        var link = document.querySelector('.ent-messages-link[data-messages-toggle]');
+        if (!link) return;
+        var badge = link.querySelector('[data-message-unread-count]');
+        if (unreadMessageCount > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'ent-messages-unread-count';
+                badge.setAttribute('data-message-unread-count', '');
+                badge.setAttribute('aria-hidden', 'true');
+                link.appendChild(badge);
+            }
+            badge.textContent = unreadMessageCount > 99 ? '99+' : String(unreadMessageCount);
+            link.setAttribute('aria-label', 'Messages, ' + unreadMessageCount + ' unread');
+            link.title = unreadMessageCount + ' unread messages';
+        } else {
+            if (badge) badge.remove();
+            link.setAttribute('aria-label', 'Messages');
+            link.title = 'Messages';
+        }
     }
 
     async function load() {
@@ -205,9 +228,18 @@
                 + '<span>Messages</span>';
             parent.insertBefore(link, host);
         }
+        var messagesPage = window.EntMessagesPage;
+        if (messagesPage && typeof messagesPage.getUnreadCount === 'function') {
+            unreadMessageCount = Math.max(0, Number(messagesPage.getUnreadCount()) || 0);
+        }
+        renderMessageBadge();
     }
 
     function wire() {
+        document.addEventListener('ent:messages-unread-updated', function (event) {
+            unreadMessageCount = Math.max(0, Number(event.detail && event.detail.count) || 0);
+            renderMessageBadge();
+        });
         if (host) {
             host.addEventListener('click', function (event) {
                 var toggle = event.target.closest('[data-notification-toggle]');
