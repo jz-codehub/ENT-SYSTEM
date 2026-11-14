@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0050_super_secretary_network_scope.sql`). Isa-isa; hintayin ang
+   (ngayon: `0051_global_announcements.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -60,10 +60,12 @@ separate files, walang all-in-one.
    Mananatiling tig-3,000-row bounded ang recent-patient at follow-up panels.
 
 9. Kasama na sa `0050_super_secretary_network_scope.sql` ang active-clinic
-   context para sa Super Secretary. Para sa existing project na na-run na ang
-   dating 0050, i-run ulit ang updated na file na ito upang idagdag ang
-   clinic-scoped access; idempotent ang mga statement nito. I-apply bago
-   i-deploy ang browser code na tumatawag sa `ent_set_active_clinic`.
+   context para sa Super Secretary at ang per-recipient staff chat receipts.
+   Para sa existing project na na-run na ang dating 0050, i-run ulit ang
+   updated na file na ito upang idagdag ang clinic-scoped access at
+   `Sent`/`Delivered`/`Seen` status; idempotent ang mga idinagdag na
+   statements. I-apply bago i-deploy ang browser code na tumatawag sa
+   `ent_set_active_clinic` o nagpapakita ng chat receipts.
 
 10. Kasama sa `0049_notifications_and_staff_chat.sql` ang notification kapag
     umabot sa 100% ang Doctor's work ng final CF4, Nasal, o Laryngeal report.
@@ -71,6 +73,11 @@ separate files, walang all-in-one.
     isang beses ang updated na 0049 file para idagdag ang notification trigger.
     Idempotent ang mga policy, trigger, at chat-membership backfill nito; hindi
     kailangan ng browser-code change.
+
+11. Ang `0051_global_announcements.sql` ay nagdaragdag ng admin-only RPC para
+    magpadala ng announcement bilang pribadong notification sa lahat ng active
+    accounts. I-run ito matapos ang 0050 at bago i-deploy ang Admin composer at
+    updated notification center.
 
 ## Mga tuntunin
 

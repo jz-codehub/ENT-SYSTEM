@@ -141,6 +141,7 @@ function makeWindow() {
         return json(LATEST_REPORTS)
       }
       if (u.indexOf('/rest/v1/clinics?') !== -1) return json(CLINICS)
+      if (u.indexOf('/rest/v1/rpc/ent_send_announcement') !== -1) return json(2)
       if (u.indexOf('/functions/v1/auth-admin') !== -1) {
         const action = body && body.action
         if (action === 'list') return json({ ok: true, users: [ADMIN_PROFILE, SECRETARY_PROFILE] })
@@ -279,6 +280,33 @@ is('A7', 'creating a SECRETARY sends its assigned doctor',
 is('A7b', 'the admin can explicitly provision Super Secretary network access',
    !!secRes.call && secRes.call.body.is_super_secretary === true,
    secRes.call ? 'is_super_secretary=' + secRes.call.body.is_super_secretary : 'no call')
+
+/* ---- A7c/A7d: global announcements use the secured broadcast RPC -- */
+el('announcementTitle').value = 'Clinic update'
+el('announcementBody').value = 'Please review the new clinic schedule.'
+win.fetchLog.length = 0
+await el('publishAnnouncementBtn').fire('click')
+const announcementCall = win.fetchLog.find(function (r) {
+  return r.url.indexOf('/rpc/ent_send_announcement') !== -1
+})
+is('A7c', 'publishing an announcement calls the admin-only broadcast RPC',
+   !!announcementCall
+     && announcementCall.body.p_title === 'Clinic update'
+     && announcementCall.body.p_body === 'Please review the new clinic schedule.',
+   announcementCall ? JSON.stringify(announcementCall.body) : 'no RPC request')
+is('A7d', 'the admin sees the confirmed recipient count and the form clears',
+   /2 active accounts/.test(el('announcementNotice').textContent)
+     && !el('announcementTitle').value && !el('announcementBody').value,
+   el('announcementNotice').textContent || 'no delivery confirmation')
+
+el('announcementTitle').value = ''
+el('announcementBody').value = ''
+win.fetchLog.length = 0
+await el('publishAnnouncementBtn').fire('click')
+is('A7e', 'empty announcements are stopped before they reach the server',
+   !win.fetchLog.some(function (r) { return r.url.indexOf('/rpc/ent_send_announcement') !== -1 })
+     && /title/i.test(el('announcementNotice').textContent),
+   el('announcementNotice').textContent || 'no validation message')
 
 /* ---- A8: a secretary with no doctor is refused before any request -- */
 const noDoc = await tryCreate({
@@ -439,8 +467,12 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v56-messenger-badge/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v60-announcement-composer/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
+  is('A16g1', 'admin panels use one clear heading and align content consistently',
+     /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
+       && /\.ent-admin-body > \.ent-admin-bar\s*\{\s*display:\s*none;/.test(adminCss2),
+     'panel headings are not repeated and content is consistently left-aligned')
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
      'tablet drawer, mobile header and narrow phone breakpoints are present')
@@ -453,9 +485,9 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'overview greeting, metrics, analytics and activity use a dedicated layout')
   is('A16k', 'navigation uses consistent inline icons and the clinic logo',
      /ent-admin-brand-icon"><img src="\.\.\/image\/ent-logo\.webp"/.test(adminHtml)
-     && (adminHtml.match(/class="ent-nav-icon" aria-hidden="true"><svg/g) || []).length === 10
+     && (adminHtml.match(/class="ent-nav-icon" aria-hidden="true"><svg/g) || []).length === 11
      && /\.ent-nav-icon svg\s*\{[\s\S]*?stroke:\s*currentColor/.test(adminCss2),
-     'logo and ten matching scalable icons are wired')
+     'logo and eleven matching scalable icons are wired')
   is('A16l', 'user rows keep visible action buttons inside the table',
      ['#panel-users > #usersGrid', '.ent-user-table-scroll', 'table-layout: fixed',
       'min-width: 760px', 'position: sticky', '#panel-users .ent-user-cell', '#panel-users .ent-user-tags',
@@ -591,6 +623,13 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
 
   is('A18', 'every tab has its panel', noPanel.length === 0,
      noPanel.length ? 'no panel for: ' + noPanel.join(', ') : targets.join(', '))
+
+  is('A18b', 'Announcements is an all-clinic admin panel with a bounded message form',
+     /data-panel="announcements"[\s\S]*?id="panel-announcements"/.test(adminHtml)
+       && /id="announcementTitle" maxlength="120"/.test(adminHtml)
+       && /id="announcementBody" rows="6" maxlength="1000"/.test(adminHtml)
+       && /all active doctors, secretaries, and admins across every clinic/i.test(adminHtml),
+     'the audience and limits are clear before an admin sends')
 
   // The queue must be scoped by RLS, not just hidden by a filter.
   is('A19', 'the admin queue does not invent an owner column',
@@ -973,8 +1012,10 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
   is('A76b2', 'Activity Logs covers the clinics managed by this admin',
      /across the clinics you manage/.test(activity)
        && /All managed clinics/.test(activity)
-       && /clinicLabel\(a\.clinic_id\)/.test(js),
-     'scope is clear while each activity row keeps its actual clinic')
+       && /activityClinicLabel\(a\.clinic_id,\s*actorRole\)/.test(js)
+       && /if \(role === 'admin'\) return 'All clinics'/.test(js)
+       && /Auth\.isDocJessClinic/.test(js),
+     'admins show All clinics while other staff retain their real clinic label')
 
   is('A76c', 'filtered activity results and support queue counts update as filters change',
      /activityResultCount/.test(activity) && /ticketResults/.test(tickets)
@@ -1055,9 +1096,11 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v45-user-modal-refine/.test(html)
-       && /admin\.css\?v=v56-messenger-badge/.test(html)
-       && /ent-report-system-v177-compact-patient-access/.test(
+     /admin\.js\?v=v48-global-announcements/.test(html)
+       && /admin\.css\?v=v60-announcement-composer/.test(html)
+       && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
+       && /notifications\.css\?v=v8-notification-panel-width/.test(html)
+       && /ent-report-system-v182-doctor-work-toggle/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

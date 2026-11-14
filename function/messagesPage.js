@@ -15,6 +15,7 @@
     var activeList = 'chats';
     var listQuery = '';
     var directoryRows = [];
+    var messageReceipts = Object.create(null);
     var api = window.EntSupabase.apiRequest;
     var widget = null;
     var workspace = null;
@@ -39,7 +40,9 @@
             + ' 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span>'
             + '<span><strong>Messages</strong><small class="messages-connection-status" id="msgConnection">'
             + '<i aria-hidden="true"></i><span id="msgConnectionText">Connecting…</span></small></span></span>'
-            + '<button type="button" class="ent-messages-widget-close" id="messagesClose" aria-label="Close messages">&times;</button></header>'
+            + '<button type="button" class="ent-messages-widget-close" id="messagesClose" aria-label="Close messages">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+            + ' stroke-linecap="round" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button></header>'
             + '<p class="messages-privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
             + ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
             + '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/>'
@@ -59,9 +62,20 @@
             + ' stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span></div>'
             + '<div class="messages-list-tabs" role="tablist" aria-label="Message lists">'
             + '<button type="button" class="messages-list-tab is-active" id="messagesChatsTab" role="tab"'
-            + ' aria-selected="true" aria-controls="conversationList" data-message-tab="chats">Chats</button>'
+            + ' aria-selected="true" aria-controls="conversationList" data-message-tab="chats">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7'
+            + ' 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8'
+            + ' 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg>'
+            + '<span>Chats</span></button>'
             + '<button type="button" class="messages-list-tab" id="messagesPeopleTab" role="tab"'
-            + ' aria-selected="false" aria-controls="staffDirectoryView" data-message-tab="people">People</button></div></form>'
+            + ' aria-selected="false" aria-controls="staffDirectoryView" data-message-tab="people">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>'
+            + '<circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>'
+            + '<path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>People</span></button></div></form>'
             + '<div class="messages-chat-list-view" id="messagesChatListView">'
             + '<div class="messages-conversation-list" id="conversationList" aria-label="Conversation list">'
             + '<p class="messages-empty">Loading conversations…</p></div></div>'
@@ -93,8 +107,9 @@
             + '<strong id="threadTitle">Conversation</strong><small id="threadSubtitle"></small></span></header>'
             + '<div class="messages-thread-body" id="messageList" aria-live="polite"><p class="messages-empty">'
             + 'Select a conversation to view messages.</p></div><form class="messages-compose" id="messageForm">'
-            + '<label class="sr-only" for="messageInput">Write a message</label>'
-            + '<textarea id="messageInput" maxlength="2000" rows="1" placeholder="Write a staff message…" required></textarea>'
+            + '<label class="sr-only" for="messageInput">Write a staff message. Press Enter to send; Shift+Enter for a new line.</label>'
+            + '<textarea id="messageInput" maxlength="2000" rows="1" placeholder="Write a staff message…" required'
+            + ' title="Press Enter to send; Shift+Enter for a new line"></textarea>'
             + '<button type="submit" id="messageSend" aria-label="Send message" title="Send message">'
             + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
             + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/>'
@@ -228,6 +243,7 @@
     async function loadConversations() {
         var rows = await apiJson('/rpc/ent_my_chat_conversations');
         conversations = Array.isArray(rows) ? rows : [];
+        await apiJson('/rpc/ent_mark_chats_delivered');
         renderUnreadCount();
         renderConversations();
         if (activeList === 'people') renderStaff(directoryRows);
@@ -259,6 +275,44 @@
             : '';
     }
 
+    function messageReceipt(messageId) {
+        var receipt = messageReceipts[String(messageId || '')];
+        if (!receipt || !receipt.recipient_count) {
+            return { label: 'Sent', detail: 'Sent to the chat server' };
+        }
+        if (receipt.read_count > 0) {
+            return {
+                label: receipt.read_count >= receipt.recipient_count
+                    ? 'Seen'
+                    : 'Seen ' + receipt.read_count + '/' + receipt.recipient_count,
+                detail: 'Seen by ' + receipt.read_count + ' of ' + receipt.recipient_count + ' recipients'
+            };
+        }
+        if (receipt.delivered_count > 0) {
+            return {
+                label: receipt.delivered_count >= receipt.recipient_count
+                    ? 'Delivered'
+                    : 'Delivered ' + receipt.delivered_count + '/' + receipt.recipient_count,
+                detail: 'Delivered to ' + receipt.delivered_count + ' of ' + receipt.recipient_count + ' recipients'
+            };
+        }
+        return { label: 'Sent', detail: 'Sent; waiting for delivery confirmation' };
+    }
+
+    async function loadMessageReceipts(conversationId) {
+        var rows = await apiJson('/rpc/ent_my_chat_message_receipts', {
+            p_conversation_id: conversationId
+        });
+        messageReceipts = Object.create(null);
+        (Array.isArray(rows) ? rows : []).forEach(function (row) {
+            messageReceipts[String(row.message_id)] = {
+                delivered_count: Math.max(0, Number(row.delivered_count) || 0),
+                read_count: Math.max(0, Number(row.read_count) || 0),
+                recipient_count: Math.max(0, Number(row.recipient_count) || 0)
+            };
+        });
+    }
+
     function renderMessages(rows) {
         var list = byId('messageList');
         if (!list) return;
@@ -275,11 +329,14 @@
                 previousDay = day.key;
                 divider = '<div class="messages-date-divider"><span>' + esc(day.label) + '</span></div>';
             }
+            var receipt = own ? messageReceipt(message.id) : null;
             return divider + '<article class="messages-bubble' + (own ? ' is-mine' : '') + '">'
                 + '<div class="messages-bubble-meta">'
                 + (!own ? '<span class="messages-bubble-author">' + esc(message.sender_name || 'Clinic staff') + '</span>' : '')
                 + '<time datetime="' + esc(message.created_at) + '">' + esc(messageClock(message.created_at)) + '</time></div>'
                 + '<p>' + esc(message.body) + '</p>'
+                + (receipt ? '<div class="messages-bubble-receipt" title="' + esc(receipt.detail) + '">'
+                    + esc(receipt.label) + '</div>' : '')
                 + '</article>';
         }).join('');
         list.scrollTop = list.scrollHeight;
@@ -294,6 +351,7 @@
         query.set('limit', '100');
         var rows = await api('/staff_chat_messages?' + query.toString());
         var messages = Array.isArray(rows) ? rows.slice().reverse() : [];
+        await loadMessageReceipts(conversationId);
         renderMessages(messages);
         await apiJson('/rpc/ent_mark_chat_read', { p_conversation_id: conversationId });
         await loadConversations();
@@ -465,6 +523,7 @@
         if (!body) return;
         busy = true;
         setConnection(navigator.onLine);
+        var sent = false;
         try {
             await api('/staff_chat_messages', {
                 method: 'POST',
@@ -474,12 +533,18 @@
                 },
                 body: JSON.stringify([{ conversation_id: currentId, body: body }])
             });
+            sent = true;
             input.value = '';
             await loadMessages(currentId);
             notice('');
         } catch (error) {
-            console.error('[Messages] Message send failed.', error);
-            notice('Your message was not sent. Check the connection and try again.', true);
+            if (sent) {
+                console.error('[Messages] Message was sent, but the conversation could not refresh.', error);
+                notice('Message sent, but its chat status could not refresh. Reopen the conversation to check.', true);
+            } else {
+                console.error('[Messages] Message send failed.', error);
+                notice('Your message was not sent. Check the connection and try again.', true);
+            }
         } finally {
             busy = false;
             setConnection(navigator.onLine);
@@ -546,6 +611,16 @@
             if (button) openConversation(button.dataset.conversationId);
         });
         byId('messageForm').addEventListener('submit', sendMessage);
+        byId('messageInput').addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+            event.preventDefault();
+            var form = byId('messageForm');
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            }
+        });
         byId('messagesRefresh').addEventListener('click', function () {
             loadConversations().then(function () {
                 var work = currentId ? loadMessages(currentId) : Promise.resolve();

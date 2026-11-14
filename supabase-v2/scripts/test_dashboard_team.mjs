@@ -46,6 +46,13 @@ const flush = async () => {
   for (let i = 0; i < 3; i++) await new Promise(r => setTimeout(r, 12))
 }
 
+function clickQueueView(env, view) {
+  const listener = env.nodes.dashQueue.listeners.click?.[0]
+  if (!listener) return
+  const button = { getAttribute: name => name === 'data-queue-view' ? view : null, focus() {} }
+  listener({ target: { closest: selector => selector === '[data-queue-view]' ? button : null } })
+}
+
 // A canvas-ish context that tolerates anything. renderChart is asked for
 // it when the stubbed DOM hands back a node for every id in index.html.
 function looseContext() {
@@ -261,6 +268,48 @@ const KAYE = { id: 'sec-kaye', username: 'kaye', full_name: 'Kaye Santos', role:
                assigned_doctor_id: 'doc-jardin', is_active: true }
 const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', role: 'secretary',
                   assigned_doctor_id: 'someone-else', is_active: true }
+const CF4_COMPLETE = {
+  doctor_work_chiefComplaint: 'Chief complaint',
+  doctor_work_admittingDiagnosis: 'Admitting diagnosis',
+  doctor_work_dischargeDiagnosis: 'Discharge diagnosis',
+  doctor_work_historyPresentIllness: 'History',
+  doctor_work_pertinentPastMedicalHistory: 'Medical history',
+  doctor_work_courseOrder: ['Completed course'],
+}
+const NASAL_COMPLETE = {
+  doctor_work_preOpDiagnosis: 'Diagnosis',
+  doctor_work_endoscopyType: 'Nasal',
+  doctor_work_indication: 'Indication',
+  doctor_work_anesthesiaUsed: 'Anesthesia',
+  doctor_work_septum: 'Normal',
+  doctor_work_discharge: 'Normal',
+  doctor_work_mucosa: 'Normal',
+  doctor_work_it: 'Normal',
+  doctor_work_mt: 'Normal',
+  doctor_work_mm: 'Normal',
+  doctor_work_im: 'Normal',
+  doctor_work_omc: 'Normal',
+  doctor_work_nasopharynx: 'Normal',
+  doctor_work_impression: 'Impression',
+  doctor_work_recommendation: 'Recommendation',
+}
+const LARYNGEAL_COMPLETE = {
+  doctor_work_preOpDiagnosis: 'Diagnosis',
+  doctor_work_endoscopyType: 'Laryngeal',
+  doctor_work_indication: 'Indication',
+  doctor_work_anesthesiaUsed: 'Anesthesia',
+  doctor_work_epiglottis: 'Normal',
+  doctor_work_vallecula: 'Normal',
+  doctor_work_pyriformSinuses: 'Normal',
+  doctor_work_arytenoids: 'Normal',
+  doctor_work_falseVocalCords: 'Normal',
+  doctor_work_trueVocalCords: 'Normal',
+  doctor_work_vocalCordMobility: 'Normal',
+  doctor_work_subglottis: 'Normal',
+  doctor_work_impression: 'Impression',
+  doctor_work_recommendation: 'Recommendation',
+}
+const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).'
 
 /* ---- 1 · the reported bug, in two acts ------------------------------ */
 {
@@ -393,10 +442,108 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
 
   ok('T23', 'the queue names the saver', q().includes('Tara Bautista'), q().slice(0, 60))
   ok('T24', 'the queue never prints a raw uuid', !q().includes('94978594-'))
-  ok('T25', 'the doctor\'s own row stays out of "Waiting for review" (isMine by id now works)',
+  ok('T25', 'the doctor\'s own row stays out of "Waiting for doctor" (isMine by id now works)',
      q().includes('QUEUE PATIENT') && !q().includes('OWN QUEUE PATIENT'))
   ok('T25b', 'a formless draft row is not offered as work waiting for anybody',
      !q().includes('GHOST, ROW'), 'nothing in that row could ever be opened')
+}
+
+/* ---- 6b · exact doctor-work status on both dashboards --------------- */
+{
+  const recent = new Date(Date.now() - 3600e3).toISOString()
+  const secretaryRow = (overrides = {}) => ({
+    record_key: 'cf4|SEC', created_by: 'sec-tara', created_by_name: 'Tara Bautista',
+    draftShared: true, dbSaved: true, is_draft: false, doctor_id: 'doc-jardin',
+    clinic_id: 'c1', report_type: 'cf4', patient_name: 'DOCTOR WORK PATIENT',
+    case_number: '', procedure_date: '2026-10-05', created_at: recent, updated_at: recent,
+    ...CF4_COMPLETE, ...overrides,
+  })
+  const doctorRow = (overrides = {}) => ({
+    record_key: 'cf4|DOC', created_by: 'doc-jardin', created_by_name: 'Jesus Jardin',
+    draftShared: true, dbSaved: true, is_draft: false, doctor_id: 'doc-jardin',
+    clinic_id: 'c1', report_type: 'cf4', patient_name: 'DOCTOR COMPLETED PATIENT',
+    case_number: '', procedure_date: '2026-10-05', created_at: recent, updated_at: recent,
+    ...CF4_COMPLETE, ...overrides,
+  })
+  const doctorEnv = boot({
+    user: DOC, team: { kind: 'rows', rows: [TARA] },
+    queue: [
+      secretaryRow({ patient_name: 'WAITING PATIENT', doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
+      secretaryRow({ record_key: 'cf4|DONE', patient_name: 'SECRETARY-ENTERED COMPLETE PATIENT' }),
+      doctorRow(),
+      secretaryRow({ record_key: 'nasal|DONE', report_type: 'nasal',
+        patient_name: 'NASAL COMPLETE PATIENT', ...NASAL_COMPLETE }),
+      doctorRow({ record_key: 'laryngeal|DONE', report_type: 'laryngeal',
+        patient_name: 'LARYNGEAL COMPLETE PATIENT', ...LARYNGEAL_COMPLETE }),
+      doctorRow({ record_key: 'cf4|OLD', patient_name: 'OLDER COMPLETED PATIENT',
+        created_at: '2025-01-01T00:00:00.000Z', updated_at: '2025-01-01T00:00:00.000Z' }),
+    ],
+  })
+  await flush()
+  const queueCall = doctorEnv.calls.find(c => c.endpoint.includes('select=record_key,created_by'))
+  ok('T25c', 'only the exact doctor-work payload fields are selected',
+     queueCall && queueCall.endpoint.includes('doctor_work_courseOrder:payload->formData->courseOrder')
+       && queueCall.endpoint.includes('doctor_work_im:payload->formData->im')
+       && !queueCall.endpoint.includes('select=*'))
+  ok('T25d', 'incomplete secretary-entered records show the SQL-matching 83% status',
+     doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('Waiting for doctor \u00b7 83%')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('class="ent-qdate"')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('2026-10-05'))
+  ok('T25e', 'completed and incomplete are count-bearing buttons and only incomplete rows show initially',
+     doctorEnv.nodes.dashQueue.innerHTML.includes('data-queue-view="saved"')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('data-queue-view="review"')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('aria-pressed="true"')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('Incomplete')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
+       && !doctorEnv.nodes.dashQueue.innerHTML.includes('SECRETARY-ENTERED COMPLETE PATIENT'))
+  clickQueueView(doctorEnv, 'saved')
+  ok('T25f', '100% finalized doctor work appears for all report types and historical records',
+     doctorEnv.nodes.dashQueue.innerHTML.includes('SECRETARY-ENTERED COMPLETE PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('DOCTOR COMPLETED PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('NASAL COMPLETE PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('LARYNGEAL COMPLETE PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('OLDER COMPLETED PATIENT')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('Doctor completed \u00b7 100%')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('class="ent-qdate"')
+       && doctorEnv.nodes.dashQueue.innerHTML.includes('2026-10-05'))
+  clickQueueView(doctorEnv, 'review')
+  ok('T25f2', 'switching back hides completed rows and shows the incomplete list',
+     doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
+       && !doctorEnv.nodes.dashQueue.innerHTML.includes('SECRETARY-ENTERED COMPLETE PATIENT'))
+
+  const SEC = { id: 'sec-tara', username: 'tara', full_name: 'Tara Bautista', role: 'secretary',
+                assigned_doctor_id: 'doc-jardin', is_active: true }
+  const secretaryEnv = boot({
+    user: SEC, team: { kind: 'rows', rows: [TARA] },
+    queue: [
+      secretaryRow({ record_key: 'cf4|SEC-WAITING', created_by: 'sec-tara',
+        patient_name: 'MY WAITING PATIENT', doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
+      secretaryRow({ record_key: 'cf4|SEC-DONE',
+        patient_name: 'SECRETARY ENTRY COMPLETED BY DOCTOR' }),
+      doctorRow({ record_key: 'cf4|DOC-DONE',
+        patient_name: 'MY DOCTOR COMPLETED PATIENT' }),
+      doctorRow({ record_key: 'cf4|DOC-UNCONFIRMED',
+        patient_name: 'PREEXISTING COMPLETE PATIENT' }),
+      doctorRow({ record_key: 'cf4|DOC-WAITING', patient_name: 'DOCTOR STILL WORKING',
+        is_draft: true, doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
+    ],
+  })
+  await flush()
+  ok('T25g', 'secretaries see their own unfinished entries waiting for doctor work',
+     secretaryEnv.nodes.dashQueue.innerHTML.includes('MY WAITING PATIENT')
+       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Incomplete')
+       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Completed')
+       && !secretaryEnv.nodes.dashQueue.innerHTML.includes('MY DOCTOR COMPLETED PATIENT')
+       && !secretaryEnv.nodes.dashQueue.innerHTML.includes('DOCTOR STILL WORKING'))
+  clickQueueView(secretaryEnv, 'saved')
+  ok('T25h', 'secretaries see finalized 100% work within their assigned-doctor scope',
+     secretaryEnv.nodes.dashQueue.innerHTML.includes('MY DOCTOR COMPLETED PATIENT')
+       && secretaryEnv.nodes.dashQueue.innerHTML.includes('SECRETARY ENTRY COMPLETED BY DOCTOR')
+       && secretaryEnv.nodes.dashQueue.innerHTML.includes('PREEXISTING COMPLETE PATIENT')
+       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Doctor completed \u00b7 100%'))
+  ok('T25i', 'historical completion does not depend on a newly-created notification',
+     !secretaryEnv.calls.some(c => c.endpoint.includes('app_notifications?kind=eq.doctor_work_complete')))
 }
 
 /* ---- 7 · the counters must not count drafts ------------------------ */
@@ -409,8 +556,11 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
   ok('T26', 'the counter read asks for FINISHED records only',
      counters.length === 1 && counters[0].endpoint.includes('is_draft=eq.false'),
      counters.map(c => c.endpoint).join(' ').slice(0, 90))
-  ok('T27', 'the queue still asks for drafts - that is its whole job',
-     queue.length === 1 && !queue[0].endpoint.includes('is_draft=eq.'),
+  ok('T27', 'the queue includes drafts without restricting itself to finalized rows',
+     queue.length === 1 && !queue[0].endpoint.includes('is_draft=eq.')
+       && !queue[0].endpoint.includes('created_at=gte.')
+       && queue[0].endpoint.includes('deleted_at=is.null')
+       && queue[0].endpoint.includes('limit=400'),
      queue.map(c => c.endpoint).join(' ').slice(0, 90))
   const period = new Date()
   env.nodes.dashPeriodSelect.value = (period.getMonth() + 1) + '/' + period.getFullYear()
@@ -901,11 +1051,11 @@ const FOREIGN = { id: 'sec-other', username: 'gina', full_name: 'Gina Mercado', 
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v42-doc-jess-clinic-code/.test(indexHtml)
-       && /dashboard\.css\?v=v38-super-secretary-polish/.test(indexHtml)
-       && /auth\.js\?v=v36m-doc-jess-clinic-code/.test(indexHtml)
+     /dashboard\.js\?v=v46-doctor-work-toggle/.test(indexHtml)
+       && /dashboard\.css\?v=v41-doctor-work-toggle/.test(indexHtml)
+       && /auth\.js\?v=v36n-admin-all-clinics/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v175-messenger-badge-visible/.test(serviceWorker))
+       && /ent-report-system-v182-doctor-work-toggle/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */

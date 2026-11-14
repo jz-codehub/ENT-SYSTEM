@@ -19,6 +19,7 @@
     function esc(value) { return Auth.escapeHtml(String(value == null ? '' : value)); }
     function byId(id) { return document.getElementById(id); }
     function getHref(row) {
+        if (row && row.kind === 'announcement') return '';
         var target = String(row && row.target_url || '');
         if (/^pages\/messages\.html\?conversation=[0-9a-f-]{36}$/i.test(target)) return '#messages';
         if (target === 'pages/viewAll.html') {
@@ -28,6 +29,62 @@
             return (Auth.pageUrl ? Auth.pageUrl('admin.html') : 'pages/admin.html') + '#panel-tickets';
         }
         return Auth.pageUrl ? Auth.pageUrl('reportProblem.html') : 'pages/reportProblem.html';
+    }
+
+    function kindLabel(kind) {
+        var labels = {
+            access_request: 'Access request',
+            access_decision: 'Access update',
+            chat_message: 'New message',
+            ticket_new: 'Support ticket',
+            ticket_message: 'Support reply',
+            ticket_status: 'Ticket update',
+            doctor_work_complete: 'Doctor work complete',
+            announcement: 'Clinic-wide announcement'
+        };
+        return labels[kind] || 'Notification';
+    }
+
+    function formatCreatedAt(value) {
+        var date = new Date(value);
+        if (!value || !Number.isFinite(date.getTime())) return '';
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    function renderNotification(row) {
+        var conversationMatch = /^pages\/messages\.html\?conversation=([0-9a-f-]{36})$/i
+            .exec(String(row.target_url || ''));
+        var href = getHref(row);
+        var unreadClass = row.read_at ? '' : ' is-unread';
+        var kindClass = ' is-' + String(row.kind || 'info').replace(/[^a-z0-9_-]/gi, '');
+        var time = formatCreatedAt(row.created_at);
+        var readClass = row.read_at ? 'is-read' : 'is-unread';
+        var readLabel = row.read_at ? 'Read' : 'Unread';
+        var content = '<span class="ent-notification-kind">' + esc(kindLabel(row.kind)) + '</span>'
+            + '<strong>' + esc(row.title) + '</strong>'
+            + '<span class="ent-notification-body">' + esc(row.body) + '</span>'
+            + '<span class="ent-notification-meta">'
+            + (time ? '<time datetime="' + esc(row.created_at) + '">' + esc(time) + '</time>' : '')
+            + '<span class="ent-notification-state ' + readClass + '">' + readLabel + '</span></span>';
+        var attrs = ' data-notification-id="' + esc(row.id) + '"'
+            + (conversationMatch ? ' data-chat-conversation="' + esc(conversationMatch[1]) + '"' : '');
+
+        if (href) {
+            return '<a class="ent-notification-item' + kindClass + unreadClass + '" href="'
+                + esc(href) + '"' + attrs + '>' + content + '</a>';
+        }
+
+        return '<article class="ent-notification-item is-static' + kindClass + unreadClass + '">'
+            + content
+            + (row.read_at ? '' : '<button type="button" class="ent-notification-mark-read"'
+                + ' data-notification-id="' + esc(row.id) + '" aria-label="Mark '
+                + esc(row.title) + ' as read">Mark as read</button>')
+            + '</article>';
     }
 
     function notifyDashboard() {
@@ -138,20 +195,14 @@
         if (!host) return;
         var unread = unreadCount;
         var items = loadState === 'loading'
-            ? '<p class="ent-notification-empty">Loading notifications…</p>'
+            ? '<p class="ent-notification-empty">Checking for new updates…</p>'
             : loadState === 'offline'
-                ? '<p class="ent-notification-empty">Connect to the internet to load notifications.</p>'
+                ? '<p class="ent-notification-empty">Connect to the internet to see your latest updates.</p>'
                 : loadState === 'error'
-                    ? '<p class="ent-notification-empty is-error">Could not load notifications. Check your connection and database setup.</p>'
+                    ? '<p class="ent-notification-empty is-error">Your notifications could not be loaded. Check your connection and try again.</p>'
                     : rows.length
-            ? rows.map(function (row) {
-                var conversationMatch = /^pages\/messages\.html\?conversation=([0-9a-f-]{36})$/i.exec(String(row.target_url || ''));
-                return '<a class="ent-notification-item is-info' + (row.read_at ? '' : ' is-unread')
-                + '" href="' + esc(getHref(row)) + '" data-notification-id="' + esc(row.id) + '"'
-                + (conversationMatch ? ' data-chat-conversation="' + esc(conversationMatch[1]) + '"' : '') + '>'
-                + '<strong>' + esc(row.title) + '</strong><span>' + esc(row.body) + '</span></a>';
-            }).join('')
-            : '<p class="ent-notification-empty">You’re all caught up.</p>';
+            ? rows.map(renderNotification).join('')
+            : '<p class="ent-notification-empty">You’re all caught up. New updates will appear here.</p>';
         if (panelNode && panelNode.parentNode) panelNode.parentNode.removeChild(panelNode);
         host.innerHTML = '<button type="button" class="ent-notification-toggle" data-notification-toggle'
             + ' aria-label="Notifications' + (unread ? ', ' + unread + ' unread' : '') + '"'
@@ -164,9 +215,10 @@
         var panelHost = document.createElement('div');
         panelHost.innerHTML = '<section class="ent-notification-panel" id="entGlobalNotificationPanel"'
             + ' aria-label="Notifications"' + (panelOpen ? '' : ' hidden') + '><div class="ent-notification-heading">'
-            + '<h2>Notifications</h2><button type="button" data-notification-read-all'
-            + (unread ? '' : ' disabled') + '>Mark all read</button></div>'
-            + '<div class="ent-notification-list">' + items + '</div></section>';
+            + '<div class="ent-notification-heading-copy"><h2>Notifications</h2>'
+            + '<p>Clinic-wide news, account updates, and messages</p></div><button type="button" data-notification-read-all'
+            + (unread ? '' : ' disabled') + '>Mark all as read</button></div>'
+            + '<div class="ent-notification-list" aria-live="polite">' + items + '</div></section>';
         panelNode = panelHost.firstElementChild;
         document.body.appendChild(panelNode);
         positionPanel();
@@ -177,7 +229,7 @@
         var toggle = host.querySelector('.ent-notification-toggle');
         var panel = panelNode;
         if (toggle && panel) {
-            var panelWidth = Math.min(420, Math.max(0, window.innerWidth - 24));
+            var panelWidth = Math.min(560, Math.max(0, window.innerWidth - 24));
             var toggleRect = toggle.getBoundingClientRect();
             var center = Math.max(panelWidth / 2 + 12,
                 Math.min(window.innerWidth - panelWidth / 2 - 12,

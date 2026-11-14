@@ -944,7 +944,9 @@
 // v175: keep the unread count visible in header Messenger buttons.
 // v176: polish report form spacing, mobile targets, and View All action labels.
 // v177: compact the View All access summary without changing its controls.
-const CACHE_NAME = 'ent-report-system-v177-compact-patient-access';
+// v178: show historical finalized patient work and remove the 60-day queue cutoff.
+// v181: widen the notification panel and clarify notification labels.
+const CACHE_NAME = 'ent-report-system-v182-doctor-work-toggle';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

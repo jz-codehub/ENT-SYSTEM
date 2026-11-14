@@ -1806,7 +1806,7 @@
         // data" is never mistaken for a live sign-in against Supabase.
         const offlineAccess = !!(session.offline && isOfflineNow());
         let viewing = user.role === 'admin'
-            ? 'Every doctor in the clinic'
+            ? 'All clinics'
             : (user.role === 'doctor'
                 ? 'Own patients only'
                 : (user.role === 'offline'

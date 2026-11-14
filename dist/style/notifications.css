@@ -84,7 +84,7 @@
     z-index: 2147483000;
     top: var(--ent-notification-panel-top, 110px);
     left: var(--ent-notification-panel-left, 50%);
-    width: min(420px, calc(100vw - 24px));
+    width: min(560px, calc(100vw - 24px));
     max-height: min(70vh, 560px, var(--ent-notification-panel-max-height, 70vh));
     overflow: auto;
     padding: 14px;
@@ -155,4 +155,146 @@
 @media (max-width: 720px) {
     .ent-messages-link { width: 36px; min-width: 36px; padding: 7px; }
     .ent-messages-link > .ent-messages-label { display: none; }
+}
+
+.ent-notification-panel {
+    padding: 16px;
+    border-color: color-mix(in srgb, var(--primary-color) 18%, var(--border-color));
+}
+.ent-notification-heading {
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+.ent-notification-heading-copy h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+}
+.ent-notification-heading-copy p {
+    margin: 4px 0 0;
+    color: var(--secondary-text-color);
+    font-size: .73rem;
+    line-height: 1.4;
+}
+.ent-notification-heading button {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 7px 9px;
+    font-size: .7rem;
+}
+.ent-notification-list { gap: 10px; }
+.ent-notification-item {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 13px 14px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 12px;
+    background: var(--bg-color);
+    color: var(--secondary-text-color);
+    font-size: .88rem;
+    line-height: 1.6;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+.ent-notification-item strong {
+    font-size: .92rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+.ent-notification-item .ent-notification-kind {
+    width: fit-content;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+    font-size: .64rem;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+}
+.ent-notification-body { white-space: pre-wrap; }
+.ent-notification-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 2px;
+    color: var(--secondary-text-color);
+    font-size: .68rem;
+    line-height: 1.3;
+}
+.ent-notification-meta > span:last-child {
+    color: var(--primary-hover-color);
+    font-weight: 750;
+}
+.ent-notification-meta .ent-notification-state {
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+.ent-notification-state.is-unread {
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+}
+.ent-notification-state.is-read {
+    background: color-mix(in srgb, var(--secondary-text-color) 10%, var(--bg-color));
+    color: var(--secondary-text-color);
+}
+.ent-notification-item.is-announcement { border-left-color: #7c3aed; }
+.ent-notification-item.is-announcement .ent-notification-kind {
+    background: #f1eafe;
+    color: #6d28d9;
+}
+.ent-notification-item.is-chat_message { border-left-color: #0e9f8a; }
+.ent-notification-item.is-ticket_new,
+.ent-notification-item.is-ticket_message,
+.ent-notification-item.is-ticket_status { border-left-color: #d97706; }
+.ent-notification-item.is-access_request,
+.ent-notification-item.is-access_decision { border-left-color: #2563eb; }
+.ent-notification-item.is-doctor_work_complete { border-left-color: #16a34a; }
+.ent-notification-item.is-unread {
+    background: color-mix(in srgb, var(--primary-light) 42%, var(--bg-color));
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .06);
+}
+.ent-notification-item.is-static { cursor: default; }
+.ent-notification-mark-read {
+    justify-self: start;
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--panel-bg-color);
+    color: var(--primary-hover-color);
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+.ent-notification-mark-read:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+.ent-notification-item:focus-visible,
+.ent-notification-mark-read:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+.ent-notification-empty {
+    padding: 18px 10px;
+    border-radius: 11px;
+    background: var(--bg-color);
+    font-size: .84rem;
+    line-height: 1.55;
+    text-align: center;
+}
+body.dark-mode .ent-notification-item.is-announcement .ent-notification-kind {
+    background: rgba(167, 139, 250, .18);
+    color: #c4b5fd;
 }

@@ -861,7 +861,7 @@
                 + '<td data-label="Who"><strong>' + esc(actorName) + '</strong>'
                 + (actorUsername ? '<div class="ent-hint">' + esc(actorUsername) + '</div>' : '') + '</td>'
                 + '<td data-label="Role">' + (actorRole ? rolePill(actorRole) : '\u2014') + '</td>'
-                + '<td data-label="Clinic">' + esc(a.clinic_id ? clinicLabel(a.clinic_id) : '\u2014') + '</td>'
+                + '<td data-label="Clinic">' + esc(a.clinic_id ? activityClinicLabel(a.clinic_id, actorRole) : '\u2014') + '</td>'
                 + '<td data-label="Action">' + actionPill(a.action) + '</td>'
                 // Detail: clamped to one line with the full text in the title,
                 // so a long patient/clinic string stops stretching the row
@@ -875,6 +875,14 @@
                 + shown.length + ' \u00b7 ' + fmtNum(activity.length)
                 + ' loaded from activity_logs' + (activityError ? ' \u00b7 last error: ' + activityError : '');
         }
+    }
+    function activityClinicLabel(id, role) {
+        if (role === 'admin') return 'All clinics';
+        const name = clinicLabel(id);
+        const isJardinClinic = typeof Auth !== 'undefined'
+            && typeof Auth.isDocJessClinic === 'function'
+            && Auth.isDocJessClinic(id, name, clinicCodes[id]);
+        return isJardinClinic ? 'ENT-Clinic Doc. Jardin' : name;
     }
 
     function toast(message, bad) {
@@ -2302,6 +2310,65 @@
     ================================================================== */
     let systemFlags = [];
 
+    function announcementSay(msg, bad) {
+        const box = byId('announcementNotice');
+        if (!box) return;
+        box.textContent = msg || '';
+        box.className = 'ent-announcement-notice' + (msg ? ' show' : '') + (bad ? ' is-bad' : ' is-ok');
+    }
+
+    async function publishAnnouncement() {
+        const titleInput = byId('announcementTitle');
+        const bodyInput = byId('announcementBody');
+        const button = byId('publishAnnouncementBtn');
+        const title = String(titleInput && titleInput.value || '').trim();
+        const body = String(bodyInput && bodyInput.value || '').trim();
+
+        if (!title || title.length > 120) {
+            announcementSay('Add a title between 1 and 120 characters.', true);
+            if (titleInput) titleInput.focus();
+            return;
+        }
+        if (!body || body.length > 1000) {
+            announcementSay('Add a message between 1 and 1,000 characters.', true);
+            if (bodyInput) bodyInput.focus();
+            return;
+        }
+        if (!window.confirm('Send this announcement to every active user across all clinics?')) return;
+
+        announcementSay('');
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Sending…';
+        }
+        try {
+            const result = await api('/rpc/ent_send_announcement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ p_title: title, p_body: body }),
+            });
+            const recipientCount = Number(result);
+            if (!Number.isInteger(recipientCount) || recipientCount < 1) {
+                throw new Error('The server did not confirm delivery to any active accounts.');
+            }
+            if (titleInput) titleInput.value = '';
+            if (bodyInput) bodyInput.value = '';
+            announcementSay(
+                'Announcement sent to ' + recipientCount + ' active account'
+                    + (recipientCount === 1 ? '.' : 's.'),
+                false
+            );
+        } catch (e) {
+            announcementSay('Could not send the announcement: '
+                + String((e && e.message) || e).slice(0, 180), true);
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg>Send to everyone';
+            }
+        }
+    }
+
     function settingsSay(msg, bad) {
         const box = byId('settingsNotice');
         if (!box) return;
@@ -2635,6 +2702,7 @@ const FLAG_INFO = {
             if (!btn) return;
             openAdminTicket(btn.getAttribute('data-id'));
         });
+        byId('publishAnnouncementBtn').addEventListener('click', publishAnnouncement);
         // ---- settings ----
         byId('refreshSettingsBtn').addEventListener('click', function () {
             loadSettings().catch(function (e) { settingsSay(String((e && e.message) || e).slice(0, 160), true); });
@@ -4130,7 +4198,7 @@ const FLAG_INFO = {
         // and an audit filter that cannot name them would hide the very
         // history an administrator might be looking for.
         sel.innerHTML = '<option value="">All clinics</option>' + allClinicIds().map(function (id) {
-            return '<option value="' + esc(id) + '">' + esc(clinicLabel(id)) + '</option>';
+            return '<option value="' + esc(id) + '">' + esc(activityClinicLabel(id)) + '</option>';
         }).join('');
         if (keep && allClinicIds().indexOf(keep) !== -1) sel.value = keep;
     }
@@ -4290,7 +4358,7 @@ const FLAG_INFO = {
         const rows = [['When', 'Who', 'Role', 'Clinic', 'Action', 'Detail']]
             .concat(filteredActivity().slice(0, 5000).map(function (a) {
                 return [a.created_at, a.username || a.actor_label, a.role || a.actor_role,
-                    a.clinic_id, a.action, a.detail];
+                    activityClinicLabel(a.clinic_id, a.role || a.actor_role), a.action, a.detail];
             }));
         downloadCsv('activity-log-' + dayKey(new Date()) + '.csv', rows);
     }

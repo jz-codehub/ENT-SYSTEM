@@ -6,11 +6,11 @@
     <title>ENT Endoscopy Dashboard</title>
     <link rel="icon" href="image/ent-logo.webp">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="./style/index.css?v=v33y">
+    <link rel="stylesheet" href="./style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="./style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="./style/dashboard.css?v=v38-super-secretary-polish">
-    <link rel="stylesheet" href="./style/notifications.css?v=v6-messenger-badge">
-    <link rel="stylesheet" href="./style/messages.css?v=v13-messenger-polish">
+    <link rel="stylesheet" href="./style/dashboard.css?v=v41-doctor-work-toggle">
+    <link rel="stylesheet" href="./style/notifications.css?v=v8-notification-panel-width">
+    <link rel="stylesheet" href="./style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="./style/mobile.css?v=v27-messenger-badge">
 </head>
 <body class="ent-dash-page">
@@ -345,26 +345,11 @@
 
         <section class="ent-card" id="dashQueueCard" hidden>
             <div class="ent-card-head">
-                <h3 id="dashQueueTitle"><svg class="ent-queue-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Team queue</h3>
+                <h3 id="dashQueueTitle"><svg class="ent-queue-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Doctor work status</h3>
                 <div class="ent-queue-head-side">
-                    <span class="ent-hint" id="dashQueueHint">Drafts and saved records of your team</span>
-                    <button type="button" id="dashQueuePatients" class="ent-queue-toggle" hidden title="Show the patients your doctor already saved">&#128065; View patients</button>
+                    <span class="ent-hint" id="dashQueueHint">Completed doctor work and secretary entries waiting for doctor work</span>
                     <button type="button" id="dashQueueRefresh" class="ent-queue-refresh" title="Check the cloud database again now">&#8635;</button>
                 </div>
-            </div>
-            <div class="ent-queue-tabs" id="dashQueueTabs" role="tablist">
-                <button type="button" role="tab" class="active" data-qtab="review">
-                    <span class="ent-queue-tab-label">Needs review</span>
-                    <b class="ent-queue-tab-n" data-qn="review">0</b>
-                </button>
-                <button type="button" role="tab" data-qtab="saved">
-                    <span class="ent-queue-tab-label">Saved to database</span>
-                    <b class="ent-queue-tab-n" data-qn="saved">0</b>
-                </button>
-                <button type="button" role="tab" data-qtab="all">
-                    <span class="ent-queue-tab-label">Everything</span>
-                    <b class="ent-queue-tab-n" data-qn="all">0</b>
-                </button>
             </div>
             <div class="ent-queue" id="dashQueue">
                 <p class="ent-empty">Loading&hellip;</p>
@@ -570,9 +555,9 @@
     <script src="function/supabaseClient.js" defer></script>
     <script src="function/offlineStore.js"></script>
 <script src="function/photoStore.js?v=v31ai" defer></script>
-<script src="function/auth.js?v=v36m-doc-jess-clinic-code" defer></script>
-    <script src="function/notificationCenter.js?v=v4-messenger-unread" defer></script>
-    <script src="function/messagesPage.js?v=v12-messenger-polish" defer></script>
+<script src="function/auth.js?v=v36n-admin-all-clinics" defer></script>
+    <script src="function/notificationCenter.js?v=v6-notification-labels" defer></script>
+    <script src="function/messagesPage.js?v=v15-close-icon" defer></script>
     <!-- v36a: offline preparation status pill (Preparing offline access /
          Offline-ready / Retry). Lives on the dashboard and the login page,
          the two pages every visit passes through. It registers nothing that
@@ -585,7 +570,7 @@
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
     <script src="function/index.js?v=v35e"></script>
-    <script src="function/dashboard.js?v=v42-doc-jess-clinic-code" defer></script>
+    <script src="function/dashboard.js?v=v46-doctor-work-toggle" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">
         <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>

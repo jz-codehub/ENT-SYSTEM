@@ -65,6 +65,9 @@ browser/device.
 | `migrations/0046_rename_main_clinic_doc_jess.sql` | renames the existing `main_clinic` to `Doc Jess` and corrects doctor Jess's display name to `Doc Jess Jardin`, preserving clinic IDs and records |
 | `migrations/0047_bounded_patient_record_reads.sql` | RLS-scoped DB Records paging (100 rows), photo-stripped card projections, and exact visit aggregates for only the patients on the current page |
 | `migrations/0048_dashboard_summary_counts.sql` | RLS-scoped dashboard totals and daily report aggregates without sending report rows to the browser |
+| `migrations/0049_notifications_and_staff_chat.sql` | staff notifications and clinic/direct chat foundation |
+| `migrations/0050_super_secretary_network_scope.sql` | Super Secretary network scope, active-clinic context, and recipient-scoped staff chat delivery/read receipts |
+| `migrations/0051_global_announcements.sql` | Admin-only global announcement RPC that sends each active account a private, read-tracked notification |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing

@@ -2591,12 +2591,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 ? 'Saved on this device; waiting for cloud sync'
                 : 'No unsynced reports on this device';
         const reviewDetail = review === null
-            ? 'Team review status unavailable'
+            ? 'Doctor work status unavailable'
             : review
-                ? 'Teammate reports waiting for your review'
-                : 'No reports waiting for review';
+                ? 'Secretary-entered patient work still needs a doctor'
+                : 'No patient work is waiting for a doctor';
         host.innerHTML = [
-            item('Team review', review, reviewDetail, '#dashQueueCard', 'review'),
+            item('Doctor work', review, reviewDetail, '#dashQueueCard', 'review'),
             item('Offline sync', pending, offlineDetail, pageUrl('offlineWorkspace.html'), 'offline')
         ].join('');
         const hint = byId('dashActionHint');
@@ -2610,29 +2610,56 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 
     /* --------------------------- team queue -------------------------- */
-    // What the OTHER person in this doctor/secretary pair is busy with:
-    //   Needs review - their records that are not in the database yet
-    //   Saved        - their records already stored in the shared database
-    // Scoped exactly like the counters: a doctor only sees his secretaries,
-    // a secretary only her doctor.
-    let queueTab = 'review';
+    // Keep this field list in sync with ent_doctor_work_percent in migration
+    // 0049. Selecting only these payload paths avoids downloading full patient
+    // forms just to calculate the dashboard's completion status.
+    const DOCTOR_WORK_FIELDS = {
+        cf4: ['chiefComplaint', 'admittingDiagnosis', 'dischargeDiagnosis',
+            'historyPresentIllness', 'pertinentPastMedicalHistory', 'courseOrder'],
+        nasal: ['preOpDiagnosis', 'endoscopyType', 'indication', 'anesthesiaUsed',
+            'septum', 'discharge', 'mucosa', 'it', 'mt', 'mm', 'im', 'omc',
+            'nasopharynx', 'impression', 'recommendation'],
+        laryngeal: ['preOpDiagnosis', 'endoscopyType', 'indication', 'anesthesiaUsed',
+            'epiglottis', 'vallecula', 'pyriformSinuses', 'arytenoids',
+            'falseVocalCords', 'trueVocalCords', 'vocalCordMobility', 'subglottis',
+            'impression', 'recommendation']
+    };
+    const DOCTOR_WORK_FIELD_NAMES = Array.from(new Set(
+        Object.keys(DOCTOR_WORK_FIELDS).reduce(function (all, type) {
+            return all.concat(DOCTOR_WORK_FIELDS[type]);
+        }, [])
+    ));
+    const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).';
+    function doctorWorkFieldComplete(key, value) {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'boolean') return value;
+        if (key !== 'courseOrder') {
+            return !!(typeof value === 'string' ? value : JSON.stringify(value) || '').trim();
+        }
+        const values = Array.isArray(value) ? value : [value];
+        return values.some(function (entry) {
+            if (entry === null || entry === undefined || entry === false || entry === 0) return false;
+            const text = (typeof entry === 'string' ? entry : JSON.stringify(entry) || '').trim();
+            return !!text
+                && text.toUpperCase() !== COURSE_ORDER_PLACEHOLDER
+                && !/\(\s{2,}\)/.test(text);
+        });
+    }
+    function computeDoctorWorkPercent(reportType, work) {
+        const fields = DOCTOR_WORK_FIELDS[String(reportType || '').toLowerCase()] || [];
+        if (!fields.length) return null;
+        const completed = fields.filter(function (key) {
+            return doctorWorkFieldComplete(key, work[key]);
+        }).length;
+        return Math.round(completed * 100 / fields.length);
+    }
     let queueRows = [];
     let queueError = '';
     let queueLoaded = false;
-    let showAllPatients = false;     // secretary: reveal the saved patients on tap
-    /* HOW MANY ROWS BEFORE "View all".
-       This was 30, which is not a preview - it is nearly the whole list, and
-       a secretary with a busy doctor got a card that ran most of the way down
-       the dashboard before the next card. Five is enough to recognise "there
-       is work here" and short enough that the card stays a card.
-
-       The remaining rows are NOT discarded: "View all" reveals them and the
-       box scrolls. queueExpanded is the whole feature - one boolean, one
-       button, and the same data either way. */
     const QUEUE_PREVIEW = 5;
     let queueExpanded = false;
+    let queueView = '';
     const QUEUE_LIMIT = 400;          // hard ceiling only; the preview gates it
-    const QUEUE_DAYS = 60;
     const QUEUE_POLL_MS = 60000;   // the queue is what people wait for, so it
                                    // polls on its own, faster than the counters
                                    // - but halved from 30s for the same free-plan
@@ -2645,47 +2672,28 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             throw new Error('The cloud database is not configured on this device.');
         }
         // v2: no clinic filter, no doctor filter — RLS decides (see loadCloudRows).
-        const from = new Date(Date.now() - QUEUE_DAYS * 86400000).toISOString();
         const plain = 'record_key,created_by,doctor_id,clinic_id,report_type,patient_name,case_number,'
-            + 'procedure_date,created_at,updated_at';
-        // TWO defects, both of which stopped this query from ever reaching the
-        // database:
-        //   1. apiRequest() does `/rest/v1` + `/<endpoint>` - it never inserts
-        //      a `?`. The first parameter therefore has to start with `?`, as
-        //      loadCloudRows() two hundred lines up already does. `reports&created_at=...`
-        //      is a malformed path.
-        //   2. `scope` was never declared in this file (the other `scope`es
-        //      belong to other modules' own closures). Reading it threw
-        //      ReferenceError while evaluating the argument, so `api()` was
-        //      never called and the catch block - which read `scope` again -
-        //      rethrew. loadQueueRows() rejected, queueError was set, and the
-        //      secretary's "New patients from your doctor" card showed an
-        //      error instead of a single patient. The doctor's own queue and
-        //      the hero pill went with it.
-        // There is no client-side scoping to build here in v2: ent_may_touch_report()
-        // answers "who may see this row" inside the policy.
+            + 'procedure_date,created_at,updated_at,is_draft';
+        const workFields = DOCTOR_WORK_FIELD_NAMES.map(function (key) {
+            return 'doctor_work_' + key + ':payload->formData->' + key;
+        }).join(',');
         const endpoint = function (extra) {
             return 'reports'
-                + '?created_at=gte.' + encodeURIComponent(from)
-                + '&select=' + plain + extra
-                + '&order=created_at.desc&limit=400';
+                + '?deleted_at=is.null&select=' + plain + ',payload->dbSaved,payload->>draftShared,'
+                + workFields + extra
+                + '&order=updated_at.desc,created_at.desc&limit=' + QUEUE_LIMIT;
         };
         let result;
         try {
-            // payload->dbSaved says whether it reached "Save to Database";
-            // created_by_name (0028) is the author's display name beside the
-            // uuid. BOTH in one shot, then TWO fallbacks so a database that
-            // has not run 0028 keeps today's exact behaviour (draft flag
-            // intact, author shown by the old path) instead of a400.
-            result = await api(endpoint(',payload->dbSaved,payload->>draftShared,created_by_name'));
-        } catch (e) {
+            result = await api(endpoint(',created_by_name'));
+        } catch (firstError) {
             try {
-                result = await api(endpoint(',payload->dbSaved'));
-            } catch (e2) {
-                // Fallback for a schema the jsonb path cannot resolve. Everything
-                // then reads as not-yet-saved, which shows drafts rather than
-                // hiding them - the safe direction to fail in.
+                // 0028 adds the author display name; keep work status exact if
+                // an older database does not have that optional column yet.
                 result = await api(endpoint(''));
+            } catch (error) {
+                throw new Error('Could not load doctor work status: '
+                    + ((error && error.message) || (firstError && firstError.message) || String(error)));
             }
         }
         // Same second opinion as the counters: a queue is a LIST OF PATIENTS,
@@ -2693,6 +2701,10 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         // a number being slightly too big. Filtered here too, and the notice
         // on the counters will already have said how many were hidden.
         const mapped = (Array.isArray(result) ? result : []).map(function (row) {
+            const work = {};
+            DOCTOR_WORK_FIELD_NAMES.forEach(function (key) {
+                work[key] = row['doctor_work_' + key];
+            });
             return {
                 record_key: row.record_key || '',
                 created_by: row.created_by || '',
@@ -2707,6 +2719,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 updated_at: row.updated_at || row.created_at || '',
 
                 saved: row.dbSaved === true || row.dbSaved === 'true',
+                isFinalized: row.is_draft === false || row.is_draft === 'false',
+                doctorWorkPercent: computeDoctorWorkPercent(row.report_type, work),
                 // draftShared marks a row the drafts browser uploaded WITH its
                 // form. The background sync also writes is_draft = TRUE rows
                 // carrying metadata only, and there is nothing in those to
@@ -2714,10 +2728,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 draftShared: row.draftShared === true || row.draftShared === 'true'
             };
         }).filter(function (r) {
-            // A finished record, or a draft somebody can actually open. A
-            // formless draft stub is neither, and listing it put "waiting for
-            // review" items in the queue that could only ever dead-end.
-            return r.saved || r.draftShared;
+            // A finalized record, or a shared draft somebody can actually open.
+            // A formless draft stub is neither and cannot be doctor work.
+            return r.isFinalized || r.saved || r.draftShared;
         });
         return splitByScope(mapped).kept;
     }
@@ -2740,40 +2753,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             }
         }
         return '';
-    }
-
-    /* ------------------- "my team just finished this" ------------------ */
-    // A doctor wants to know the secretary already finished the patient form.
-    // A row is "fresh" when somebody else touched it in the last 24 hours and
-    // this device has not marked it as reviewed yet.
-    const REVIEWED_KEY = 'entDashReviewedRecordsV1';
-    const FRESH_MS = 24 * 3600 * 1000;
-    let reviewedKeys = [];
-
-    function readReviewed() {
-        try {
-            const parsed = JSON.parse(localStorage.getItem(REVIEWED_KEY) || '[]');
-            reviewedKeys = Array.isArray(parsed) ? parsed : [];
-        } catch (e) { reviewedKeys = []; }
-    }
-    function stampOf(row) { return (row.record_key || '') + '|' + (row.updated_at || ''); }
-    function isReviewed(row) { return reviewedKeys.indexOf(stampOf(row)) !== -1; }
-    function markReviewed(row) {
-        const stamp = stampOf(row);
-        if (reviewedKeys.indexOf(stamp) === -1) reviewedKeys.push(stamp);
-        reviewedKeys = reviewedKeys.slice(-200);
-        try { localStorage.setItem(REVIEWED_KEY, JSON.stringify(reviewedKeys)); } catch (e) { /* ignore */ }
-    }
-    function freshEdits() {
-        const now = Date.now();
-        return queueRows.filter(function (row) {
-            if (isMine(row)) return false;
-            const ts = Date.parse(row.updated_at || row.created_at || '');
-            if (isNaN(ts) || (now - ts) > FRESH_MS) return false;
-            return !isReviewed(row);
-        }).sort(function (a, b) {
-            return String(b.updated_at).localeCompare(String(a.updated_at));
-        });
     }
 
     function isMine(row) {
@@ -2807,12 +2786,25 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return userDisplayName(raw);
     }
 
+    function isDoctorWorkComplete(row) {
+        return !!(row && row.isFinalized && row.doctorWorkPercent === 100);
+    }
+
     function queueLists() {
-        const team = queueRows.filter(function (r) { return !isMine(r); });
+        const completed = queueRows.filter(function (row) {
+            return isDoctorWorkComplete(row);
+        });
+        const waiting = queueRows.filter(function (row) {
+            if (isDoctorWorkComplete(row)) return false;
+            if (row.doctorWorkPercent === null) return false;
+            if (me && me.role === 'secretary') return isMine(row);
+            if (!me || me.role !== 'doctor' || isMine(row)) return false;
+            const role = creatorRole(row);
+            return role ? role === 'Secretary' : true;
+        });
         return {
-            review: team.filter(function (r) { return !r.saved; }),
-            saved: team.filter(function (r) { return r.saved; }),
-            all: queueRows.slice()
+            review: waiting,
+            saved: completed
         };
     }
 
@@ -2841,8 +2833,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
            type chip, so a scan for "which of these are CF4?" is one glance
          · the by-line shows RELATIVE time ("2 h ago") with the exact stamp
            kept in the row's title - a live queue is about what is recent
-         · the status pill gains the pulsing .dot the auth.css pill already
-           defines, so "Waiting" visibly waits and "In database" stays calm  */
+         · the status pill reflects the doctor-work percentage rather than
+           only whether the row has been persisted  */
     function queueRowHtml(row) {
         const t = typeKey(row);
         const meta = TYPES[t] || { label: 'Other report', short: 'Other', page: '', icon: '\u2022' };
@@ -2853,11 +2845,17 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
               + '" data-qtype="' + esc(t)
               + '" data-qpatient="' + esc(row.patient_name)
               + '" data-qauthor="' + esc(who) + '"'
-            + (row.saved
-                ? ' title="Open this saved record in the form and edit it">&#9998; Open &amp; edit</button>'
+            + (row.saved || row.isFinalized
+                ? ' title="Open this patient record in the form and edit it">&#9998; Open &amp; edit</button>'
                 : ' title="Not in the database yet - the form will show the details">&#128065; View details</button>')
             : '';
-        return '<div class="ent-queue-row ' + (row.saved ? 'is-saved' : 'is-review')
+        const complete = isDoctorWorkComplete(row);
+        const percent = row.doctorWorkPercent === null ? 0 : row.doctorWorkPercent;
+        const procedureDate = row.procedure_date
+            ? '<span class="ent-qdate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg><span>'
+                + esc(row.procedure_date) + '</span></span>'
+            : '';
+        return '<div class="ent-queue-row ' + (complete ? 'is-saved' : 'is-review')
             + (isMine(row) ? ' is-mine' : '') + '"'
             + (isNaN(ts) ? '' : ' title="' + esc(fmtTime(row.created_at)) + '"') + '>'
             + '<span class="ent-queue-av is-' + esc(t) + '">' + esc(initialsOf(who.replace(HONORIFIC, ''))) + '</span>'
@@ -2865,38 +2863,17 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             + '<span class="ent-queue-name">' + esc(displayNameOf(row)) + '</span>'
             + '<span class="ent-queue-meta"><span class="ent-qtype is-' + esc(t) + '">'
             + esc(meta.icon + ' ' + (meta.short || meta.label)) + '</span>'
-            + (row.procedure_date ? ' <span class="ent-qsep">\u00b7</span> ' + esc(row.procedure_date) : '')
+            + (procedureDate ? ' <span class="ent-qsep">\u00b7</span> ' + procedureDate : '')
             + (row.case_number ? ' <span class="ent-qsep">\u00b7</span> Case ' + esc(row.case_number) : '') + '</span>'
             + '<span class="ent-queue-by">' + esc(who) + ' \u00b7 '
             + esc(isNaN(ts) ? fmtTime(row.created_at) : relTime(ts)) + '</span>'
             + '</span>'
             + '<span class="ent-queue-flags">'
-            + (row.saved
-                ? '<span class="ent-pill live"><span class="dot"></span>In database</span>'
-                : '<span class="ent-pill wait"><span class="dot"></span>Waiting for save</span>')
+            + (complete
+                ? '<span class="ent-pill live"><span class="dot"></span>Doctor completed \u00b7 100%</span>'
+                : '<span class="ent-pill wait"><span class="dot"></span>Waiting for doctor \u00b7 ' + percent + '%</span>')
             + '</span>'
             + action
-            + '</div>';
-    }
-
-    function freshEditHtml(row) {
-        const t = typeKey(row);
-        const meta = TYPES[t] || { label: 'Other report', icon: '\u2022' };
-        const who = authorLabel(row);
-        const when = relTime(Date.parse(row.updated_at || row.created_at || '') || 0);
-        return '<div class="ent-fresh-row">'
-            + '<span class="ent-fresh-main">'
-            + '<b>' + esc(displayNameOf(row)) + '</b>'
-            + '<small>' + esc(meta.icon + ' ' + meta.label + ' \u00b7 ' + who + ' \u00b7 ' + when) + '</small>'
-            + '</span>'
-            // View reuses the same deep link as the queue rows below.
-            + '<button type="button" class="ent-fresh-view" data-qkey="' + esc(row.record_key)
-            + '" data-qtype="' + esc(t)
-            + '" data-qpatient="' + esc(row.patient_name)
-            + '" data-qauthor="' + esc(who)
-            + '" title="Open this record in the form">&#128065; View</button>'
-            + '<button type="button" class="ent-fresh-ok" data-review="' + esc(row.record_key)
-            + '" title="Mark as done here" aria-label="Mark as done">&#10003;</button>'
             + '</div>';
     }
 
@@ -2912,40 +2889,42 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return queueExpanded ? 0 : Math.max(0, rows.length - QUEUE_PREVIEW);
     }
 
-    // Secretary: waiting drafts only, until "View patients" is tapped.
-    // The two sections are TONE-CODED (is-wait amber, is-saved green) so the
-    // count chips read as the same status as the rows under them.
-    function secretaryList(lists) {
-        const section = function (label, rows, empty, tone) {
-            return '<p class="ent-queue-section' + (tone ? ' is-' + tone : '') + '">' + label + ' <b>' + rows.length + '</b></p>'
-                + (rows.length
-                    ? previewRows(rows).map(queueRowHtml).join('')
-                    : '<p class="ent-queue-subempty">' + empty + '</p>');
-        };
-        const waiting = section('&#9203; Waiting for review', lists.review, 'Nothing waiting right now \uD83C\uDF89', 'wait');
-        if (!showAllPatients) return waiting;
-        return waiting + section('&#9989; Saved by your doctor', lists.saved,
-            'Your doctor has not saved any patients yet.', 'saved');
+    function queueViewButtons(lists, activeView) {
+        const completedIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>';
+        const incompleteIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+        function button(view, label, detail, count, icon) {
+            return '<button type="button" class="ent-queue-tab is-' + view
+                + (activeView === view ? ' is-active' : '') + '" data-queue-view="' + view
+                + '" aria-pressed="' + (activeView === view ? 'true' : 'false') + '">'
+                + '<span class="ent-queue-tab-head"><span class="ent-queue-tab-icon">'
+                + icon + '</span><span class="ent-queue-tab-label">' + label + '</span>'
+                + '<span class="ent-queue-tab-count">' + count + '</span></span>'
+                + '<span class="ent-queue-tab-detail">' + detail + '</span></button>';
+        }
+        return '<div class="ent-queue-tabs" role="group" aria-label="Filter doctor work">'
+            + button('saved', 'Completed', 'Doctor work is 100% complete', lists.saved.length, completedIcon)
+            + button('review', 'Incomplete', 'Waiting for doctor work', lists.review.length, incompleteIcon)
+            + '</div>';
     }
 
-    // Doctor: the tab he is on.
-    function tabbedList(lists, list, isDoc) {
-        if (!list.length) {
-            const who = isDoc ? 'your secretaries' : 'your doctor';
-            const copy = queueTab === 'review'
-                ? 'Nothing waiting for review from ' + who + ' \uD83C\uDF89'
-                : (queueTab === 'saved'
-                    ? 'Nothing saved to the database by ' + who + ' yet.'
-                    : 'No records from ' + who + ' in the last ' + QUEUE_DAYS + ' days.');
-            return '<p class="ent-empty">' + copy + '</p>';
+    function queueSection(title, rows, emptyText, tone) {
+        return '<p class="ent-queue-section is-' + tone + '">' + title
+            + ' <b>' + rows.length + '</b></p>'
+            + (rows.length
+                ? previewRows(rows).map(queueRowHtml).join('')
+                : '<p class="ent-queue-subempty">' + emptyText + '</p>');
+    }
+
+    function queueSections(lists, activeView) {
+        if (activeView === 'review') {
+            return queueSection('&#9203; Incomplete \u00b7 Waiting for doctor', lists.review,
+                'No secretary-entered records are waiting for doctor work in the latest '
+                    + QUEUE_LIMIT + ' updated records.',
+                'wait');
         }
-        const banner = queueTab === 'review'
-            ? '<p class="ent-queue-alert">&#128269; <b>' + list.length + '</b> '
-                + (list.length === 1 ? 'draft is' : 'drafts are') + ' waiting for review from '
-                + (isDoc ? 'your team' : 'your doctor')
-                + ' &mdash; check who the patients are, then open the saved ones to edit them.</p>'
-            : '';
-        return banner + previewRows(list).map(queueRowHtml).join('');
+        return queueSection('&#9989; Doctor completed \u00b7 100%', lists.saved,
+            'No finalized records have 100% doctor work in the latest ' + QUEUE_LIMIT + ' updated records.',
+            'saved');
     }
 
     function renderQueue() {
@@ -2956,8 +2935,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (role !== 'doctor' && role !== 'secretary') { card.hidden = true; return; }
         card.hidden = false;
 
-        const isDoc = role === 'doctor';
-        const isSec = role === 'secretary';
         const title = byId('dashQueueTitle');
         const hint = byId('dashQueueHint');
         if (title) {
@@ -2965,53 +2942,21 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             // emoji on first paint - the icon in index.html and the icon
             // after render are now the same one.
             const ic = '<svg class="ent-queue-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ';
-            title.innerHTML = ic + (isSec
-                ? 'New patients from your doctor'
-                : 'Your team&rsquo;s work');
+            title.innerHTML = ic + 'Doctor work status';
         }
         if (hint) {
             hint.textContent = queueError
-                ? 'Needs the cloud database'
-                : (isDoc
-                    ? 'Drafts your secretaries typed but have not saved yet, and what is already saved'
-                    : 'The patients your doctor has saved, and the ones he is still drafting');
+                ? 'Could not load doctor work status from the cloud database'
+                : 'Doctor work completed at 100% and secretary-entered records still waiting for doctor work';
         }
 
         const lists = queueLists();
-        const tabs = byId('dashQueueTabs');
-        // A secretary only needs the doctor's waiting drafts, so the tab bar
-        // (with "Everything") would only add noise - the list is grouped instead.
-        if (tabs) tabs.hidden = isSec;
-        const patientsBtn = byId('dashQueuePatients');
-        if (patientsBtn) {
-            patientsBtn.hidden = !isSec;
-            if (isSec) {
-                // The count rides the button so the toggle already says how
-                // much is behind it before the tap.
-                const savedN = lists.saved.length;
-                patientsBtn.textContent = showAllPatients
-                    ? '\uD83D\uDD05 Hide patients'
-                    : '\uD83D\uDC41 View patients' + (savedN ? ' (' + savedN + ')' : '');
-            }
-        }
-        if (tabs && typeof tabs.querySelectorAll === 'function') {
-            Array.prototype.forEach.call(tabs.querySelectorAll('[data-qn]'), function (b) {
-                const k = b.getAttribute('data-qn');
-                if (lists[k]) {
-                    b.textContent = lists[k].length;
-                    // "Needs review" wears AMBER while it is not zero - the
-                    // one tab that is work waiting on you, not just a filter.
-                    if (typeof b.classList === 'object' && b.classList.toggle) {
-                        b.classList.toggle('is-hot', k === 'review' && lists[k].length > 0);
-                    }
-                }
-            });
-        }
+        const activeView = queueView || (lists.review.length ? 'review' : 'saved');
 
-        /* The new-work badge at the top of the dashboard.
+        /* The doctor-work badge at the top of the dashboard.
          *
          * Driven by the SAME `lists.review` the queue card uses, so the number
-         * on the badge and the number on the "Needs review" tab can never
+         * on the badge and the number in the incomplete section can never
          * disagree. It is hidden at zero for the opposite reason to the admin's
          * ticket badge: this one is a "come look at this" alarm rather than a
          * status readout, and a permanently visible zero on a doctor's home
@@ -3027,17 +2972,16 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const text = byId('dashNewWorkText');
             badge.hidden = n === 0;
             if (num) num.textContent = String(n);
-            if (text) text.textContent = n === 1 ? 'New report' : 'New reports';
-            badge.title = n + (n === 1 ? ' draft is' : ' drafts are')
-                + ' waiting for you to review';
+            if (text) text.textContent = n === 1 ? 'Patient to complete' : 'Patients to complete';
+            badge.title = n + (n === 1 ? ' patient record needs' : ' patient records need')
+                + ' doctor work';
         }
         refreshTicketReplies();
 
         const box = byId('dashQueue');
         if (!box) return;
-        const list = lists[queueTab] || [];
 
-        // Hero pill: the fastest way to notice a partner's waiting draft.
+        // Hero pill: the fastest way to notice incomplete doctor work.
         const pill = byId('dashQueuePill');
         if (pill) {
             const waiting = lists.review.length;
@@ -3045,41 +2989,23 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 pill.hidden = true;
             } else {
                 pill.hidden = false;
-                pill.textContent = '\uD83D\uDC40 ' + waiting + ' waiting for review';
-                pill.title = (isDoc
-                    ? 'Your secretaries have drafts that are not in the database yet.'
-                    : 'Your doctor has drafts that are not in the database yet.')
-                    + ' Tap to see them below.';
+                pill.textContent = '\uD83D\uDC40 ' + waiting + ' waiting for doctor work';
+                pill.title = 'Secretary-entered patient records are not yet 100% complete. Tap to see them below.';
             }
         }
 
         if (queueError) {
-            box.innerHTML = '<p class="ent-empty">&#128249; Team drafts come from the cloud database &mdash; '
+            box.innerHTML = '<p class="ent-empty">&#128249; Patient work status comes from the cloud database &mdash; '
                 + esc(queueError) + '</p>';
         } else {
-            // "Finished by your team" sits on top for the doctor so a completed
-            // patient form is never missed. The secretary keeps it out of the
-            // way - her list stays "waiting for review" only.
-            const fresh = isSec ? [] : freshEdits();
-            const freshBlock = fresh.length
-                ? '<p class="ent-queue-section is-fresh">&#9998; Finished by your team <b>' + fresh.length + '</b></p>'
-                    + fresh.slice(0, 5).map(freshEditHtml).join('')
-                : '';
-            box.innerHTML = freshBlock + (isSec ? secretaryList(lists) : tabbedList(lists, list, isDoc));
+            const activeRows = activeView === 'review' ? lists.review : lists.saved;
+            box.innerHTML = queueViewButtons(lists, activeView) + queueSections(lists, activeView);
 
             /* THE "VIEW ALL" BUTTON.
-               Bottom of the list, not in the card header: the header already
-               carries the "View patients" toggle, and a second control up there
-               competing with it is how a user ends up not knowing which one
-               opens what. Down here it reads as "there is more below this".
-
                It only appears when there IS more, and it counts the rows that
-               are actually being held back - counted from the same lists the
-               renderer drew from, so the number can never drift from the
-               screen. */
-            const hidden = isSec
-                ? hiddenIn(lists.review) + (showAllPatients ? hiddenIn(lists.saved) : 0)
-                : hiddenIn(list);
+               are actually being held back in the selected list, so the
+               number can never drift from the screen. */
+            const hidden = hiddenIn(activeRows);
             if (hidden > 0) {
                 box.insertAdjacentHTML('beforeend',
                     '<button type="button" class="ent-queue-more" data-queue-more>'
@@ -3090,8 +3016,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     + '&#9650; Show fewer</button>');
             }
 
-            /* Expanded means "show me everything", and everything on a busy
-               doctor's list is 40 rows. Letting the card grow to 40 rows
+            /* Expanded means "show me everything". Letting the card grow
                pushes the rest of the dashboard off the screen, so the box
                takes a bounded height and scrolls instead. Collapsed is
                untouched - five rows never needed it. */
@@ -3100,28 +3025,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         const foot = byId('dashQueueFoot');
         if (foot) {
-            if (isSec) {
-                foot.textContent = (lists.saved.length || lists.review.length)
-                    ? lists.saved.length + ' saved \u00b7 ' + lists.review.length
-                        + ' waiting \u00b7 last ' + QUEUE_DAYS + ' days'
-                    : 'Nothing from your doctor in the last ' + QUEUE_DAYS + ' days.';
+            if (!lists.saved.length && !lists.review.length) {
+                foot.textContent = '';
             } else {
-                /* Must not say "Showing the newest N" with N = QUEUE_LIMIT any
-                   more: the preview shows five, so that sentence was describing
-                   a list the user was not looking at. It now states what is on
-                   screen, and stops saying "newest" - the preview is the NEWEST
-                   five only while the list is ordered newest-first, which is not
-                   a promise this footer can make about a tab's contents. */
-                if (!list.length) {
-                    foot.textContent = '';
-                } else if (queueExpanded) {
-                    foot.textContent = 'Showing all ' + list.length
-                        + (queueTab === 'all' ? ' record(s).' : ' from your team.');
-                } else {
-                    foot.textContent = 'Showing ' + Math.min(list.length, QUEUE_PREVIEW)
-                        + ' of ' + list.length
-                        + (queueTab === 'all' ? ' record(s).' : ' from your team.');
-                }
+                foot.textContent = lists.saved.length + ' completed \u00b7 '
+                    + lists.review.length + ' incomplete \u00b7 latest '
+                    + QUEUE_LIMIT + ' updated records';
             }
         }
     }
@@ -3626,20 +3535,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             startReport(trigger.getAttribute('data-report-type'));
         });
 
-        // Team queue: the three tabs + the open / view button on every row.
-        const qTabs = byId('dashQueueTabs');
-        if (qTabs) {
-            qTabs.addEventListener('click', function (event) {
-                const btn = (event.target && event.target.closest)
-                    ? event.target.closest('[data-qtab]') : null;
-                if (!btn) return;
-                queueTab = btn.getAttribute('data-qtab') || 'review';
-                Array.prototype.forEach.call(qTabs.querySelectorAll('[data-qtab]'), function (b) {
-                    b.classList.toggle('active', b === btn);
-                });
-                renderQueue();
-            });
-        }
+        // Team queue: status switching, view-all and record actions are delegated from the list.
         const qBox = byId('dashQueue');
         if (qBox) {
             qBox.addEventListener('click', function (event) {
@@ -3653,6 +3549,20 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                    because renderQueue() replaces the box's whole contents -
                    a listener bound to the button would fire once and then stop,
                    with no error to show for it. */
+                const view = (event.target && event.target.closest)
+                    ? event.target.closest('[data-queue-view]') : null;
+                if (view) {
+                    const nextView = view.getAttribute('data-queue-view');
+                    if (nextView === 'saved' || nextView === 'review') {
+                        queueView = nextView;
+                        queueExpanded = false;
+                        renderQueue();
+                        const active = qBox.querySelector('[data-queue-view="' + nextView + '"]');
+                        if (active && active.focus) active.focus();
+                    }
+                    return;
+                }
+
                 const more = (event.target && event.target.closest)
                     ? event.target.closest('[data-queue-more]') : null;
                 if (more) {
@@ -3669,15 +3579,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     return;
                 }
 
-                // "Reviewed" -> remembered on this device so it stops showing.
-                const done = (event.target && event.target.closest)
-                    ? event.target.closest('[data-review]') : null;
-                if (done) {
-                    const key = done.getAttribute('data-review');
-                    const row = queueRows.filter(function (r) { return r.record_key === key; })[0];
-                    if (row) { markReviewed(row); renderQueue(); }
-                    return;
-                }
                 const btn = (event.target && event.target.closest)
                     ? event.target.closest('[data-qkey]') : null;
                 if (!btn) return;
@@ -3690,17 +3591,15 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             });
         }
 
-        // Hero pill -> jump straight to the waiting drafts.
+        // Hero pill -> open the incomplete work list.
         const qPill = byId('dashQueuePill');
         if (qPill) {
             qPill.addEventListener('click', function () {
-                queueTab = 'review';
-                if (qTabs) {
-                    Array.prototype.forEach.call(qTabs.querySelectorAll('[data-qtab]'), function (b) {
-                        b.classList.toggle('active', b.getAttribute('data-qtab') === 'review');
-                    });
+                if (queueLists().review.length) {
+                    queueView = 'review';
+                    queueExpanded = false;
+                    renderQueue();
                 }
-                renderQueue();
                 const card = byId('dashQueueCard');
                 if (card && typeof card.scrollIntoView === 'function') {
                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3715,15 +3614,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 setTimeout(function () { qRefresh.classList.remove('is-busy'); }, 700);
             });
         }
-        // "View patients" reveals (and hides again) the patients the doctor saved.
-        const qPatients = byId('dashQueuePatients');
-        if (qPatients) {
-            qPatients.addEventListener('click', function () {
-                showAllPatients = !showAllPatients;
-                renderQueue();
-            });
-        }
-
         window.addEventListener('online', function () {
             refresh({ push: true });
             retryTeam();               // the card's own reconnect path
@@ -3747,7 +3637,6 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
         }
         wire();
-        readReviewed();
         renderTeam();
         refresh({ push: true });
         loadTeam();

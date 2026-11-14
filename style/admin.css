@@ -14,7 +14,7 @@
     --ent-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
     --ent-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
     --ent-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --ent-sidebar-width: 232px;
+    --ent-sidebar-width: 244px;
 }
 body.dark-mode {
     --ent-border: #334155;
@@ -8727,4 +8727,402 @@ body.dark-mode .ent-user-modal-close { background: var(--input-bg-color); }
     .ent-user-doctor-grid { gap: 12px; }
     .ent-user-modal-header { gap: 10px; }
     .ent-user-modal-close { width: 36px; height: 36px; flex-basis: 36px; }
+}
+
+/* Keep the desktop rail fixed to the viewport while the admin content scrolls. */
+@media (min-width: 981px) {
+    .ent-admin-header {
+        width: calc(100% - var(--ent-sidebar-width));
+        margin-left: var(--ent-sidebar-width);
+        margin-bottom: 0;
+    }
+
+    .ent-admin-header .header-content {
+        width: calc(100% - 48px);
+        max-width: 1600px;
+    }
+
+    .ent-admin-main {
+        display: block;
+        width: calc(100% - var(--ent-sidebar-width));
+        margin: 0 0 0 var(--ent-sidebar-width);
+        padding: 24px clamp(20px, 3vw, 40px) 60px;
+    }
+
+    .ent-admin-nav {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 60;
+        width: var(--ent-sidebar-width);
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        display: flex;
+        flex-direction: column;
+        gap: clamp(1px, .35vh, 3px);
+        overflow: hidden;
+        border-radius: 0;
+        padding: clamp(8px, 2vh, 18px) 12px;
+    }
+
+    .ent-admin-nav .ent-nav-cluster {
+        gap: clamp(1px, .35vh, 3px);
+    }
+
+    .ent-admin-nav .ent-nav-group-label {
+        margin-top: clamp(0px, .55vh, 5px);
+        padding: 0 8px 3px;
+        font-size: clamp(.5rem, .78vh, .58rem);
+    }
+
+    .ent-admin-nav .ent-nav-sep {
+        flex: 0 0 1px;
+        margin: clamp(1px, .3vh, 3px) 4px;
+    }
+
+    .ent-admin-nav button {
+        min-height: clamp(32px, 5.1vh, 40px);
+        gap: 9px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: .77rem;
+    }
+
+    .ent-admin-nav .ent-nav-icon {
+        width: 28px;
+        height: 28px;
+        flex-basis: 28px;
+    }
+
+    .ent-admin-nav .ent-nav-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .ent-admin-body {
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+}
+
+.ent-admin-nav button {
+    background: rgba(255, 255, 255, .035);
+    transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+.ent-admin-nav button:hover {
+    transform: translateX(2px);
+}
+
+.ent-admin-nav button.active {
+    background: linear-gradient(110deg, #fff 0%, #eaf7ff 100%);
+    border-color: rgba(255, 255, 255, .78);
+    box-shadow: 0 5px 14px rgba(3, 60, 94, .2);
+}
+
+.ent-admin-nav button.active .ent-nav-icon {
+    background: linear-gradient(145deg, #d9f3f1, #cce8f8);
+}
+
+.ent-admin-page .ent-admin-header #entUserChip .ent-user-admin {
+    display: none;
+}
+
+@media (max-height: 520px) and (min-width: 981px) {
+    .ent-admin-nav {
+        padding-block: 6px;
+        gap: 0;
+    }
+
+    .ent-admin-nav .ent-nav-group-label {
+        margin-top: 0;
+        padding-bottom: 1px;
+        line-height: 1.1;
+    }
+
+    .ent-admin-nav button {
+        min-height: 30px;
+    }
+
+    .ent-admin-nav .ent-nav-icon {
+        width: 24px;
+        height: 24px;
+        flex-basis: 24px;
+    }
+}
+
+/* Workspace-wide alignment and surface refinements. */
+.ent-admin-page {
+    text-align: left;
+}
+
+.ent-admin-body {
+    gap: 20px;
+}
+
+.ent-admin-body > .ent-admin-bar {
+    display: none;
+}
+
+.ent-admin-panel {
+    gap: 20px;
+}
+
+#panel-overview.active {
+    gap: 18px;
+}
+
+.ent-admin-page .ent-card,
+.ent-admin-page .overview-stat,
+.ent-admin-page .ent-admin-toolbar,
+.ent-admin-page .ent-settings-identity,
+.ent-admin-page .ent-trash-notice {
+    border-radius: 16px;
+    box-shadow: 0 7px 22px rgba(17, 47, 66, .045);
+}
+
+.ent-admin-page .ent-card {
+    border-color: var(--border-color);
+}
+
+.ent-admin-page .ent-card-head {
+    padding: 14px 18px;
+}
+
+.ent-admin-page .ent-card-head h3 {
+    font-size: .88rem;
+}
+
+.ent-admin-page .ent-table-wrap {
+    border-color: var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+}
+
+.ent-admin-page .ent-table th {
+    font-size: .62rem;
+}
+
+.ent-admin-page .ent-table td {
+    font-size: .73rem;
+}
+
+.ent-admin-page .ent-btn {
+    min-height: 40px;
+    border-radius: 11px;
+    transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.ent-admin-page .ent-btn:hover {
+    transform: translateY(-1px);
+}
+
+.ent-admin-page .ent-admin-toolbar {
+    align-items: center;
+}
+
+body.dark-mode.ent-admin-page .ent-card,
+body.dark-mode.ent-admin-page .overview-stat,
+body.dark-mode.ent-admin-page .ent-admin-toolbar,
+body.dark-mode.ent-admin-page .ent-settings-identity,
+body.dark-mode.ent-admin-page .ent-trash-notice {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+}
+
+@media (max-width: 980px) {
+    .ent-admin-body {
+        gap: 18px;
+    }
+
+    .ent-admin-panel {
+        gap: 16px;
+    }
+}
+
+.ent-announcement-hero {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 22px;
+    border: 1px solid var(--ent-line);
+    border-radius: 16px;
+    background: linear-gradient(120deg, var(--ent-card), var(--primary-light));
+    box-shadow: var(--ent-card-shadow);
+}
+.ent-announcement-hero-icon {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border-radius: 16px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+}
+.ent-announcement-hero-icon svg,
+.ent-announcement-actions svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+.ent-announcement-kicker {
+    color: var(--primary-hover-color);
+    font-size: .64rem;
+    font-weight: 850;
+    letter-spacing: .12em;
+}
+.ent-announcement-hero h2 {
+    margin: 4px 0;
+    color: var(--text-color);
+    font-size: 1.25rem;
+}
+.ent-announcement-hero p,
+.ent-announcement-card-head p {
+    margin: 0;
+    color: var(--secondary-text-color);
+    font-size: .82rem;
+    line-height: 1.6;
+}
+.ent-announcement-card {
+    display: grid;
+    gap: 18px;
+    padding: clamp(18px, 3vw, 28px);
+    border: 1px solid var(--ent-line);
+    border-radius: 16px;
+    background: var(--ent-card);
+    box-shadow: var(--ent-card-shadow);
+}
+.ent-announcement-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--ent-line);
+}
+.ent-announcement-card-head h3 {
+    margin: 0 0 5px;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+.ent-announcement-audience {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 20%, var(--ent-line));
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+    font-size: .68rem;
+    font-weight: 800;
+}
+.ent-announcement-field {
+    display: grid;
+    gap: 7px;
+    color: var(--text-color);
+    font-size: .78rem;
+    font-weight: 750;
+}
+.ent-announcement-field input,
+.ent-announcement-field textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--ent-line);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: .86rem;
+    line-height: 1.55;
+    resize: vertical;
+}
+.ent-announcement-field input { min-height: 44px; }
+.ent-announcement-field textarea { min-height: 140px; }
+.ent-announcement-field input:focus,
+.ent-announcement-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+.ent-announcement-field small {
+    color: var(--secondary-text-color);
+    font-size: .7rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+.ent-announcement-notice {
+    display: none;
+    margin: 0;
+    padding: 11px 13px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1.5;
+}
+.ent-announcement-notice.show { display: block; }
+.ent-announcement-notice.is-ok {
+    border-color: #b7e5d0;
+    background: #effaf4;
+    color: #176b45;
+}
+.ent-announcement-notice.is-bad {
+    border-color: #f0c6c6;
+    background: #fff3f3;
+    color: #a52e36;
+}
+.ent-announcement-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+.ent-announcement-actions > span {
+    color: var(--secondary-text-color);
+    font-size: .72rem;
+    line-height: 1.5;
+}
+.ent-announcement-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 170px;
+}
+.ent-announcement-actions button:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+body.dark-mode .ent-announcement-notice.is-ok {
+    border-color: rgba(74, 222, 128, .25);
+    background: rgba(22, 101, 52, .22);
+    color: #86efac;
+}
+body.dark-mode .ent-announcement-notice.is-bad {
+    border-color: rgba(248, 113, 113, .3);
+    background: rgba(127, 29, 29, .2);
+    color: #fca5a5;
+}
+@media (max-width: 640px) {
+    .ent-announcement-hero {
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+        padding: 16px;
+    }
+    .ent-announcement-hero-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+    }
+    .ent-announcement-card-head,
+    .ent-announcement-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .ent-announcement-actions button { width: 100%; }
 }

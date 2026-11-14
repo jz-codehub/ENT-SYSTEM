@@ -6,12 +6,12 @@
     <title>Admin Console - ENT Endoscopy System</title>
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="../style/index.css?v=v32c">
+    <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/notifications.css?v=v6-messenger-badge">
-    <link rel="stylesheet" href="../style/messages.css?v=v13-messenger-polish">
+    <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
+    <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v56-messenger-badge">
+    <link rel="stylesheet" href="../style/admin.css?v=v60-announcement-composer">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -44,7 +44,7 @@
              mistake rather than a design. A rail has room for every label
              at any width and never reflows.
 
-             Tickets and Settings are PANELS here, not links that navigate
+             Tickets, Announcements and Settings are PANELS here, not links that navigate
              away: leaving the console to answer a ticket loses your place,
              and the whole point of the console is that everything an admin
              does lives in one screen.
@@ -92,6 +92,10 @@
                     <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg></span>
                     <span class="ent-nav-text">Tickets</span>
                     <span class="ent-nav-count" id="ticketNavCount" hidden>0</span>
+                </button>
+                <button type="button" data-panel="announcements" data-title="Announcements" title="Send a message to every active user">
+                    <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg></span>
+                    <span class="ent-nav-text">Announcements</span>
                 </button>
             </div>
             <span class="ent-nav-sep" aria-hidden="true"></span>
@@ -900,6 +904,46 @@
             </p>
         </section>
 
+        <!-- ------------------------- ANNOUNCEMENTS ------------------------ -->
+        <section class="ent-admin-panel" id="panel-announcements">
+            <header class="ent-announcement-hero">
+                <span class="ent-announcement-hero-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg>
+                </span>
+                <div>
+                    <span class="ent-announcement-kicker">ALL CLINICS</span>
+                    <h2>Announcements</h2>
+                    <p>Share an important update with every active account. Each person receives a private notification they can mark as read.</p>
+                </div>
+            </header>
+            <div class="ent-announcement-card">
+                <div class="ent-announcement-card-head">
+                    <div>
+                        <h3>Write an announcement</h3>
+                        <p>This will be sent to all active doctors, secretaries, and admins across every clinic.</p>
+                    </div>
+                    <span class="ent-announcement-audience">All active users</span>
+                </div>
+                <label class="ent-announcement-field" for="announcementTitle">
+                    <span>Title</span>
+                    <input type="text" id="announcementTitle" maxlength="120" placeholder="What should everyone know?">
+                </label>
+                <label class="ent-announcement-field" for="announcementBody">
+                    <span>Message</span>
+                    <textarea id="announcementBody" rows="6" maxlength="1000" placeholder="Write a clear, helpful update for your clinic teams."></textarea>
+                    <small>Up to 1,000 characters. Do not include patient-identifying information.</small>
+                </label>
+                <p class="ent-announcement-notice" id="announcementNotice" role="status" aria-live="polite"></p>
+                <div class="ent-announcement-actions">
+                    <span>Notifications are delivered to each active account separately.</span>
+                    <button type="button" class="ent-btn primary" id="publishAnnouncementBtn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg>
+                        Send to everyone
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <!-- ---------------------------- SETTINGS --------------------------
              Clinic control room: identity, name on reports, capability
              switches, and who can reach what. Same ids and copy the tests
@@ -1125,10 +1169,10 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36m-doc-jess-clinic-code" defer></script>
-    <script src="../function/notificationCenter.js?v=v4-messenger-unread" defer></script>
-    <script src="../function/messagesPage.js?v=v12-messenger-polish" defer></script>
+    <script src="../function/auth.js?v=v36n-admin-all-clinics" defer></script>
+    <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
+    <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v45-user-modal-refine" defer></script>
+    <script src="../function/admin.js?v=v48-global-announcements" defer></script>
 </body>
 </html>

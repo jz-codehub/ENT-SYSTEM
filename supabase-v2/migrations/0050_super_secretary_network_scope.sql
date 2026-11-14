@@ -197,6 +197,7 @@ BEGIN
 END
 $$;
 
+
 -- =====================================================================
 --  0051 · SUPER SECRETARY - one active clinic at a time
 -- ---------------------------------------------------------------------
@@ -826,3 +827,184 @@ BEGIN
     RAISE NOTICE '0051 OK: Super Secretary records and patient metadata are restricted to the active managed clinic.';
 END
 $$;
+
+-- =====================================================================
+-- 0050 · Per-recipient staff chat delivery and read receipts
+-- ---------------------------------------------------------------------
+-- A conversation's last_read_at is useful for unread counts, but cannot
+-- tell the sender which individual messages were delivered or seen.
+-- This section is safe to re-run when updating an existing 0050 install.
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS public.staff_chat_message_receipts (
+    message_id   uuid NOT NULL REFERENCES public.staff_chat_messages(id) ON DELETE CASCADE,
+    user_id      uuid NOT NULL REFERENCES public.staff_profiles(id) ON DELETE CASCADE,
+    delivered_at timestamptz,
+    read_at      timestamptz,
+    PRIMARY KEY (message_id, user_id),
+    CHECK (read_at IS NULL OR delivered_at IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_chat_message_receipts_user_pending
+    ON public.staff_chat_message_receipts (user_id, message_id)
+    WHERE delivered_at IS NULL OR read_at IS NULL;
+
+ALTER TABLE public.staff_chat_message_receipts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.staff_chat_message_receipts FROM anon, public, authenticated;
+GRANT ALL ON public.staff_chat_message_receipts TO service_role;
+
+INSERT INTO public.staff_chat_message_receipts (message_id, user_id, delivered_at, read_at)
+SELECT message.id,
+       member.user_id,
+       CASE WHEN message.created_at <= member.last_read_at THEN member.last_read_at END,
+       CASE WHEN message.created_at <= member.last_read_at THEN member.last_read_at END
+  FROM public.staff_chat_messages message
+  JOIN public.staff_conversation_members member
+    ON member.conversation_id = message.conversation_id
+   AND member.user_id <> message.sender_id
+   AND member.joined_at <= message.created_at
+ON CONFLICT (message_id, user_id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.ent_create_staff_chat_message_receipts()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.staff_chat_message_receipts (message_id, user_id)
+    SELECT NEW.id, member.user_id
+      FROM public.staff_conversation_members member
+      JOIN public.staff_profiles profile
+        ON profile.id = member.user_id AND profile.is_active
+     WHERE member.conversation_id = NEW.conversation_id
+       AND member.user_id <> NEW.sender_id
+    ON CONFLICT (message_id, user_id) DO NOTHING;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_create_staff_chat_message_receipts
+    ON public.staff_chat_messages;
+CREATE TRIGGER trg_create_staff_chat_message_receipts
+    AFTER INSERT ON public.staff_chat_messages
+    FOR EACH ROW EXECUTE FUNCTION public.ent_create_staff_chat_message_receipts();
+
+CREATE OR REPLACE FUNCTION public.ent_mark_chats_delivered()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user uuid := public.ent_auth_uid();
+    v_count integer;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.staff_profiles profile
+         WHERE profile.id = v_user AND profile.is_active
+    ) THEN
+        RAISE EXCEPTION 'refused: active staff account required'
+            USING ERRCODE = '42501';
+    END IF;
+
+    UPDATE public.staff_chat_message_receipts receipt
+       SET delivered_at = now()
+      FROM public.staff_chat_messages message
+     WHERE message.id = receipt.message_id
+       AND receipt.user_id = v_user
+       AND receipt.delivered_at IS NULL
+       AND message.sender_id IS DISTINCT FROM v_user
+       AND EXISTS (
+           SELECT 1 FROM public.staff_conversation_members member
+            WHERE member.conversation_id = message.conversation_id
+              AND member.user_id = v_user
+       );
+    GET DIAGNOSTICS v_count = ROW_COUNT;
+    RETURN v_count;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_my_chat_message_receipts(p_conversation_id uuid)
+RETURNS TABLE (
+    message_id uuid,
+    delivered_count bigint,
+    read_count bigint,
+    recipient_count bigint
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+          FROM public.staff_conversation_members member
+          JOIN public.staff_profiles profile
+            ON profile.id = member.user_id AND profile.is_active
+         WHERE member.conversation_id = p_conversation_id
+           AND member.user_id = public.ent_auth_uid()
+    ) THEN
+        RAISE EXCEPTION 'refused: conversation is unavailable'
+            USING ERRCODE = '42501';
+    END IF;
+
+    RETURN QUERY
+    SELECT message.id,
+           count(receipt.user_id) FILTER (WHERE receipt.delivered_at IS NOT NULL),
+           count(receipt.user_id) FILTER (WHERE receipt.read_at IS NOT NULL),
+           count(receipt.user_id)
+      FROM public.staff_chat_messages message
+      LEFT JOIN public.staff_chat_message_receipts receipt
+        ON receipt.message_id = message.id
+     WHERE message.conversation_id = p_conversation_id
+       AND message.sender_id = public.ent_auth_uid()
+     GROUP BY message.id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_mark_chat_read(p_conversation_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user uuid := public.ent_auth_uid();
+    v_now timestamptz := now();
+BEGIN
+    UPDATE public.staff_conversation_members
+       SET last_read_at = v_now
+     WHERE conversation_id = p_conversation_id
+       AND user_id = v_user
+       AND EXISTS (
+           SELECT 1 FROM public.staff_profiles profile
+            WHERE profile.id = v_user AND profile.is_active
+       );
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'refused: conversation is unavailable'
+            USING ERRCODE = '42501';
+    END IF;
+
+    UPDATE public.staff_chat_message_receipts receipt
+       SET delivered_at = coalesce(receipt.delivered_at, v_now),
+           read_at = coalesce(receipt.read_at, v_now)
+      FROM public.staff_chat_messages message
+     WHERE message.id = receipt.message_id
+       AND message.conversation_id = p_conversation_id
+       AND message.sender_id IS DISTINCT FROM v_user
+       AND receipt.user_id = v_user;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ent_create_staff_chat_message_receipts() FROM anon, public, authenticated;
+GRANT EXECUTE ON FUNCTION public.ent_create_staff_chat_message_receipts() TO service_role;
+REVOKE ALL ON FUNCTION public.ent_mark_chats_delivered() FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_mark_chats_delivered() TO authenticated;
+REVOKE ALL ON FUNCTION public.ent_my_chat_message_receipts(uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_my_chat_message_receipts(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.ent_mark_chat_read(uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_mark_chat_read(uuid) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';

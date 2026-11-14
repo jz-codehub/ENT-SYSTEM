@@ -423,7 +423,7 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0050 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0051 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
   'sign in as a Super Secretary and verify switching clinic changes the',

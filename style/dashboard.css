@@ -634,81 +634,7 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
 .ent-queue-refresh:hover { color: var(--primary-color); border-color: var(--primary-color); }
 .ent-queue-refresh.is-busy { animation: entQueueSpin 0.7s linear infinite; }
 @keyframes entQueueSpin { to { transform: rotate(360deg); } }
-.ent-queue-alert {
-    margin: 0 0 4px;
-    padding: 9px 13px;
-    border-radius: 11px;
-    border: 1px solid rgba(243, 156, 18, 0.34);
-    background: rgba(243, 156, 18, 0.11);
-    color: var(--text-color);
-    font-size: 0.78rem;
-}
-.ent-queue-alert b { color: #b9770e; }
-/* "Finished by your team" - compact, counts first, one View button per row */
-.ent-fresh-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 8px 10px;
-    padding: 8px 10px 8px 12px;
-    min-width: 0;
-    margin-bottom: 8px;
-    border: 1px solid rgba(39, 174, 96, 0.34);
-    border-left: 4px solid var(--success-color);
-    border-radius: 12px;
-    background: rgba(39, 174, 96, 0.07);
-}
-.ent-fresh-main { min-width: 0; display: flex; flex-direction: column; }
-.ent-fresh-main b {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.ent-fresh-main small {
-    font-size: 0.7rem;
-    color: var(--secondary-text-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.ent-fresh-view {
-    padding: 5px 11px;
-    white-space: nowrap;
-    border-radius: 9px;
-    border: 1px solid rgba(2, 132, 199, 0.3);
-    background: var(--primary-light);
-    color: var(--primary-hover-color, #0284c7);
-    font-family: inherit;
-    font-size: 0.73rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-.ent-fresh-view:hover { background: var(--primary-color); color: #fff; }
-.ent-fresh-ok {
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    display: grid;
-    place-items: center;
-    border-radius: 9px;
-    border: 1px solid rgba(39, 174, 96, 0.4);
-    background: var(--bg-color);
-    color: var(--success-color);
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 800;
-    cursor: pointer;
-}
-.ent-fresh-ok:hover { background: var(--success-color); color: #fff; }
-@media (max-width: 560px) {
-    .ent-fresh-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
-    .ent-fresh-main small { white-space: normal; }
-}
-
-/* Secretary view: grouped sections instead of tabs */
+/* Queue section labels */
 .ent-queue-section {
     display: flex;
     align-items: center;
@@ -740,41 +666,100 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     color: var(--secondary-text-color);
     background: var(--panel-bg-color);
 }
-.ent-queue-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 12px; }
-.ent-queue-tabs[hidden] { display: none; }
-.ent-queue-tabs button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 13px;
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    color: var(--secondary-text-color);
-    font-family: inherit;
-    font-size: 0.76rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-.ent-queue-tabs button:hover { border-color: var(--primary-color); color: var(--text-color); }
-.ent-queue-tabs button.active {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #fff;
-}
-.ent-queue-tab-n {
-    min-width: 20px;
-    padding: 0 6px;
-    border-radius: 999px;
-    background: var(--primary-light);
-    color: var(--primary-hover-color, #0284c7);
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-align: center;
-}
-.ent-queue-tabs button.active .ent-queue-tab-n { background: rgba(255, 255, 255, 0.25); color: #fff; }
 .ent-queue { display: flex; flex-direction: column; gap: 8px; }
+.ent-queue-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 4px;
+}
+.ent-queue-tab {
+    --queue-tab-color: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 78px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--panel-bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease,
+        box-shadow 0.16s ease, transform 0.16s ease;
+}
+.ent-queue-tab.is-saved { --queue-tab-color: var(--success-color); }
+.ent-queue-tab.is-review { --queue-tab-color: var(--warning-color); }
+.ent-queue-tab:hover {
+    border-color: var(--queue-tab-color);
+    transform: translateY(-1px);
+}
+.ent-queue-tab.is-active {
+    border-color: var(--queue-tab-color);
+    background: color-mix(in srgb, var(--queue-tab-color) 8%, var(--panel-bg-color));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--queue-tab-color) 14%, transparent);
+}
+.ent-queue-tab:focus-visible {
+    outline: 3px solid var(--queue-tab-color);
+    outline-offset: 2px;
+}
+.ent-queue-tab-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.ent-queue-tab-icon {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--queue-tab-color) 13%, transparent);
+    color: var(--queue-tab-color);
+}
+.ent-queue-tab-icon svg { width: 17px; height: 17px; }
+.ent-queue-tab-label {
+    overflow: hidden;
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ent-queue-tab-count {
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 26px;
+    margin-left: auto;
+    padding: 0 7px;
+    border: 1px solid color-mix(in srgb, var(--queue-tab-color) 28%, var(--border-color));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--queue-tab-color) 10%, var(--panel-bg-color));
+    color: var(--queue-tab-color);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+.ent-queue-tab-detail {
+    padding-left: 38px;
+    color: var(--secondary-text-color);
+    font-size: 0.68rem;
+    line-height: 1.35;
+}
+@media (max-width: 520px) {
+    .ent-queue-tabs { gap: 7px; }
+    .ent-queue-tab { min-height: 72px; padding: 10px; }
+    .ent-queue-tab-detail { padding-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ent-queue-tab { transition: none; }
+    .ent-queue-tab:hover { transform: none; }
+}
 
 /* ---- "View all" · the button under the list --------------------------
    Collapsed, the queue shows five rows. This button is what says there is
@@ -1150,9 +1135,11 @@ body.dark-mode .ent-dash-scope.is-super-secretary {
     gap: 12px;
 }
 .ent-tile {
+    --tile-accent: var(--primary-color);
+    --tile-accent-soft: var(--primary-light);
     position: relative;
     border: 1px solid var(--border-color);
-    border-left: 4px solid var(--primary-color);
+    border-left: 4px solid var(--tile-accent);
     border-radius: 13px;
     padding: 11px 13px 12px;
     background: var(--bg-color);
@@ -1163,10 +1150,15 @@ body.dark-mode .ent-dash-scope.is-super-secretary {
     gap: 3px;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.ent-tile:hover { transform: translateY(-3px); box-shadow: var(--card-shadow-hover); }
-.ent-tile.ent-tile-week,
-.ent-tile.ent-tile-month,
-.ent-tile.ent-tile-year { border-left-color: var(--primary-color); }
+.ent-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--tile-accent);
+}
+.ent-tile-today { --tile-accent: #0284c7; --tile-accent-soft: rgba(2, 132, 199, 0.14); }
+.ent-tile-week { --tile-accent: #7c3aed; --tile-accent-soft: rgba(124, 58, 237, 0.14); }
+.ent-tile-month { --tile-accent: #27ae60; --tile-accent-soft: rgba(39, 174, 96, 0.14); }
+.ent-tile-year { --tile-accent: #4f46e5; --tile-accent-soft: rgba(79, 70, 229, 0.14); }
 /* The icon + label row at the top of each tile. */
 .ent-tile-top {
     display: flex;
@@ -1181,17 +1173,14 @@ body.dark-mode .ent-dash-scope.is-super-secretary {
     place-items: center;
     border-radius: 9px;
     font-size: 0.95rem;
-    background: var(--primary-light);
+    background: var(--tile-accent-soft);
 }
-.ent-tile.ent-tile-week .ent-tile-icon,
-.ent-tile.ent-tile-month .ent-tile-icon,
-.ent-tile.ent-tile-year .ent-tile-icon { background: var(--primary-light); }
 .ent-tile-label {
     font-size: 0.66rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--secondary-text-color);
+    color: var(--tile-accent);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1200,12 +1189,9 @@ body.dark-mode .ent-dash-scope.is-super-secretary {
     font-size: 2.1rem;
     font-weight: 800;
     line-height: 1.05;
-    color: var(--primary-color);
+    color: var(--tile-accent);
     font-variant-numeric: tabular-nums;
 }
-.ent-tile-week .ent-tile-n,
-.ent-tile-month .ent-tile-n,
-.ent-tile-year .ent-tile-n { color: var(--primary-hover-color); }
 .ent-tile-n small { font-size: 0.68rem; font-weight: 600; color: var(--secondary-text-color); margin-left: 5px; }
 /* The per-type split inside each tile: Endoscopy (nasal + laryngeal) vs CF4,
    so the mix is visible without opening the Report types card. */
@@ -3237,8 +3223,7 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
        rather than "more information";
      � the heading promoted out of the muted --secondary-text-color into
        --primary-color, matching .ent-card-head h3 in auth.css;
-     � the tabs given a real container so they do not float loose on the
-       card background;
+     � completed and incomplete work use a two-button status switcher;
      � rows given a hover state and a left border that colours by state
        (amber = waiting on you, green = already in the database).
 
@@ -3251,21 +3236,6 @@ body.dark-mode .ent-site-chip.is-cumc { color: #c4b5fd; background: rgba(124, 58
     background: var(--panel-bg-color);
 }
 #dashQueueCard .ent-card-head h3 { font-size: 1.02rem; }
-
-#dashQueueCard .ent-queue-tabs {
-    display: inline-flex;
-    gap: 4px;
-    padding: 4px;
-    margin-bottom: 14px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-}
-
-#dashQueueCard .ent-queue-tabs button {
-    border-radius: 9px;
-    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
 
 #dashQueueCard .ent-queue-row {
     transition: background 0.15s ease, border-color 0.15s ease;
@@ -3301,9 +3271,8 @@ body.dark-mode #dashQueueCard .ent-queue-row:hover { background: rgba(14, 165, 2
        title carries the exact stamp;
      · the status pill's pulsing dot (auth.css .ent-pill .dot) is kept on
        "Waiting" and silenced on "In database" so only open work blinks;
-     · the secretary's two sections and the doctor's "Finished by your
-       team" get tone-coded count chips (amber = waiting, green = done);
-     · the "Needs review" tab count turns amber while it is not zero.
+     · the completed and incomplete status buttons use tone-coded counts
+       (green = done, amber = waiting).
 
    Scoping everything under #dashQueueCard keeps these hues out of the
    follow-ups / recent-records lists that share .ent-queue-section.
@@ -3356,12 +3325,46 @@ body.dark-mode #dashQueueCard .ent-queue-av.is-cf4       { color: #6ee7a8; }
 body.dark-mode .ent-qtype.is-nasal     { color: #7dd3fc; border-color: rgba(125, 211, 252, 0.4); }
 body.dark-mode .ent-qtype.is-laryngeal { color: #a5b4fc; border-color: rgba(196, 181, 253, 0.4); }
 body.dark-mode .ent-qtype.is-cf4       { color: #6ee7a8; border-color: rgba(110, 231, 168, 0.4); }
+.ent-qdate {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.ent-qdate svg { width: 13px; height: 13px; flex: 0 0 13px; }
+#dashQueueCard .ent-queue-row.is-saved .ent-qdate {
+    color: #176b3a;
+    background: rgba(39, 174, 96, 0.14);
+    border-color: rgba(39, 174, 96, 0.38);
+}
+#dashQueueCard .ent-queue-row.is-review .ent-qdate {
+    color: #925300;
+    background: rgba(243, 156, 18, 0.16);
+    border-color: rgba(217, 119, 6, 0.4);
+}
+body.dark-mode #dashQueueCard .ent-queue-row.is-saved .ent-qdate {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(134, 239, 172, 0.42);
+}
+body.dark-mode #dashQueueCard .ent-queue-row.is-review .ent-qdate {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(252, 211, 77, 0.42);
+}
 .ent-qsep { color: var(--border-color); user-select: none; }
 
 /* ---- the status pills: only OPEN work blinks ------------------------ */
 .ent-queue .ent-pill.live .dot { animation: none; opacity: 0.65; }
 
-/* ---- tone-coded section chips (secretary groups + fresh block) ------- */
+/* ---- tone-coded section chips ---------------------------------------- */
 #dashQueueCard .ent-queue-section.is-wait b {
     color: #b9770e;
     background: rgba(243, 156, 18, 0.14);
@@ -3373,13 +3376,6 @@ body.dark-mode .ent-qtype.is-cf4       { color: #6ee7a8; border-color: rgba(110,
     background: rgba(39, 174, 96, 0.13);
     border-color: rgba(39, 174, 96, 0.36);
 }
-
-/* ---- "Needs review" count is amber while work is waiting ------------ */
-.ent-queue-tabs .ent-queue-tab-n.is-hot {
-    background: rgba(243, 156, 18, 0.16);
-    color: #b9770e;
-}
-body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
 
 /* =====================================================================
    TICKET DIALOG BUTTONS  ·  .ent-tf-pane
@@ -3695,34 +3691,10 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
 }
 /* ---------- the team queue ----------------------------------------- */
 @media (max-width: 640px) {
-    /* The head carries a title, a hint, a toggle and a refresh button.
-       Stacked, the refresh button is no longer under the thumb. */
+    /* Keep the queue refresh button easy to reach when its header stacks. */
     .ent-queue-head-side { width: 100%; justify-content: space-between; }
     .ent-queue-refresh { min-height: 40px; min-width: 40px; }
 
-    /* Three tabs with a count each: equal thirds, so all three answers are
-       visible at once. */
-    .ent-queue-tabs { display: flex; gap: 6px; }
-    .ent-queue-tabs button {
-        flex: 1 1 0;
-        justify-content: center;
-        min-height: 44px;
-        padding: 9px 8px;
-        text-align: center;
-    }
-    .ent-queue-tab-label { font-size: 0.74rem; overflow-wrap: anywhere; }
-
-    /* A queue row is name, status and two buttons on one line. The buttons
-       move to their own full-width row. */
-    .ent-fresh-row { flex-wrap: wrap; row-gap: 9px; }
-    .ent-fresh-main { flex: 1 1 100%; }
-    .ent-fresh-view,
-    .ent-fresh-ok {
-        flex: 1 1 auto;
-        min-height: 42px;
-        padding: 10px 14px;
-        justify-content: center;
-    }
 }
 
 /* ---------- your secretaries ---------------------------------------- */
@@ -3769,8 +3741,7 @@ body.dark-mode .ent-queue-tabs .ent-queue-tab-n.is-hot { color: #fbbf24; }
     .ent-card-head { flex-wrap: wrap; row-gap: 4px; }
     .ent-card-head h3 { font-size: 0.98rem; }
     /* A long patient name in a card title must wrap, not widen the card. */
-    .ent-card-head h3,
-    .ent-fresh-main b { overflow-wrap: anywhere; }
+    .ent-card-head h3 { overflow-wrap: anywhere; }
 
     /* The header's icon-only Settings button keeps a square, thumb-sized
        tap target even with the text buttons sharing its row. */
