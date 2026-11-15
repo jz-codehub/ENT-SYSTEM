@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v63-manual-admin-mfa">
+    <link rel="stylesheet" href="../style/admin.css?v=v64-all-admin-clinics">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -957,8 +957,8 @@
         <!-- ---------------------------- SETTINGS --------------------------
              Clinic control room: identity, name on reports, capability
              switches, and who can reach what. Same ids and copy the tests
-             assert on (settingsClinicId, settingsStaffCount,
-             clinicNameInput, flagList, "Your clinic", "on the server",
+             assert on (settingsClinicCount, settingsClinicList, settingsStaffCount,
+             clinicNameInput, flagList, "All clinics you manage", "on the server",
              "Who can see what") - only the shell around them is new. -->
         <section class="ent-admin-panel" id="panel-settings">
             <header class="ent-settings-hero">
@@ -995,14 +995,14 @@
                 </p>
             </section>
 
-            <!-- Identity strip: the clinic at a glance, before anything asks. -->
-            <section class="ent-settings-identity" aria-label="Your clinic">
+            <!-- Identity strip: every clinic this admin manages. -->
+            <section class="ent-settings-identity" aria-label="All clinics you manage">
                 <div class="ent-identity-main">
                     <span class="ent-identity-icon" aria-hidden="true">&#127970;</span>
                     <div class="ent-identity-text">
-                        <span class="ent-identity-kicker">Your clinic</span>
-                        <strong class="ent-identity-name" id="settingsClinicName">Loading&hellip;</strong>
-                        <span class="ent-identity-id">ID <code id="settingsClinicId">&mdash;</code></span>
+                        <span class="ent-identity-kicker">All clinics you manage</span>
+                        <strong class="ent-identity-name" id="settingsClinicCount">Loading&hellip;</strong>
+                        <div class="ent-identity-clinics" id="settingsClinicList" aria-live="polite"></div>
                     </div>
                 </div>
                 <dl class="ent-settings-facts">
@@ -1225,6 +1225,6 @@
     <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v52-manual-admin-mfa" defer></script>
+    <script src="../function/admin.js?v=v53-all-admin-clinics" defer></script>
 </body>
 </html>

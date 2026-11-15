@@ -950,7 +950,8 @@
 // v184: use explicit doctor assignments for Super Secretary clinic access.
 // v185: add staged admin MFA, atomic assignment updates, and admin hardening.
 // v186: make admin MFA setup explicit and available inline in Settings.
-const CACHE_NAME = 'ent-report-system-v186-manual-admin-mfa';
+// v187: list all clinics in the admin's Settings identity summary.
+const CACHE_NAME = 'ent-report-system-v187-all-admin-clinics';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

@@ -7916,6 +7916,7 @@ body.dark-mode #panel-tickets > .ent-hint {
 .ent-identity-main {
     display: flex;
     min-width: 0;
+    flex: 1 1 320px;
     align-items: center;
     gap: 12px;
     padding: 14px 16px;
@@ -7936,6 +7937,7 @@ body.dark-mode #panel-tickets > .ent-hint {
 
 .ent-identity-text {
     display: grid;
+    flex: 1 1 auto;
     min-width: 0;
     gap: 3px;
 }
@@ -7956,14 +7958,33 @@ body.dark-mode #panel-tickets > .ent-hint {
     white-space: nowrap;
 }
 
-.ent-identity-id {
-    color: var(--secondary-text-color);
-    font-size: .59rem;
+.ent-identity-clinics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-width: 100%;
+    margin-top: 3px;
 }
 
-.ent-identity-id code {
-    color: var(--secondary-text-color);
+.ent-identity-clinic,
+.ent-identity-clinic-empty {
+    max-width: 100%;
+    padding: 3px 7px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
     font-size: .58rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.ent-identity-clinic {
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+    font-weight: 700;
+}
+
+.ent-identity-clinic-empty {
+    color: var(--secondary-text-color);
 }
 
 .ent-settings-identity .ent-settings-facts {
@@ -8201,7 +8222,6 @@ body.dark-mode .ent-trash-hero-actions > .ent-btn.danger {
 body.dark-mode .ent-settings-step { color: var(--secondary-text-color); }
 
 body.dark-mode .ent-identity-name,
-body.dark-mode .ent-identity-id code,
 body.dark-mode .ent-flag-text b { color: var(--text-color); }
 
 body.dark-mode .ent-identity-icon,
@@ -8211,7 +8231,6 @@ body.dark-mode .ent-settings-identity .ent-settings-facts {
 }
 
 body.dark-mode .ent-identity-kicker,
-body.dark-mode .ent-identity-id,
 body.dark-mode .ent-flag-text small { color: var(--secondary-text-color); }
 
 body.dark-mode .ent-settings-identity .ent-settings-facts { border-left-color: var(--border-color); }

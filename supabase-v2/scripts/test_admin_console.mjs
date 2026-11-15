@@ -321,6 +321,13 @@ is('A1b1b', 'the explicit MFA button enables a verified elevated session',
        && call.body && call.body.action === 'enable_admin_mfa'
    }),
    'MFA enablement followed the button click')
+await el('refreshSettingsBtn').fire('click')
+await new Promise(function (resolve) { setTimeout(resolve, 80) })
+is('A1b1c', 'Settings lists every clinic represented in the admin scope',
+   el('settingsClinicCount').textContent === '2 clinics'
+     && el('settingsClinicList').innerHTML.indexOf('ENT Clinic Doc Jess') !== -1
+     && el('settingsClinicList').innerHTML.indexOf('Bolmen Clinic') !== -1,
+   el('settingsClinicCount').textContent + ': ' + el('settingsClinicList').innerHTML)
 win.presenceFailure = true
 await el('refreshSessionsBtn').fire('click')
 await new Promise(function (resolve) { setTimeout(resolve, 80) })
@@ -662,7 +669,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v63-manual-admin-mfa/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v64-all-admin-clinics/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -942,9 +949,10 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
   const setHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
   const setPanel = (setHtml.match(/<section class="ent-admin-panel" id="panel-settings">[\s\S]*?\n        <\/section>/) || [''])[0]
 
-  is('A50', 'Settings opens by saying which clinic you are configuring',
-     /settingsClinicId/.test(setPanel) && /Your clinic/.test(setPanel),
-     'the fixed facts come first, before anything asks for input')
+  is('A50', 'Settings lists all clinics in the admin scope',
+     /settingsClinicCount/.test(setPanel) && /settingsClinicList/.test(setPanel)
+       && /All clinics you manage/.test(setPanel),
+     'clinic names replace the misleading single clinic id')
 
   const facts = ['settingsStaffCount', 'settingsDoctorCount', 'settingsSecretaryCount']
   is('A51', 'staff / doctor / secretary counts are shown',
@@ -1269,10 +1277,10 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      'RPC read, restore and permanent delete controls are preserved and the count follows loaded rows')
 
   is('A77b', 'settings preserves clinic identity, server-backed flags and role guidance',
-     /settingsClinicId/.test(settings) && /settingsClinicName/.test(settings)
+     /settingsClinicCount/.test(settings) && /settingsClinicList/.test(settings)
        && /id="clinicNameInput"/.test(settings) && /id="saveClinicNameBtn"/.test(settings)
        && /id="flagList"/.test(settings) && /Who can see what/.test(settings)
-       && /system_flags/.test(js),
+       && /system_flags/.test(js) && /users\.forEach\(function \(user\) \{ addClinicId\(user && user\.clinic_id\); \}\)/.test(js),
      'clinic identity, save action, feature flags and database-enforced roles remain wired')
 
   is('A77c', 'all three panels have responsive, dark-mode styling',
@@ -1291,11 +1299,11 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v52-manual-admin-mfa/.test(html)
-       && /admin\.css\?v=v63-manual-admin-mfa/.test(html)
+     /admin\.js\?v=v53-all-admin-clinics/.test(html)
+       && /admin\.css\?v=v64-all-admin-clinics/.test(html)
        && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
        && /notifications\.css\?v=v8-notification-panel-width/.test(html)
-       && /ent-report-system-v186-manual-admin-mfa/.test(
+       && /ent-report-system-v187-all-admin-clinics/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

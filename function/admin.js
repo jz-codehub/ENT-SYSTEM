@@ -2774,39 +2774,49 @@ const FLAG_INFO = {
         return words.charAt(0).toUpperCase() + words.slice(1);
     }
 
-    /* The fixed facts about your own clinic. Shown at the top of Settings
-     * so the page answers "which clinic am I configuring?" before it asks
-     * for anything. Read from the staff list already in memory - no extra
-     * query, and it cannot drift from what the Users tab shows. */
+    /* Show the clinic scope represented by the admin's staff directory,
+     * rather than implying the account belongs to only one clinic. */
     function renderSettingsFacts() {
         const me = (typeof Auth !== 'undefined' && typeof Auth.currentUser === 'function'
             ? Auth.currentUser() : null)
             || (session && session.user) || {};
-        const id = byId('settingsClinicId');
-        if (id) id.textContent = me.clinic_id ? String(me.clinic_id).slice(0, 8) + '\u2026' : '\u2014';
+        const clinicIds = [];
+        function addClinicId(id) {
+            const value = String(id || '').trim();
+            if (value && clinicIds.indexOf(value) === -1) clinicIds.push(value);
+        }
+        addClinicId(me.clinic_id);
+        users.forEach(function (user) { addClinicId(user && user.clinic_id); });
+        clinicIds.sort(function (a, b) { return clinicLabel(a).localeCompare(clinicLabel(b)); });
+        const count = byId('settingsClinicCount');
+        if (count) {
+            count.textContent = clinicIds.length + ' clinic' + (clinicIds.length === 1 ? '' : 's');
+        }
+        const clinicList = byId('settingsClinicList');
+        if (clinicList) {
+            clinicList.innerHTML = clinicIds.length
+                ? clinicIds.map(function (id) {
+                    const name = String(labels[id] || '').trim()
+                        || (id === 'main_clinic' ? clinicLabel(id) : 'Clinic ' + id.slice(0, 8));
+                    return '<span class="ent-identity-clinic" title="' + esc(id) + '">'
+                        + esc(name) + '</span>';
+                }).join('')
+                : '<span class="ent-identity-clinic-empty">No clinics found for this admin.</span>';
+        }
         const doctors = users.filter(function (u) { return u.role === 'doctor'; }).length;
         const secs = users.filter(function (u) { return u.role === 'secretary'; }).length;
         const set = function (elem, n) { const el = byId(elem); if (el) el.textContent = n; };
         set('settingsStaffCount', String(users.length));
         set('settingsDoctorCount', String(doctors));
         set('settingsSecretaryCount', String(secs));
-        /* The identity strip shows the saved clinic NAME, not just its id.
-         * The input holds the draft; this heading holds the truth. It is
-         * refreshed here (counts) and again when loadSettings reads the
-         * stored profile below, so typing never rewrites it early. */
-        const nm = byId('settingsClinicName');
-        if (nm && !nm.dataset.fromServer) {
-            const typed = byId('clinicNameInput');
-            const v = typed ? String(typed.value || '').trim() : '';
-            nm.textContent = v || 'Unnamed clinic';
-        }
     }
 
     async function loadSettings() {
         if (!session || !session.user) return;
         settingsSay('');
         renderSettingsFacts();
-        await loadAdminMfaStatus();
+        await Promise.all([loadAdminMfaStatus(), loadClinicLabels()]);
+        renderSettingsFacts();
 
         // --- the clinic name ---
         try {
@@ -2815,11 +2825,6 @@ const FLAG_INFO = {
             const v = (row && row.value) || {};
             const saved = v.hciName || v.clinicName || '';
             byId('clinicNameInput').value = saved;
-            /* Paint the identity strip from the stored profile - the one
-             * source that survives a reload. dataset marks it so the counts
-             * refresh above cannot overwrite a saved name with a blank. */
-            const nm = byId('settingsClinicName');
-            if (nm) { nm.textContent = saved || 'Unnamed clinic'; nm.dataset.fromServer = '1'; }
         } catch (e) {
             settingsSay('Could not read the clinic name: ' + String((e && e.message) || e).slice(0, 120), true);
         }
