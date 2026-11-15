@@ -81,6 +81,9 @@
     let activityError = '';
     let editingId = null;      // null = creating a new user
     let userModalReturnFocus = null;
+    let pendingAnnouncement = null;
+    let announcementConfirmReturnFocus = null;
+    let announcementSending = false;
     // 0037: the secretary's ADDITIONAL doctors as last READ from the server
     // (secretary_assignments). Compared against the form on save so
     // set_assignments only fires when the set actually changed.
@@ -2683,10 +2686,19 @@
         titleInput.focus();
     }
 
-    async function publishAnnouncement() {
+    function closeAnnouncementConfirm() {
+        if (announcementSending) return;
+        const modal = byId('announcementConfirmModal');
+        if (modal) modal.classList.remove('open');
+        pendingAnnouncement = null;
+        const returnFocus = announcementConfirmReturnFocus;
+        announcementConfirmReturnFocus = null;
+        if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    }
+
+    function openAnnouncementConfirm() {
         const titleInput = byId('announcementTitle');
         const bodyInput = byId('announcementBody');
-        const button = byId('publishAnnouncementBtn');
         const title = String(titleInput && titleInput.value || '').trim();
         const body = String(bodyInput && bodyInput.value || '').trim();
 
@@ -2700,26 +2712,57 @@
             if (bodyInput) bodyInput.focus();
             return;
         }
-        if (!window.confirm(
-            'Send this announcement to every active user across all clinics?\n\n'
-            + 'Title: ' + title + '\n\nMessage:\n' + body
-        )) return;
-
-        announcementSay('');
-        if (button) {
-            button.disabled = true;
-            button.textContent = 'Sending…';
+        const modal = byId('announcementConfirmModal');
+        const previewTitle = byId('announcementConfirmPreviewTitle');
+        const previewBody = byId('announcementConfirmPreviewBody');
+        const cancelButton = byId('announcementConfirmCancel');
+        if (!modal || !previewTitle || !previewBody || !cancelButton) {
+            announcementSay('The send confirmation is unavailable. Reload the page and try again.', true);
+            return;
         }
+        pendingAnnouncement = { title: title, body: body };
+        previewTitle.textContent = title;
+        previewBody.textContent = body;
+        const activeElement = document.activeElement;
+        announcementConfirmReturnFocus = activeElement && activeElement !== document.body
+            ? activeElement
+            : null;
+        modal.classList.add('open');
+        cancelButton.focus();
+    }
+
+    async function sendAnnouncement() {
+        if (!pendingAnnouncement || announcementSending) return;
+        const announcement = pendingAnnouncement;
+        const modal = byId('announcementConfirmModal');
+        const sendButton = byId('announcementConfirmSend');
+        const cancelButton = byId('announcementConfirmCancel');
+        const closeButton = byId('announcementConfirmClose');
+        announcementSending = true;
+        if (modal) {
+            modal.setAttribute('aria-busy', 'true');
+            modal.focus();
+        }
+        if (sendButton) {
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending…';
+        }
+        if (cancelButton) cancelButton.disabled = true;
+        if (closeButton) closeButton.disabled = true;
         try {
             const result = await api('/rpc/ent_send_announcement', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ p_title: title, p_body: body }),
+                body: JSON.stringify({ p_title: announcement.title, p_body: announcement.body }),
             });
             const recipientCount = Number(result);
             if (!Number.isInteger(recipientCount) || recipientCount < 1) {
                 throw new Error('The server did not confirm delivery to any active accounts.');
             }
+            announcementSending = false;
+            closeAnnouncementConfirm();
+            const titleInput = byId('announcementTitle');
+            const bodyInput = byId('announcementBody');
             if (titleInput) titleInput.value = '';
             if (bodyInput) bodyInput.value = '';
             announcementSay(
@@ -2728,13 +2771,19 @@
                 false
             );
         } catch (e) {
+            announcementSending = false;
+            closeAnnouncementConfirm();
             announcementSay('Could not send the announcement: '
                 + String((e && e.message) || e).slice(0, 180), true);
         } finally {
-            if (button) {
-                button.disabled = false;
-                button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg>Send to everyone';
+            announcementSending = false;
+            if (modal) modal.removeAttribute('aria-busy');
+            if (sendButton) {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send to everyone';
             }
+            if (cancelButton) cancelButton.disabled = false;
+            if (closeButton) closeButton.disabled = false;
         }
     }
 
@@ -3077,8 +3126,14 @@ const FLAG_INFO = {
             if (!btn) return;
             openAdminTicket(btn.getAttribute('data-id'));
         });
-        byId('publishAnnouncementBtn').addEventListener('click', publishAnnouncement);
+        byId('publishAnnouncementBtn').addEventListener('click', openAnnouncementConfirm);
         byId('applyAnnouncementTemplateBtn').addEventListener('click', applyAnnouncementTemplate);
+        byId('announcementConfirmSend').addEventListener('click', sendAnnouncement);
+        byId('announcementConfirmCancel').addEventListener('click', closeAnnouncementConfirm);
+        byId('announcementConfirmClose').addEventListener('click', closeAnnouncementConfirm);
+        byId('announcementConfirmModal').addEventListener('click', function (e) {
+            if (e.target === byId('announcementConfirmModal')) closeAnnouncementConfirm();
+        });
         // ---- settings ----
         byId('refreshSettingsBtn').addEventListener('click', function () {
             loadSettings().catch(function (e) { settingsSay(String((e && e.message) || e).slice(0, 160), true); });
@@ -3134,6 +3189,36 @@ const FLAG_INFO = {
             if (e.target === byId('userModal')) closeUserModal();
         });
         document.addEventListener('keydown', function (e) {
+            const announcementModal = byId('announcementConfirmModal');
+            if (announcementModal.classList.contains('open')) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeAnnouncementConfirm();
+                    return;
+                }
+                if (e.key === 'Tab') {
+                    const focusable = [
+                        byId('announcementConfirmClose'),
+                        byId('announcementConfirmCancel'),
+                        byId('announcementConfirmSend'),
+                    ].filter(function (element) { return element && !element.disabled; });
+                    if (!focusable.length) {
+                        e.preventDefault();
+                        announcementModal.focus();
+                        return;
+                    }
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+                return;
+            }
             if (e.key === 'Escape' && byId('userModal').classList.contains('open')) closeUserModal();
         });
 

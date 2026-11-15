@@ -433,6 +433,12 @@ el('announcementTitle').value = 'Clinic update'
 el('announcementBody').value = 'Please review the new clinic schedule.'
 win.fetchLog.length = 0
 await el('publishAnnouncementBtn').fire('click')
+is('A7c0', 'the send button opens a branded preview without sending yet',
+   el('announcementConfirmPreviewTitle').textContent === 'Clinic update'
+     && el('announcementConfirmPreviewBody').textContent === 'Please review the new clinic schedule.'
+     && !win.fetchLog.some(function (r) { return r.url.indexOf('/rpc/ent_send_announcement') !== -1 }),
+   el('announcementConfirmPreviewTitle').textContent || 'confirmation preview was not opened')
+await el('announcementConfirmSend').fire('click')
 const announcementCall = win.fetchLog.find(function (r) {
   return r.url.indexOf('/rpc/ent_send_announcement') !== -1
 })
@@ -442,11 +448,9 @@ is('A7c', 'publishing an announcement calls the admin-only broadcast RPC',
      && announcementCall.body.p_body === 'Please review the new clinic schedule.',
    announcementCall ? JSON.stringify(announcementCall.body) : 'no RPC request')
 is('A7c1', 'the confirmation shows the exact title and message before sending',
-   win.confirmLog.some(function (message) {
-     return message.indexOf('Title: Clinic update') !== -1
-       && message.indexOf('Please review the new clinic schedule.') !== -1
-   }),
-   win.confirmLog[win.confirmLog.length - 1] || 'no confirmation shown')
+   el('announcementConfirmPreviewTitle').textContent === 'Clinic update'
+     && el('announcementConfirmPreviewBody').textContent === 'Please review the new clinic schedule.',
+   'both announcement fields are shown in the modal preview')
 is('A7d', 'the admin sees the confirmed recipient count and the form clears',
    /2 active accounts/.test(el('announcementNotice').textContent)
      && !el('announcementTitle').value && !el('announcementBody').value,
@@ -463,15 +467,15 @@ is('A7e', 'empty announcements are stopped before they reach the server',
 
 el('announcementTitle').value = 'Keep draft'
 el('announcementBody').value = 'This should not be sent.'
-win.confirm = () => false
 win.fetchLog.length = 0
 await el('publishAnnouncementBtn').fire('click')
+await el('announcementConfirmCancel').fire('click')
+await el('announcementConfirmSend').fire('click')
 is('A7f', 'canceling the exact-message confirmation keeps the draft and sends nothing',
    !win.fetchLog.some(function (r) { return r.url.indexOf('/rpc/ent_send_announcement') !== -1 })
      && el('announcementTitle').value === 'Keep draft'
      && el('announcementBody').value === 'This should not be sent.',
    'draft retained after cancellation')
-win.confirm = (message) => { win.confirmLog.push(String(message)); return true }
 
 /* ---- A8: a secretary with no doctor is refused before any request -- */
 const noDoc = await tryCreate({
@@ -669,7 +673,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v64-all-admin-clinics/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v65-announcement-send-modal/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -832,6 +836,13 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
        && /id="announcementBody" rows="6" maxlength="1000"/.test(adminHtml)
        && /all active doctors, secretaries, and admins across every clinic/i.test(adminHtml),
      'the audience and limits are clear before an admin sends')
+  const announcementsCss = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  is('A18c', 'announcement confirmation is accessible and template controls align',
+     /id="announcementConfirmModal"[\s\S]*?role="dialog" aria-modal="true"[\s\S]*?aria-labelledby="announcementConfirmTitle"[\s\S]*?aria-describedby="announcementConfirmDescription"/.test(adminHtml)
+       && /id="announcementConfirmPreviewTitle"/.test(adminHtml)
+       && /id="announcementConfirmPreviewBody"/.test(adminHtml)
+       && /\.ent-announcement-template-control\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/.test(announcementsCss),
+     'custom all-clinic preview dialog and select/button row are present')
 
   // The queue must be scoped by RLS, not just hidden by a filter.
   is('A19', 'the admin queue does not invent an owner column',
@@ -1300,15 +1311,15 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
   const settingsHtml = readFileSync(join(APP, 'pages/settings.html'), 'utf8')
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v53-all-admin-clinics/.test(html)
-       && /admin\.css\?v=v64-all-admin-clinics/.test(html)
+     /admin\.js\?v=v54-announcement-send-modal/.test(html)
+       && /admin\.css\?v=v65-announcement-send-modal/.test(html)
        && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
        && /notifications\.css\?v=v8-notification-panel-width/.test(html)
        && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
        && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
        && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
-       && /ent-report-system-v190-settings-profile-header/.test(
+       && /ent-report-system-v191-announcement-confirm-modal/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

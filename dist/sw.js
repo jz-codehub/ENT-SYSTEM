@@ -954,7 +954,8 @@
 // v188: add persistent Settings navigation and responsive field grids.
 // v189: compact the Settings intro banner.
 // v190: align the Settings page title and signed-in profile in the header.
-const CACHE_NAME = 'ent-report-system-v190-settings-profile-header';
+// v191: confirm global announcements in a custom modal.
+const CACHE_NAME = 'ent-report-system-v191-announcement-confirm-modal';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

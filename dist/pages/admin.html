@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v64-all-admin-clinics">
+    <link rel="stylesheet" href="../style/admin.css?v=v65-announcement-send-modal">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -923,16 +923,18 @@
                     <span class="ent-announcement-audience">All active users</span>
                 </div>
                 <div class="ent-announcement-template-tools">
-                    <label class="ent-announcement-template-field" for="announcementTemplate">
-                        <span>Start from a template</span>
-                        <select id="announcementTemplate">
-                            <option value="">Choose a template&hellip;</option>
-                            <option value="schedule">Schedule update</option>
-                            <option value="maintenance">System maintenance</option>
-                            <option value="reminder">Important reminder</option>
-                        </select>
-                    </label>
-                    <button type="button" class="ent-btn" id="applyAnnouncementTemplateBtn">Use template</button>
+                    <div class="ent-announcement-template-field">
+                        <label for="announcementTemplate">Start from a template</label>
+                        <div class="ent-announcement-template-control">
+                            <select id="announcementTemplate">
+                                <option value="">Choose a template&hellip;</option>
+                                <option value="schedule">Schedule update</option>
+                                <option value="maintenance">System maintenance</option>
+                                <option value="reminder">Important reminder</option>
+                            </select>
+                            <button type="button" class="ent-btn" id="applyAnnouncementTemplateBtn">Use template</button>
+                        </div>
+                    </div>
                 </div>
                 <label class="ent-announcement-field" for="announcementTitle">
                     <span>Title</span>
@@ -1212,6 +1214,49 @@
         </div>
     </div>
 
+    <div class="ent-modal ent-announcement-confirm-modal" id="announcementConfirmModal"
+         role="dialog" aria-modal="true" aria-labelledby="announcementConfirmTitle"
+         aria-describedby="announcementConfirmDescription" tabindex="-1">
+        <div class="ent-modal-card ent-announcement-confirm-card">
+            <header class="ent-user-modal-header ent-announcement-confirm-header">
+                <span class="ent-user-modal-icon ent-announcement-confirm-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 10v4h3l8 5V5l-8 5H4Z"/><path d="m8 14 2 6M18 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12"/></svg>
+                </span>
+                <div>
+                    <span class="ent-user-modal-kicker">ALL CLINICS</span>
+                    <h3 id="announcementConfirmTitle">Send announcement to everyone?</h3>
+                    <p id="announcementConfirmDescription">Review the message before it is delivered to every active account.</p>
+                </div>
+                <button type="button" class="ent-user-modal-close" id="announcementConfirmClose" aria-label="Close confirmation">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+            </header>
+            <div class="ent-announcement-confirm-body">
+                <div class="ent-announcement-confirm-audience">
+                    <span class="ent-announcement-confirm-audience-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </span>
+                    <span><strong>All active users</strong><small>Doctors, secretaries, and admins across every clinic</small></span>
+                </div>
+                <section class="ent-announcement-confirm-preview" aria-label="Announcement preview">
+                    <div>
+                        <small>ANNOUNCEMENT TITLE</small>
+                        <p id="announcementConfirmPreviewTitle"></p>
+                    </div>
+                    <div>
+                        <small>MESSAGE</small>
+                        <p id="announcementConfirmPreviewBody"></p>
+                    </div>
+                </section>
+                <p class="ent-announcement-confirm-note">This sends a private notification to each active account. You can cancel to make changes before sending.</p>
+            </div>
+            <footer class="ent-modal-actions ent-user-modal-actions ent-announcement-confirm-actions">
+                <button type="button" class="ent-btn" id="announcementConfirmCancel">Review message</button>
+                <button type="button" class="ent-btn primary" id="announcementConfirmSend">Send to everyone</button>
+            </footer>
+        </div>
+    </div>
+
     <!-- supabase-js FIRST. Without it window.supabase is undefined,
          supabaseClient.getClient() throws, auth.ready() resolves to null and
          guard() sends the signed-in admin straight back to login.html - a
@@ -1225,6 +1270,6 @@
     <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v53-all-admin-clinics" defer></script>
+    <script src="../function/admin.js?v=v54-announcement-send-modal" defer></script>
 </body>
 </html>
