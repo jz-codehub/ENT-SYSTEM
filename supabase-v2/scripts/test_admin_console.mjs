@@ -307,14 +307,20 @@ is('A1b', 'an admin can sign in and is recognised as admin',
 const dcl = (win.winListeners.DOMContentLoaded) || []
 await Promise.all(dcl.map(function (fn) { return fn({}) }))
 await new Promise(function (resolve) { setTimeout(resolve, 100) })
-is('A1b1', 'an already-elevated admin session enables MFA before admin data loads',
+is('A1b1', 'admin page boot does not automatically check or enable MFA',
+   !win.fetchLog.some(function (call) {
+     return call.url.indexOf('/functions/v1/auth-admin') !== -1
+       && call.body && (call.body.action === 'capabilities' || call.body.action === 'enable_admin_mfa')
+   }),
+   'no MFA calls before the Settings button is used')
+await el('adminMfaSetupBtn').fire('click')
+await new Promise(function (resolve) { setTimeout(resolve, 50) })
+is('A1b1b', 'the explicit MFA button enables a verified elevated session',
    win.fetchLog.some(function (call) {
      return call.url.indexOf('/functions/v1/auth-admin') !== -1
        && call.body && call.body.action === 'enable_admin_mfa'
    }),
-   'admin actions: ' + JSON.stringify(win.fetchLog.filter(function (call) {
-     return call.url.indexOf('/functions/v1/auth-admin') !== -1
-   }).map(function (call) { return call.body && call.body.action })))
+   'MFA enablement followed the button click')
 win.presenceFailure = true
 await el('refreshSessionsBtn').fire('click')
 await new Promise(function (resolve) { setTimeout(resolve, 80) })
@@ -656,7 +662,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v62-admin-hardening/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v63-manual-admin-mfa/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -1285,11 +1291,11 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v51-admin-hardening/.test(html)
-       && /admin\.css\?v=v62-admin-hardening/.test(html)
+     /admin\.js\?v=v52-manual-admin-mfa/.test(html)
+       && /admin\.css\?v=v63-manual-admin-mfa/.test(html)
        && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
        && /notifications\.css\?v=v8-notification-panel-width/.test(html)
-       && /ent-report-system-v185-admin-hardening/.test(
+       && /ent-report-system-v186-manual-admin-mfa/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',
@@ -1559,6 +1565,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
 {
   const adminJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const adminHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
   const sharedAuth = readFileSync(join(APP, 'supabase-v2', 'edge-functions', '_shared', 'auth.ts'), 'utf8')
   const adminEdge = readFileSync(join(APP, 'supabase-v2', 'edge-functions', 'auth-admin', 'index.ts'), 'utf8')
   const photoEdge = readFileSync(join(APP, 'supabase-v2', 'edge-functions', 'patient-photos', 'index.ts'), 'utf8')
@@ -1567,8 +1574,14 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
   is('A111', 'admin TOTP setup verifies an authenticator code and explains recovery',
      /mfa\.enroll/.test(adminJs) && /mfa\.challenge/.test(adminJs)
-       && /mfa\.verify/.test(adminJs) && /project dashboard/.test(adminJs),
+       && /mfa\.verify/.test(adminJs) && /project dashboard/.test(adminHtml),
      'TOTP enrollment, challenge, verification and recovery are wired')
+
+  is('A117', 'admin MFA setup is explicit and does not block page boot',
+     /id="adminMfaSetupBtn"/.test(adminHtml)
+       && /adminMfaSetupBtn'\)\.addEventListener\('click', startAdminMfa\)/.test(adminJs)
+       && !/ensureAdminMfa|adminMfaModal|admin-mfa-backdrop/.test(adminJs),
+     'MFA appears inline in Settings and starts only from its button')
 
   is('A112', 'server-side admin actions require AAL2 once MFA is enabled',
      /adminMfaRequired && got\.user\.assuranceLevel !== 'aal2'/.test(sharedAuth)

@@ -221,28 +221,24 @@
         return data;
     }
 
-    async function ensureAdminMfa() {
+    async function readAdminMfaState() {
         const status = await callAdmin({ action: 'capabilities' });
         const user = status.user || {};
-        if (user.role !== 'admin') return true;
+        if (user.role !== 'admin') throw new Error('Only an administrator can manage administrator MFA.');
 
         const client = window.EntSupabase.getClient();
         const mfa = client && client.auth && client.auth.mfa;
         if (!mfa || !mfa.getAuthenticatorAssuranceLevel || !mfa.listFactors) {
-            if (user.adminMfaRequired) {
-                throw new Error('Administrator MFA is required, but this browser client does not support TOTP. Update the Supabase JS client before continuing.');
-            }
-            return true;
+            return { required: !!user.adminMfaRequired, supported: false };
         }
 
-        const level = await mfa.getAuthenticatorAssuranceLevel();
+        const results = await Promise.all([
+            mfa.getAuthenticatorAssuranceLevel(),
+            mfa.listFactors(),
+        ]);
+        const level = results[0];
+        const listed = results[1];
         if (level.error) throw level.error;
-        if (level.data && level.data.currentLevel === 'aal2') {
-            if (!user.adminMfaRequired) await callAdmin({ action: 'enable_admin_mfa' });
-            return true;
-        }
-
-        const listed = await mfa.listFactors();
         if (listed.error) throw listed.error;
         const verified = (listed.data && listed.data.totp || []).filter(function (factor) {
             return factor.status === 'verified';
@@ -250,134 +246,167 @@
         const pending = (listed.data && listed.data.totp || []).filter(function (factor) {
             return factor.status !== 'verified';
         });
-        const required = !!user.adminMfaRequired;
+        return {
+            required: !!user.adminMfaRequired,
+            supported: true,
+            aal2: !!(level.data && level.data.currentLevel === 'aal2'),
+            verified: verified,
+            pending: pending,
+            mfa: mfa,
+        };
+    }
 
-        document.body.insertAdjacentHTML('afterbegin',
-            '<div class="admin-mfa-backdrop" id="adminMfaModal">'
-            + '<section class="admin-mfa-card" role="dialog" aria-modal="true" aria-labelledby="adminMfaTitle">'
-            + '<div class="admin-mfa-mark" aria-hidden="true">🔐</div>'
-            + '<p class="admin-mfa-kicker">ADMIN ACCOUNT SECURITY</p>'
-            + '<h2 id="adminMfaTitle">Protect your administrator account</h2>'
-            + '<p class="admin-mfa-intro">' + (required
-                ? 'A second factor is required for this administrator account. Use an authenticator app and keep your device available when signing in.'
-                : 'Authenticator setup is being introduced gradually. Once enabled, access to administrator features will require a code.')
-            + '</p>'
-            + '<div id="adminMfaContent"></div>'
-            + '<p class="admin-mfa-recovery">Recovery: keep access to the Supabase project dashboard. If your authenticator is lost, a project owner must remove the lost factor there before you can enroll another one. Store the setup key somewhere private.</p>'
+    function setAdminMfaStatus(message, bad) {
+        const status = byId('adminMfaStatus');
+        if (!status) return;
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !!bad);
+    }
+
+    function renderAdminMfaStatus(state) {
+        const button = byId('adminMfaSetupBtn');
+        if (!button) return;
+        if (!state.supported) {
+            setAdminMfaStatus('This browser client does not support authenticator setup. Update the Supabase JS client before continuing.', true);
+            button.disabled = true;
+            return;
+        }
+        if (state.required && state.aal2) {
+            setAdminMfaStatus('MFA is enabled and verified for this session.', false);
+            button.textContent = 'MFA verified';
+            button.disabled = true;
+        } else if (state.required) {
+            setAdminMfaStatus('MFA is required for this account. Set up or verify your authenticator before using protected admin actions.', true);
+            button.textContent = state.verified.length ? 'Verify authenticator' : 'Set up required MFA';
+            button.disabled = false;
+        } else if (state.verified.length) {
+            setAdminMfaStatus('An authenticator is available but not enabled for this account. Verify it below to enable MFA.', false);
+            button.textContent = 'Verify and enable MFA';
+            button.disabled = false;
+        } else {
+            setAdminMfaStatus('MFA is optional for this account. Set it up only if you choose to use it.', false);
+            button.textContent = 'Set up authenticator';
+            button.disabled = false;
+        }
+    }
+
+    async function loadAdminMfaStatus() {
+        try {
+            const state = await readAdminMfaState();
+            renderAdminMfaStatus(state);
+            return state;
+        } catch (error) {
+            setAdminMfaStatus('Could not check MFA status: ' + String((error && error.message) || error), true);
+            return null;
+        }
+    }
+
+    function renderAdminMfaCode(state, factorId, qrCode, secret) {
+        const content = byId('adminMfaContent');
+        const setupButton = byId('adminMfaSetupBtn');
+        content.innerHTML = (qrCode
+            ? '<div class="admin-mfa-qr"><img alt="Authenticator setup QR code" id="adminMfaQr"></div>'
+                + '<p class="admin-mfa-secret-label">Can’t scan? Enter this setup key manually:</p>'
+                + '<code class="admin-mfa-secret" id="adminMfaSecret"></code>'
+            : '')
+            + '<label class="admin-mfa-code-label" for="adminMfaCode">6-digit authenticator code</label>'
+            + '<input id="adminMfaCode" class="admin-mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">'
             + '<p class="admin-mfa-error" id="adminMfaError" role="alert"></p>'
-            + '</section></div>');
+            + '<div class="admin-mfa-actions"><button type="button" class="ent-btn primary" id="adminMfaVerify">Verify and enable MFA</button>'
+            + '<button type="button" class="ent-btn" id="adminMfaCancel">Cancel</button></div>';
+        if (qrCode) {
+            byId('adminMfaQr').src = qrCode;
+            byId('adminMfaSecret').textContent = secret;
+        }
+        if (setupButton) setupButton.disabled = true;
+        setAdminMfaStatus(qrCode
+            ? 'Scan the QR code with your authenticator app, then enter its 6-digit code.'
+            : 'Enter the 6-digit code from your authenticator app to continue.', false);
 
-        return new Promise(function (resolve) {
+        const errorBox = byId('adminMfaError');
+        const codeInput = byId('adminMfaCode');
+        const verifyButton = byId('adminMfaVerify');
+        function report(error) {
+            if (errorBox) errorBox.textContent = (error && error.message) || String(error);
+        }
+        byId('adminMfaCancel').addEventListener('click', function () {
+            content.innerHTML = '';
+            loadAdminMfaStatus();
+        });
+        verifyButton.addEventListener('click', async function () {
+            const code = String(codeInput && codeInput.value || '').replace(/\D/g, '');
+            if (!/^\d{6}$/.test(code)) {
+                report(new Error('Enter the 6-digit code from your authenticator app.'));
+                return;
+            }
+            verifyButton.disabled = true;
+            if (errorBox) errorBox.textContent = '';
+            try {
+                const challenge = await state.mfa.challenge({ factorId: factorId });
+                if (challenge.error) throw challenge.error;
+                const checked = await state.mfa.verify({
+                    factorId: factorId,
+                    challengeId: challenge.data.id,
+                    code: code,
+                });
+                if (checked.error) throw checked.error;
+                const current = await state.mfa.getAuthenticatorAssuranceLevel();
+                if (current.error) throw current.error;
+                if (!current.data || current.data.currentLevel !== 'aal2') {
+                    throw new Error('The authenticator was verified, but the session did not reach the required security level. Sign out and sign in again.');
+                }
+                await callAdmin({ action: 'enable_admin_mfa' });
+                content.innerHTML = '';
+                await loadAdminMfaStatus();
+            } catch (error) {
+                report(error);
+                verifyButton.disabled = false;
+            }
+        });
+        codeInput.focus();
+    }
+
+    async function startAdminMfa() {
+        const button = byId('adminMfaSetupBtn');
+        const content = byId('adminMfaContent');
+        if (button) button.disabled = true;
+        setAdminMfaStatus('Checking your account security…', false);
+        try {
+            const state = await readAdminMfaState();
+            if (!state.supported) {
+                throw new Error('This browser client does not support TOTP. Update the Supabase JS client before continuing.');
+            }
+            if (state.aal2) {
+                if (!state.required) await callAdmin({ action: 'enable_admin_mfa' });
+                await loadAdminMfaStatus();
+                return;
+            }
+
             let factorId = '';
             let qrCode = '';
             let secret = '';
-            let finished = false;
-            const content = byId('adminMfaContent');
-            const errorBox = byId('adminMfaError');
-
-            function finish(result) {
-                if (finished) return;
-                finished = true;
-                const modal = byId('adminMfaModal');
-                if (modal) modal.remove();
-                resolve(result);
-            }
-            function report(error) {
-                if (errorBox) errorBox.textContent = (error && error.message) || String(error);
-            }
-            function renderChoice() {
-                content.innerHTML = '<div class="admin-mfa-actions">'
-                    + '<button type="button" class="ent-btn ent-btn-primary" id="adminMfaStart">'
-                    + (verified.length ? 'Verify authenticator' : 'Set up authenticator') + '</button>'
-                    + (!required ? '<button type="button" class="ent-btn" id="adminMfaLater">Not now</button>' : '')
-                    + '</div>';
-                byId('adminMfaStart').addEventListener('click', start);
-                const later = byId('adminMfaLater');
-                if (later) later.addEventListener('click', function () { finish(true); });
-            }
-            function renderCode() {
-                content.innerHTML = (qrCode
-                    ? '<div class="admin-mfa-qr"><img alt="Authenticator setup QR code" id="adminMfaQr"></div>'
-                        + '<p class="admin-mfa-secret-label">Can’t scan? Enter this setup key manually:</p>'
-                        + '<code class="admin-mfa-secret" id="adminMfaSecret"></code>'
-                    : '')
-                    + '<label class="admin-mfa-code-label" for="adminMfaCode">6-digit authenticator code</label>'
-                    + '<input id="adminMfaCode" class="admin-mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">'
-                    + '<div class="admin-mfa-actions"><button type="button" class="ent-btn ent-btn-primary" id="adminMfaVerify">Verify and continue</button>'
-                    + (!required ? '<button type="button" class="ent-btn" id="adminMfaLater">Not now</button>' : '')
-                    + '</div>';
-                if (qrCode) {
-                    byId('adminMfaQr').src = qrCode;
-                    byId('adminMfaSecret').textContent = secret;
-                }
-                byId('adminMfaVerify').addEventListener('click', verify);
-                const later = byId('adminMfaLater');
-                if (later) later.addEventListener('click', function () { finish(true); });
-                byId('adminMfaCode').focus();
-            }
-            async function start() {
-                if (errorBox) errorBox.textContent = '';
-                try {
-                    if (verified.length) {
-                        factorId = verified[0].id;
-                    } else {
-                        for (const factor of pending) {
-                            const removed = await mfa.unenroll({ factorId: factor.id });
-                            if (removed.error) throw removed.error;
-                        }
-                        const enrolled = await mfa.enroll({
-                            factorType: 'totp',
-                            friendlyName: 'ENT admin authenticator',
-                        });
-                        if (enrolled.error) throw enrolled.error;
-                        factorId = enrolled.data.id;
-                        qrCode = enrolled.data.totp.qr_code;
-                        secret = enrolled.data.totp.secret;
-                    }
-                    renderCode();
-                } catch (error) {
-                    report(error);
-                }
-            }
-            async function verify() {
-                const codeInput = byId('adminMfaCode');
-                const code = String(codeInput && codeInput.value || '').replace(/\D/g, '');
-                if (!/^\d{6}$/.test(code)) {
-                    report(new Error('Enter the 6-digit code from your authenticator app.'));
-                    return;
-                }
-                const button = byId('adminMfaVerify');
-                button.disabled = true;
-                if (errorBox) errorBox.textContent = '';
-                try {
-                    const challenge = await mfa.challenge({ factorId: factorId });
-                    if (challenge.error) throw challenge.error;
-                    const checked = await mfa.verify({
-                        factorId: factorId,
-                        challengeId: challenge.data.id,
-                        code: code,
-                    });
-                    if (checked.error) throw checked.error;
-                    const current = await mfa.getAuthenticatorAssuranceLevel();
-                    if (current.error) throw current.error;
-                    if (!current.data || current.data.currentLevel !== 'aal2') {
-                        throw new Error('The authenticator was verified, but the session did not reach the required security level. Sign out and sign in again.');
-                    }
-                    await callAdmin({ action: 'enable_admin_mfa' });
-                    finish(true);
-                } catch (error) {
-                    report(error);
-                    if (button) button.disabled = false;
-                }
-            }
-
-            if (required) {
-                if (verified.length) start();
-                else renderChoice();
+            if (state.verified.length) {
+                factorId = state.verified[0].id;
             } else {
-                renderChoice();
+                for (const factor of state.pending) {
+                    const removed = await state.mfa.unenroll({ factorId: factor.id });
+                    if (removed.error) throw removed.error;
+                }
+                const enrolled = await state.mfa.enroll({
+                    factorType: 'totp',
+                    friendlyName: 'ENT admin authenticator',
+                });
+                if (enrolled.error) throw enrolled.error;
+                factorId = enrolled.data.id;
+                qrCode = enrolled.data.totp.qr_code;
+                secret = enrolled.data.totp.secret;
             }
-        });
+            renderAdminMfaCode(state, factorId, qrCode, secret);
+        } catch (error) {
+            setAdminMfaStatus('MFA setup failed: ' + String((error && error.message) || error), true);
+            if (content) content.innerHTML = '';
+            if (button) button.disabled = false;
+        }
     }
 
     /* ------------------------------------------------------------------
@@ -2777,6 +2806,7 @@ const FLAG_INFO = {
         if (!session || !session.user) return;
         settingsSay('');
         renderSettingsFacts();
+        await loadAdminMfaStatus();
 
         // --- the clinic name ---
         try {
@@ -3048,6 +3078,7 @@ const FLAG_INFO = {
         byId('refreshSettingsBtn').addEventListener('click', function () {
             loadSettings().catch(function (e) { settingsSay(String((e && e.message) || e).slice(0, 160), true); });
         });
+        byId('adminMfaSetupBtn').addEventListener('click', startAdminMfa);
         byId('saveClinicNameBtn').addEventListener('click', saveClinicName);
         byId('clinicNameInput').addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); saveClinicName(); }
@@ -5180,18 +5211,6 @@ const FLAG_INFO = {
             }
         });
         if (!session || !session.user) return;
-        try {
-            await ensureAdminMfa();
-        } catch (error) {
-            document.body.insertAdjacentHTML('afterbegin',
-                '<div class="admin-mfa-backdrop"><section class="admin-mfa-card" role="alert">'
-                + '<h2>Administrator security check failed</h2>'
-                + '<p>' + esc((error && error.message) || error) + '</p>'
-                + '<button type="button" class="ent-btn ent-btn-primary" id="adminMfaRetry">Try again</button>'
-                + '</section></div>');
-            byId('adminMfaRetry').addEventListener('click', function () { window.location.reload(); });
-            return;
-        }
         wire();
         wireDrawer();
         wireAnalytics();

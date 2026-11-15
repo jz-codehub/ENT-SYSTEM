@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v62-admin-hardening">
+    <link rel="stylesheet" href="../style/admin.css?v=v63-manual-admin-mfa">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -110,7 +110,7 @@
                     <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></span>
                     <span class="ent-nav-text">Database usage</span>
                 </button>
-                <button type="button" data-panel="settings" data-title="Settings" title="Clinic name and capability switches">
+                <button type="button" data-panel="settings" data-title="Settings" title="Admin security, clinic identity and capability switches">
                     <span class="ent-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.5.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.5-.9l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-1.8l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.5-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.5.9l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 1.8Z"/></svg></span>
                     <span class="ent-nav-text">Settings</span>
                 </button>
@@ -968,7 +968,7 @@
                 <div class="ent-settings-hero-text">
                     <span class="ent-settings-kicker">Control room</span>
                     <h2>Settings</h2>
-                    <p>Clinic identity, what this app is allowed to do, and who can reach what.
+                    <p>Admin account security, clinic identity, what this app is allowed to do, and who can reach what.
                        Everything here applies to <b>every device</b> in the clinic, not just yours.</p>
                 </div>
                 <button type="button" class="ent-btn" id="refreshSettingsBtn">
@@ -976,6 +976,24 @@
                 </button>
             </header>
             <p class="ent-ticket-notice" id="settingsNotice"></p>
+
+            <section class="ent-admin-subcard ent-settings-card ent-settings-security" aria-labelledby="adminMfaHeading">
+                <h3 id="adminMfaHeading"><span class="ent-settings-ic" aria-hidden="true">&#128274;</span> Admin account security</h3>
+                <p class="ent-hint">
+                    MFA setup is optional for existing admin accounts and will never open automatically.
+                    New or reactivated admin accounts may need to set it up before using protected admin actions.
+                </p>
+                <p class="admin-mfa-status" id="adminMfaStatus" role="status" aria-live="polite">
+                    Open this section to check your MFA status.
+                </p>
+                <button type="button" class="ent-btn primary" id="adminMfaSetupBtn">Set up authenticator</button>
+                <div id="adminMfaContent"></div>
+                <p class="admin-mfa-recovery">
+                    Keep access to the Supabase project dashboard for recovery. If your authenticator is lost,
+                    a project owner must remove the lost factor there before you can enroll another one.
+                    Store the setup key somewhere private.
+                </p>
+            </section>
 
             <!-- Identity strip: the clinic at a glance, before anything asks. -->
             <section class="ent-settings-identity" aria-label="Your clinic">
@@ -1207,6 +1225,6 @@
     <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v51-admin-hardening" defer></script>
+    <script src="../function/admin.js?v=v52-manual-admin-mfa" defer></script>
 </body>
 </html>
