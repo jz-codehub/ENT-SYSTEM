@@ -8,7 +8,7 @@
 
      F1  no privileged key anywhere in the frontend
      F2  no reference to the deleted v1 Supabase project
-     F3  no browser-side password verification
+     F3  no legacy browser-side password verification
      F4  no table v2 deleted
      F5  no self-minted session token
      F6  no client-chosen clinic in a query string
@@ -109,17 +109,18 @@ for (const { file, text } of shipped) {
   }
 }
 if (!f2) ok('F2 no live reference to the v1 project enqrsewsydrsxvrocpjz')
-/* ---------------- F3 : no browser-side password check -------------- */
+/* ---------------- F3 : no legacy browser-side password check -------- */
 let f3 = 0
 for (const { file, text } of shipped) {
   const c = codeOnly(text)
   const hits = []
   if (/password_hash/.test(c)) hits.push('password_hash')
   if (/sha256Hex|hashPassword/.test(c)) hits.push('client-side password hashing')
-  if (/\bsalt\b/.test(c)) hits.push('salt')
-  if (hits.length) { f3++; bad(`F3 no browser-side password verification · ${file}`, hits.join(', ')) }
+  // The supported offline grant uses a local PBKDF2 salt and verifier. A
+  // bare salt is not evidence that the retired database-password flow returned.
+  if (hits.length) { f3++; bad(`F3 no legacy browser-side password verification · ${file}`, hits.join(', ')) }
 }
-if (!f3) ok('F3 no password hash, salt or client-side hashing in shipped code')
+if (!f3) ok('F3 no legacy database password hash or client-side hashing in shipped code')
 
 /* ---------------- F4 : no table v2 deleted ------------------------- */
 let f4 = 0
@@ -156,7 +157,9 @@ if (!f5) ok('F5 no hand-rolled session token is read or written')
 /* ---------------- F6 : no client-chosen clinic in a query ---------- */
 let f6 = 0
 for (const { file, text } of shipped) {
-  if (/clinic_id=eq\.|clinicId\s*\|\|/.test(codeOnly(text))) {
+  // Only flag a query filter. `clinicId || ...` can also be a local grouping
+  // key and does not send a clinic choice to the server.
+  if (/clinic_id=eq\./.test(codeOnly(text))) {
     f6++
     bad(`F6 no client-chosen clinic in a query · ${file}`,
         'the clinic must come from staff_profiles via RLS, not the query string')

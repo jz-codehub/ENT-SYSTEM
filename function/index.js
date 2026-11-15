@@ -2330,14 +2330,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             if (actionsDiv) {
                 Object.assign(actionsDiv.style, {
                     position: 'sticky',
-                    bottom: '0',
+                    bottom: '12px',
                     backgroundColor: 'var(--panel-bg-color)',
-                    zIndex: '100',
-                    padding: '20px',
-                    margin: '20px -20px -20px -20px', // Negative margins to stretch full width of card
-                    borderTop: '1px solid var(--border-color)',
-                    boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
-                    borderRadius: '0 0 16px 16px' // Match card border radius
+                    zIndex: '20',
+                    padding: '12px 14px',
+                    margin: '16px 0 0',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 -8px 24px rgba(15,23,42,.08)',
+                    borderRadius: '14px'
                 });
             }
         }

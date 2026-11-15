@@ -9,17 +9,21 @@
     <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
     <link rel="stylesheet" href="../style/mobile.css?v=v14">
-    <link rel="stylesheet" href="../style/settings.css?v=v1">
+    <link rel="stylesheet" href="../style/settings.css?v=v4-settings-header">
 </head>
 <body class="settings-page">
 
-    <header class="header no-print">
-        <div class="header-content">
-            <div class="header-brand header-brand-center">
-                <h1>Clinic Settings</h1>
-                <small class="header-tagline">Letterhead, doctors &amp; cloud sync for every report</small>
+    <header class="header no-print settings-header">
+        <div class="header-content settings-header-content">
+            <div class="header-brand settings-header-brand">
+                <img class="settings-header-logo" src="../image/ent-logo.webp" alt="ENT Clinic logo">
+                <div class="settings-header-titles">
+                    <small class="settings-header-eyebrow">CLINIC WORKSPACE</small>
+                    <h1>Clinic Settings</h1>
+                    <small class="header-tagline">Letterhead, doctors &amp; cloud sync</small>
+                </div>
             </div>
-            <div class="header-meta">
+            <div class="header-meta settings-header-meta">
                 <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
                 <div class="theme-switch-wrapper">
                     <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
@@ -46,7 +50,8 @@
             <span class="settings-intro-mark" aria-hidden="true"><strong>ENT</strong><small>SETTINGS</small></span>
         </section>
 
-        <!-- Simple settings tabs: only one report area is shown at a time. -->
+        <div class="settings-workspace">
+            <!-- Keep section navigation beside long settings forms on desktop. -->
             <div class="settings-nav no-print" role="tablist" aria-label="Settings categories">
                 <button type="button" class="settings-nav-btn active" data-target="endoscopy-settings" role="tab" aria-controls="endoscopy-settings" aria-selected="true"><span aria-hidden="true">🔬</span> <span><strong>Endoscopy / Nasal</strong><small>Header, doctors &amp; templates</small></span></button>
                 <button type="button" class="settings-nav-btn" data-target="cf4-settings" role="tab" aria-controls="cf4-settings" aria-selected="false"><span aria-hidden="true">📋</span> <span><strong>CF4 Form</strong><small>PhilHealth form settings</small></span></button>
@@ -75,24 +80,26 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="clinicName" class="form-label">Clinic Name</label>
-                    <input type="text" id="clinicName" name="clinicName" placeholder="ENT-HNS ENDOSCOPY UNIT">
-                </div>
+                <div class="settings-field-grid settings-field-grid--profile">
+                    <div class="form-group">
+                        <label for="clinicName" class="form-label">Clinic Name</label>
+                        <input type="text" id="clinicName" name="clinicName" placeholder="ENT-HNS ENDOSCOPY UNIT">
+                    </div>
 
-                <div class="form-group">
-                    <label for="clinicAddress" class="form-label">Clinic Address</label>
-                    <input type="text" id="clinicAddress" name="clinicAddress" placeholder="e.g., 123 Medical Plaza">
-                </div>
+                    <div class="form-group">
+                        <label for="clinicAddress" class="form-label">Clinic Address</label>
+                        <input type="text" id="clinicAddress" name="clinicAddress" placeholder="e.g., 123 Medical Plaza">
+                    </div>
 
-                <div class="form-group">
-                    <label for="clinicPhoneNumber" class="form-label">Clinic Phone Number</label>
-                    <input type="text" id="clinicPhoneNumber" name="clinicPhoneNumber" placeholder="e.g., (088) 856-1234">
-                </div>
+                    <div class="form-group">
+                        <label for="clinicPhoneNumber" class="form-label">Clinic Phone Number</label>
+                        <input type="text" id="clinicPhoneNumber" name="clinicPhoneNumber" placeholder="e.g., (088) 856-1234">
+                    </div>
 
-                <div class="form-group">
-                    <label for="rehabCenterText" class="form-label">Center Name / Subtitle</label>
-                    <textarea id="rehabCenterText" name="rehabCenterText" rows="3" placeholder="MINDANAO EAR, NOSE, THROAT OUT-PATIENT REHABILITATION CENTER&#10;(MENTOR)"></textarea>
+                    <div class="form-group">
+                        <label for="rehabCenterText" class="form-label">Center Name / Subtitle</label>
+                        <textarea id="rehabCenterText" name="rehabCenterText" rows="3" placeholder="MINDANAO EAR, NOSE, THROAT OUT-PATIENT REHABILITATION CENTER&#10;(MENTOR)"></textarea>
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
@@ -201,7 +208,7 @@
                     </div>
                 </div>
 
-                <fieldset style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <fieldset class="settings-fieldset" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                     <legend>Data Entry Formatting</legend>
                     <div class="form-group">
                         <label class="form-label">Patient Name Capitalization</label>
@@ -221,7 +228,7 @@
                     </div>
                 </fieldset>
 
-                <fieldset style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <fieldset class="settings-fieldset" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
                     <legend>🔬 Procedure Description Templates</legend>
                     <p style="font-size: 12px; color: var(--secondary-text-color); margin-top: 0; margin-bottom: 20px;">
                         Customize the default text for the procedure description. You can use the placeholder <code>[scope]</code> which will be replaced automatically by the selected "Type of Endoscopy".
@@ -321,42 +328,44 @@
                     </small>
                 </div>
 
-                <div class="form-group">
-                    <label for="cf4HciName" class="form-label">HCI Name</label>
-                    <input type="text" id="cf4HciName" name="cf4HciName" placeholder="Name of Health Care Institution">
-                </div>
-
-                <div class="form-group">
-                    <label for="cf4AccreditationNo" class="form-label">Accreditation Number</label>
-                    <input type="text" id="cf4AccreditationNo" name="cf4AccreditationNo" placeholder="Accreditation Number">
-                </div>
-
-                <div class="form-group">
-                    <label for="cf4HciBldgNo" class="form-label">Building No. and Name/Lot/Block</label>
-                    <input type="text" id="cf4HciBldgNo" name="cf4HciBldgNo" placeholder="Bldg No. and Name/Lot/Block">
-                </div>
-
-                <div class="form-group">
-                    <label for="cf4HciStreet" class="form-label">Street/Subdivision/Village</label>
-                    <input type="text" id="cf4HciStreet" name="cf4HciStreet" placeholder="Street/Subdivision/Village">
-                </div>
-
-                <div class="form-group">
-                    <label for="cf4HciBarangay" class="form-label">Barangay/City/Municipality</label>
-                    <input type="text" id="cf4HciBarangay" name="cf4HciBarangay" placeholder="Barangay/City/Municipality">
-                </div>
-
-                <div class="form-row" style="gap: 15px;">
-                    <div class="form-col">
-                        <div class="form-group">
-                            <label for="cf4HciProvince" class="form-label">Province</label>
-                            <input type="text" id="cf4HciProvince" name="cf4HciProvince" placeholder="Province">
-                        </div>
+                <div class="settings-field-grid settings-field-grid--cf4">
+                    <div class="form-group">
+                        <label for="cf4HciName" class="form-label">HCI Name</label>
+                        <input type="text" id="cf4HciName" name="cf4HciName" placeholder="Name of Health Care Institution">
                     </div>
-                    <div class="form-col-small">
-                        <div class="form-group">
-                            <label for="cf4HciZipCode" class="form-label">Zip Code</label>
-                            <input type="text" id="cf4HciZipCode" name="cf4HciZipCode" placeholder="Zip Code">
+
+                    <div class="form-group">
+                        <label for="cf4AccreditationNo" class="form-label">Accreditation Number</label>
+                        <input type="text" id="cf4AccreditationNo" name="cf4AccreditationNo" placeholder="Accreditation Number">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cf4HciBldgNo" class="form-label">Building No. and Name/Lot/Block</label>
+                        <input type="text" id="cf4HciBldgNo" name="cf4HciBldgNo" placeholder="Bldg No. and Name/Lot/Block">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cf4HciStreet" class="form-label">Street/Subdivision/Village</label>
+                        <input type="text" id="cf4HciStreet" name="cf4HciStreet" placeholder="Street/Subdivision/Village">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cf4HciBarangay" class="form-label">Barangay/City/Municipality</label>
+                        <input type="text" id="cf4HciBarangay" name="cf4HciBarangay" placeholder="Barangay/City/Municipality">
+                    </div>
+
+                    <div class="form-row" style="gap: 15px;">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="cf4HciProvince" class="form-label">Province</label>
+                                <input type="text" id="cf4HciProvince" name="cf4HciProvince" placeholder="Province">
+                            </div>
+                        </div>
+                        <div class="form-col-small">
+                            <div class="form-group">
+                                <label for="cf4HciZipCode" class="form-label">Zip Code</label>
+                                <input type="text" id="cf4HciZipCode" name="cf4HciZipCode" placeholder="Zip Code">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -587,6 +596,7 @@
                 <button type="button" id="saveSettingsBtn">Save Settings</button>
             </div>
         </form>
+        </div>
     </main>
 
     <div id="printHeaderTemplate" style="display:none;">
@@ -623,6 +633,6 @@
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/syncEngine.js" defer></script>
     <script src="../function/patientRecords.js" defer></script>
-    <script src="../function/index.js?v=v35d" defer></script>
+    <script src="../function/index.js?v=v36-settings-workspace" defer></script>
 </body>
 </html>

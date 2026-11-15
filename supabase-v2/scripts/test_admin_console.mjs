@@ -1298,12 +1298,17 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
        && !/#(?:16847f|24817b|29807c|5b75af|f0f3fa)\b/i.test(operationsCss),
      'shared theme variables replace one-off teal and violet accents')
 
+  const settingsHtml = readFileSync(join(APP, 'pages/settings.html'), 'utf8')
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v53-all-admin-clinics/.test(html)
        && /admin\.css\?v=v64-all-admin-clinics/.test(html)
        && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
        && /notifications\.css\?v=v8-notification-panel-width/.test(html)
-       && /ent-report-system-v187-all-admin-clinics/.test(
+       && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
+       && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
+       && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
+       && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
+       && /ent-report-system-v190-settings-profile-header/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

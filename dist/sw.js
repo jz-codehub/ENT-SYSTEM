@@ -951,7 +951,10 @@
 // v185: add staged admin MFA, atomic assignment updates, and admin hardening.
 // v186: make admin MFA setup explicit and available inline in Settings.
 // v187: list all clinics in the admin's Settings identity summary.
-const CACHE_NAME = 'ent-report-system-v187-all-admin-clinics';
+// v188: add persistent Settings navigation and responsive field grids.
+// v189: compact the Settings intro banner.
+// v190: align the Settings page title and signed-in profile in the header.
+const CACHE_NAME = 'ent-report-system-v190-settings-profile-header';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

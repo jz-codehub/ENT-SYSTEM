@@ -9,16 +9,116 @@
     margin: 0 0 18px !important;
 }
 
+.settings-header.header {
+    padding: 12px clamp(16px, 3vw, 32px);
+}
+
+.settings-header .settings-header-content {
+    width: min(100%, 1400px);
+    max-width: none;
+    min-height: 64px;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 20px;
+    text-align: left;
+}
+
+.settings-header .settings-header-brand {
+    flex: 0 1 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.settings-header-logo {
+    display: block;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 11px;
+    background: #fff;
+    object-fit: contain;
+    box-shadow: 0 4px 12px rgba(2, 6, 23, .16);
+}
+
+.settings-header-titles {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-header-eyebrow {
+    color: rgba(255, 255, 255, .76);
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
+
+.settings-header .settings-header-brand h1 {
+    font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+    line-height: 1.15;
+    text-align: left;
+}
+
+.settings-header .header-tagline {
+    font-size: .68rem;
+}
+
+.settings-header .settings-header-meta {
+    position: static;
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.settings-header .connection-status {
+    flex: 0 0 12px;
+    margin-left: 0;
+}
+
+.settings-header .theme-switch-wrapper {
+    position: static;
+    top: auto;
+    right: auto;
+    transform: none;
+}
+
+.settings-header .header-user-slot {
+    display: flex;
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.settings-header #entUserChip {
+    max-width: 100%;
+    margin-left: 0;
+}
+
+.settings-workspace {
+    display: grid;
+    grid-template-columns: minmax(210px, 246px) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+.settings-page #settings-form {
+    min-width: 0;
+}
+
 .settings-intro {
     position: relative;
     display: flex;
-    min-height: 164px;
+    min-height: 144px;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 18px;
     overflow: hidden;
     margin-bottom: 18px;
-    padding: clamp(24px, 4vw, 38px);
+    padding: clamp(18px, 3vw, 30px);
     border: 1px solid rgba(14, 165, 233, .2);
     border-radius: 20px;
     background: linear-gradient(120deg, #0ea5e9 0%, #0284c7 54%, #0369a1 100%);
@@ -51,9 +151,9 @@
 
 .settings-intro-eyebrow {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: rgba(255, 255, 255, .78);
-    font-size: .66rem;
+    font-size: .6rem;
     font-weight: 800;
     letter-spacing: .15em;
 }
@@ -61,7 +161,7 @@
 .settings-intro h2 {
     margin: 0;
     color: #fff;
-    font-size: clamp(1.45rem, 3vw, 2rem);
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
     font-weight: 800;
     letter-spacing: -.04em;
     line-height: 1.15;
@@ -69,17 +169,17 @@
 
 .settings-intro p {
     max-width: 62ch;
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: rgba(255, 255, 255, .86);
-    font-size: .88rem;
+    font-size: .8rem;
     line-height: 1.55;
 }
 
 .settings-intro-mark {
     display: grid;
-    width: 78px;
-    height: 78px;
-    flex: 0 0 78px;
+    width: 68px;
+    height: 68px;
+    flex: 0 0 68px;
     align-content: center;
     justify-items: center;
     border: 1px solid rgba(255, 255, 255, .32);
@@ -90,7 +190,7 @@
 
 .settings-intro-mark strong {
     color: #fff;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 850;
     letter-spacing: -.04em;
     line-height: 1.1;
@@ -99,17 +199,21 @@
 .settings-intro-mark small {
     margin-top: 3px;
     color: rgba(255, 255, 255, .78);
-    font-size: .48rem;
+    font-size: .44rem;
     font-weight: 800;
     letter-spacing: .14em;
 }
 
 .settings-page .settings-nav {
-    position: relative;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 16px;
-    padding: 7px;
+    position: sticky;
+    top: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 6px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    margin: 0;
+    padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 15px;
     background: var(--panel-bg-color);
@@ -118,7 +222,7 @@
 
 .settings-page .settings-nav-btn {
     min-width: 0;
-    min-height: 66px;
+    min-height: 70px;
     justify-content: flex-start;
     padding: 10px 12px;
     border: 1px solid transparent;
@@ -173,6 +277,10 @@
     padding: clamp(18px, 3vw, 30px) !important;
 }
 
+.settings-page .settings-panel {
+    min-width: 0;
+}
+
 .settings-page .settings-panel > div:first-child {
     align-items: flex-start !important;
     margin-bottom: 8px !important;
@@ -206,6 +314,40 @@
 
 .settings-page .settings-panel .form-group {
     margin-bottom: 17px;
+}
+
+.settings-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+}
+
+.settings-field-grid > .form-group {
+    min-width: 0;
+}
+
+.settings-field-grid--profile > .form-group:last-child {
+    grid-column: 1 / -1;
+}
+
+.settings-field-grid--cf4 > .form-row {
+    grid-column: 1 / -1;
+}
+
+.settings-page .settings-fieldset {
+    min-width: 0;
+    margin: 22px 0 0 !important;
+    padding: 16px 18px 18px !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-color) 45%, var(--panel-bg-color));
+}
+
+.settings-page .settings-fieldset legend {
+    padding: 0 9px;
+    color: var(--primary-color);
+    font-size: .82rem;
+    font-weight: 800;
 }
 
 .settings-page .settings-panel .form-label,
@@ -289,12 +431,60 @@
 }
 
 @media (max-width: 900px) {
+    .settings-header .settings-header-content {
+        flex-wrap: wrap;
+    }
+
+    .settings-header .settings-header-meta {
+        width: 100%;
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .settings-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
     .settings-page .settings-nav {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        position: relative;
+        top: auto;
+        max-height: none;
+        overflow: visible;
     }
 }
 
 @media (max-width: 640px) {
+    .settings-header .settings-header-brand {
+        flex: 1 1 100%;
+    }
+
+    .settings-header .settings-header-meta {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .settings-header .header-user-slot {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .settings-header #entUserChip {
+        width: fit-content;
+        max-width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .settings-header #entUserChip .ent-user-meta {
+        max-width: 210px;
+    }
+
+    .settings-header #entUserChip .ent-user-meta small {
+        display: block;
+    }
+
     .settings-page .main-content {
         width: calc(100% - 24px);
         padding: 18px 0 32px;
@@ -302,9 +492,9 @@
 
     .settings-intro {
         min-height: 0;
-        gap: 14px;
+        gap: 10px;
         margin-bottom: 13px;
-        padding: 20px 17px;
+        padding: 15px 14px;
         border-radius: 16px;
     }
 
@@ -314,25 +504,26 @@
     }
 
     .settings-intro h2 {
-        font-size: clamp(1.25rem, 6vw, 1.65rem);
+        font-size: clamp(1.1rem, 5vw, 1.4rem);
     }
 
     .settings-intro p {
-        font-size: .77rem;
+        margin-top: 6px;
+        font-size: .7rem;
     }
 
     .settings-intro-mark {
-        width: 54px;
-        height: 54px;
-        flex-basis: 54px;
+        width: 48px;
+        height: 48px;
+        flex-basis: 48px;
     }
 
     .settings-intro-mark strong {
-        font-size: .9rem;
+        font-size: .8rem;
     }
 
     .settings-intro-mark small {
-        font-size: .39rem;
+        font-size: .35rem;
     }
 
     .settings-page .settings-nav {
@@ -344,6 +535,14 @@
     .settings-page .settings-nav-btn {
         min-height: 50px;
         padding: 7px 9px;
+    }
+
+    .settings-field-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-field-grid--profile > .form-group:last-child {
+        grid-column: auto;
     }
 
     .settings-page .settings-nav-btn > span:first-child {
