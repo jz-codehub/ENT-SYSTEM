@@ -59,13 +59,19 @@ separate files, walang all-in-one.
    patient records. I-apply muna ito bago i-deploy ang matching browser build.
    Mananatiling tig-3,000-row bounded ang recent-patient at follow-up panels.
 
-9. Kasama na sa `0050_super_secretary_network_scope.sql` ang active-clinic
-   context para sa Super Secretary at ang per-recipient staff chat receipts.
-   Para sa existing project na na-run na ang dating 0050, i-run ulit ang
-   updated na file na ito upang idagdag ang clinic-scoped access at
-   `Sent`/`Delivered`/`Seen` status; idempotent ang mga idinagdag na
-   statements. I-apply bago i-deploy ang browser code na tumatawag sa
-   `ent_set_active_clinic` o nagpapakita ng chat receipts.
+9. Kasama sa `0050_super_secretary_network_scope.sql` ang Super Secretary
+   active-clinic context, selected-doctor access, at per-recipient staff chat
+   receipts, atomic secretary-assignment replacement, last-active-admin
+   safeguards, at staged admin TOTP enforcement. Existing active admins are
+   not forced into MFA during the schema rollout; new admins and reactivated
+   admin accounts must enroll before using admin features.
+   Para sa existing project na na-run na ang dating 0050, i-run
+   ulit ang updated na file: idempotent ang assignment backfill, function,
+   table, at trigger statements. Ini-import nito minsan ang dating network
+   access bilang assignments para manatili ang kasalukuyang access; puwedeng
+   alisin ng admin ang hindi na kailangan. I-apply bago i-deploy ang browser
+   code at `auth-admin` bundle para sa clinic switching, doctor assignments,
+   chat receipts, at admin hardening.
 
 10. Kasama sa `0049_notifications_and_staff_chat.sql` ang notification kapag
     umabot sa 100% ang Doctor's work ng final CF4, Nasal, o Laryngeal report.

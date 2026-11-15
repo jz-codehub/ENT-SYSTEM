@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
           clinicId: got.user.clinicId,
           doctorId: got.user.doctorId,
           mustChangePassword: got.user.mustChangePassword,
+          adminMfaRequired: got.user.adminMfaRequired,
         },
       })
     }
@@ -155,6 +156,31 @@ Deno.serve(async (req) => {
       return json({ ok: true, must_change_password: false })
     }
 
+    if (action === 'enable_admin_mfa') {
+      const got = await requireUser(req)
+      if (got.error) return got.error
+      if (got.user.role !== 'admin') {
+        return json({ ok: false, error: 'Administrator role required.' }, 403)
+      }
+      if (got.user.assuranceLevel !== 'aal2') {
+        return json({
+          ok: false,
+          code: 'MFA_REQUIRED',
+          error: 'Verify an authenticator code before enabling administrator MFA.',
+        }, 403)
+      }
+      const { data: updated, error } = await admin()
+        .from('staff_profiles')
+        .update({ admin_mfa_required: true })
+        .eq('id', got.user.id)
+        .select('id')
+        .maybeSingle()
+      if (error) return json({ ok: false, error: error.message }, 500)
+      if (!updated) return json({ ok: false, error: 'Could not enable administrator MFA for this profile.' }, 404)
+      await audit(got.user, 'ADMIN_MFA_ENABLED', 'administrator MFA enabled', 'staff', got.user.id)
+      return json({ ok: true, admin_mfa_required: true })
+    }
+
     // ==================================================================
     //  ADMIN-ONLY FROM HERE ON
     //  requireAdmin reads the LIVE staff_profiles row, so an account that
@@ -171,7 +197,7 @@ Deno.serve(async (req) => {
       const covered = await coveredClinicIds(got.user)
       const { data, error } = await admin()
         .from('staff_profiles')
-        .select('id, username, full_name, role, assigned_doctor_id, is_super_secretary, specialty, license_no, email, phone, is_active, must_change_password, last_login_at, created_at, clinic_id')
+        .select('id, username, full_name, role, assigned_doctor_id, is_super_secretary, specialty, license_no, email, phone, is_active, must_change_password, admin_mfa_required, last_login_at, created_at, clinic_id')
         .in('clinic_id', covered)
         .order('full_name')
       if (error) return json({ ok: false, error: error.message }, 500)
@@ -351,6 +377,7 @@ Deno.serve(async (req) => {
         // thing to want, so the value is now carried through.
         is_active: body?.is_active === undefined ? true : Boolean(body.is_active),
         must_change_password: true,
+        admin_mfa_required: role === 'admin',
       })
 
       if (pErr) {
@@ -422,6 +449,7 @@ Deno.serve(async (req) => {
       const roleChanged = body.role !== undefined && body.role !== tgt.role
       const assignChanged = body.assigned_doctor_id !== undefined &&
         (body.assigned_doctor_id || null) !== tgt.assigned_doctor_id
+      let claimUpdate = null
 
       if (roleChanged || assignChanged) {
         const nextRole = roleChanged ? String(body.role) : tgt.role
@@ -430,6 +458,24 @@ Deno.serve(async (req) => {
           : tgt.assigned_doctor_id
         if (!ROLES.includes(nextRole)) {
           return json({ ok: false, error: 'Role must be admin, doctor or secretary.' }, 400)
+        }
+        if (roleChanged && tgt.role === 'admin' && nextRole !== 'admin') {
+          if (targetId === me.id) {
+            return json({ ok: false, error: 'You cannot remove your own administrator role.' }, 400)
+          }
+          if (tgt.is_active) {
+            const { count, error: countError } = await admin()
+              .from('staff_profiles')
+              .select('id', { count: 'exact', head: true })
+              .eq('role', 'admin')
+              .eq('is_active', true)
+            if (countError) {
+              return json({ ok: false, error: 'Could not verify the active administrator count: ' + countError.message }, 500)
+            }
+            if ((count || 0) <= 1) {
+              return json({ ok: false, error: 'Cannot demote the last active administrator.' }, 400)
+            }
+          }
         }
         if (nextRole === 'secretary' && !nextAssign) {
           return json({ ok: false, error: 'A secretary must be assigned to a doctor.' }, 400)
@@ -460,20 +506,13 @@ Deno.serve(async (req) => {
           nextClinicId = doc.clinic_id
         }
         patch.role = nextRole
+        patch.admin_mfa_required = nextRole === 'admin'
         patch.assigned_doctor_id = nextAssign || null
         if (nextRole !== 'secretary') patch.is_super_secretary = false
         if (nextClinicId !== tgt.clinic_id) patch.clinic_id = nextClinicId
 
         if (roleChanged || nextClinicId !== tgt.clinic_id) {
-          // A role or clinic change makes the claims inside any live token
-          // wrong. Update app_metadata AND end the sessions, so the stale
-          // claim cannot keep working until it happens to expire.
-          await admin().auth.admin.updateUserById(targetId, {
-            app_metadata: { role: nextRole, clinic_id: nextClinicId },
-          })
-          await admin().auth.admin.signOut(targetId, 'global')
-          await audit(me, 'USER_ROLE_CHANGED',
-            `${tgt.username}: ${tgt.role} -> ${nextRole}`, 'staff', targetId)
+          claimUpdate = { role: nextRole, clinicId: nextClinicId }
         }
       }
 
@@ -481,6 +520,26 @@ Deno.serve(async (req) => {
         const { error } = await admin().from('staff_profiles').update(patch).eq('id', targetId)
         if (error) return json({ ok: false, error: error.message }, 400)
         await audit(me, 'USER_UPDATED', `Updated ${tgt.username}`, 'staff', targetId)
+      }
+      if (claimUpdate) {
+        const { error: metadataError } = await admin().auth.admin.updateUserById(targetId, {
+          app_metadata: { role: claimUpdate.role, clinic_id: claimUpdate.clinicId },
+        })
+        if (metadataError) {
+          return json({
+            ok: false,
+            error: 'Profile was updated, but its authentication claims could not be refreshed: ' + metadataError.message,
+          }, 500)
+        }
+        const { error: signOutError } = await admin().auth.admin.signOut(targetId, 'global')
+        if (signOutError) {
+          return json({
+            ok: false,
+            error: 'Profile and authentication claims were updated, but existing sessions could not be ended: ' + signOutError.message,
+          }, 500)
+        }
+        await audit(me, 'USER_ROLE_CHANGED',
+          `${tgt.username}: ${tgt.role} -> ${claimUpdate.role}`, 'staff', targetId)
       }
       if (roleChanged && tgt.role === 'secretary' && patch.role !== 'secretary') {
         const { error } = await admin()
@@ -529,7 +588,13 @@ Deno.serve(async (req) => {
         // The piece the old app could not do: it only set a `revoked`
         // boolean in a table nothing consulted. signOut() genuinely ends
         // the Supabase sessions on every device.
-        await admin().auth.admin.signOut(targetId, 'global')
+        const { error: signOutError } = await admin().auth.admin.signOut(targetId, 'global')
+        if (signOutError) {
+          return json({
+            ok: false,
+            error: 'The account is inactive, but its existing sessions could not be ended: ' + signOutError.message,
+          }, 500)
+        }
         await audit(me, 'SESSION_REVOKED',
           `Ended all sessions for ${target.profile.username}`, 'staff', targetId)
       }
@@ -554,9 +619,21 @@ Deno.serve(async (req) => {
 
       // Force a replacement at next sign-in, and end current sessions so a
       // reset actually locks the previous holder out.
-      await admin().from('staff_profiles')
+      const { error: profileError } = await admin().from('staff_profiles')
         .update({ must_change_password: true }).eq('id', targetId)
-      await admin().auth.admin.signOut(targetId, 'global')
+      if (profileError) {
+        return json({
+          ok: false,
+          error: 'Password was reset, but the forced password-change flag could not be saved: ' + profileError.message,
+        }, 500)
+      }
+      const { error: signOutError } = await admin().auth.admin.signOut(targetId, 'global')
+      if (signOutError) {
+        return json({
+          ok: false,
+          error: 'Password was reset and the forced change was saved, but existing sessions could not be ended: ' + signOutError.message,
+        }, 500)
+      }
       await audit(me, 'PASSWORD_RESET',
         `Password reset for ${target.profile.username}`, 'staff', targetId)
 
@@ -569,7 +646,10 @@ Deno.serve(async (req) => {
       const targetId = String(body?.id || '')
       const target = await loadTarget(got.user, targetId)
       if (target.error) return target.error
-      await admin().auth.admin.signOut(targetId, 'global')
+      const { error: signOutError } = await admin().auth.admin.signOut(targetId, 'global')
+      if (signOutError) {
+        return json({ ok: false, error: 'Could not end sessions: ' + signOutError.message }, 500)
+      }
       await audit(got.user, 'SESSION_REVOKED',
         `Signed ${target.profile.username} out of every device`, 'staff', targetId)
       return json({ ok: true })
@@ -713,7 +793,7 @@ Deno.serve(async (req) => {
 
       const target = await loadTarget(me, targetId)
       if (target.error) return target.error
-      if (target.profile.role !== 'secretary') {
+      if (target.profile.role !== 'secretary' || target.profile.is_active === false) {
         return json({ ok: false, error: 'Only a secretary can be assigned to doctors.' }, 400)
       }
 
@@ -735,33 +815,17 @@ Deno.serve(async (req) => {
         if (!clean.includes(docId)) clean.push(docId)
       }
 
-      // Replace the set: remove what is no longer wanted, add what is new.
-      // An empty set needs an unfiltered delete; PostgREST cannot express an
-      // empty `not in` list, and ignoring that error would leave old access.
-      let delQuery = admin()
-        .from('secretary_assignments')
-        .delete()
-        .eq('secretary_id', targetId)
-      if (clean.length) {
-        delQuery = delQuery.not('doctor_id', 'in', `(${clean.map((d) => `"${d}"`).join(',')})`)
-      }
-      const { error: delErr } = await delQuery
-      if (delErr) {
-        return json({ ok: false, error: 'Could not update assignments: ' + delErr.message }, 400)
-      }
-      if (clean.length) {
-        const { error: insErr } = await admin()
-          .from('secretary_assignments')
-          .upsert(
-            clean.map((doctor_id) => ({ secretary_id: targetId, doctor_id })),
-            { onConflict: 'secretary_id,doctor_id' },
-          )
-        if (insErr) return json({ ok: false, error: insErr.message }, 400)
+      const { data: saved, error: saveError } = await asUser(me.jwt).rpc(
+        'ent_admin_set_secretary_assignments',
+        { p_secretary_id: targetId, p_doctor_ids: clean },
+      )
+      if (saveError) {
+        return json({ ok: false, error: 'Could not update assignments: ' + saveError.message }, 400)
       }
 
       await audit(me, 'SECRETARY_ASSIGNMENTS_SET',
-        `${target.profile.username} now works under ${clean.length} additional doctor(s)`, 'staff', targetId)
-      return json({ ok: true, doctor_ids: clean })
+        `${target.profile.username} now works under ${(saved || []).length} additional doctor(s)`, 'staff', targetId)
+      return json({ ok: true, doctor_ids: saved || [] })
     }
 
     if (action === 'set_flag') {

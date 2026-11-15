@@ -18,7 +18,7 @@
 // =====================================================================
 
 import {
-  admin, asUser, json, preflight, requireUser, audit, capability, bindRequest,
+  admin, asUser, json, preflight, requireUser, requireAdmin, audit, capability, bindRequest,
   PHOTO_BUCKET, MAX_PHOTOS_PER_REPORT,
   buildObjectPath, validatePhoto, sniffType, sha256Hex, extFromName,
 } from '../_shared/auth.ts'
@@ -309,10 +309,9 @@ Deno.serve(async (req) => {
     // an already-deleted report INSIDE his own clinic, never a live one
     // and never another clinic's.
     if (action === 'purge_report') {
-      if (user.role !== 'admin') {
-        await audit(user, 'ACCESS_DENIED', 'purge_report refused - not an admin', 'report', String(body?.report_id || ''))
-        return json({ ok: false, error: 'Administrator role required.' }, 403)
-      }
+      const elevated = await requireAdmin(req)
+      if (elevated.error) return elevated.error
+      const adminUser = elevated.user
       const reportId = String(body?.report_id || '').trim()
       if (!reportId) return json({ ok: false, error: 'Missing report id.' }, 400)
 
@@ -325,8 +324,8 @@ Deno.serve(async (req) => {
         .maybeSingle()
       if (rErr) return json({ ok: false, error: rErr.message }, 500)
       if (!report) return json({ ok: false, error: 'No such report.' }, 404)
-      if (report.clinic_id !== user.clinicId) {
-        await audit(user, 'ACCESS_DENIED', 'purge_report refused - other clinic', 'report', reportId)
+      if (report.clinic_id !== adminUser.clinicId) {
+        await audit(adminUser, 'ACCESS_DENIED', 'purge_report refused - other clinic', 'report', reportId)
         return json({ ok: false, error: 'That report belongs to another clinic.' }, 403)
       }
       if (!report.deleted_at) {

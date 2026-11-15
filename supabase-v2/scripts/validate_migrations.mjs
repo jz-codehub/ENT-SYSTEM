@@ -122,11 +122,13 @@ for (let i = 1; i < nums.length; i++) if (nums[i] - nums[i - 1] > 1) gaps.push(`
 chk('V1c', 'the 0022 -> 0024 gap is the ONLY gap in the sequence',
   gaps.length === 1 && gaps[0] === '0022->0024',
   gaps.join(', ') + ' â€” 0023 was superseded and never applied, see V4')
-chk('V1e', 'Super Secretary network and active-clinic SQL share migration 0050',
+chk('V1e', 'Super Secretary selected-doctor access and active-clinic SQL share migration 0050',
   execFiles.includes('0050_super_secretary_network_scope.sql')
     && !migFiles.includes('0051_super_secretary_active_clinic.sql')
+    && !migFiles.includes('0052_selected_super_secretary_doctors.sql')
     && raw('0050_super_secretary_network_scope.sql').includes('CREATE TABLE IF NOT EXISTS public.ent_super_secretary_active_clinics')
-    && raw('0050_super_secretary_network_scope.sql').includes('CREATE OR REPLACE FUNCTION public.ent_set_active_clinic(p_doctor uuid)'))
+    && raw('0050_super_secretary_network_scope.sql').includes('CREATE OR REPLACE FUNCTION public.ent_set_active_clinic(p_doctor uuid)')
+    && raw('0050_super_secretary_network_scope.sql').includes('INSERT INTO public.secretary_assignments (secretary_id, doctor_id)'))
 
 /* ------------------------------------------------------------------ V2 */
 console.log('')
@@ -355,13 +357,21 @@ chk('V5.27', 'the trigger 0039 looks for is the exact trigger 0034 creates',
   TRG_39 !== '' && TRG_39 === TRG_34,
   `0039 asks pg_trigger for '${TRG_39}'; 0034 CREATEs '${TRG_34}'`)
 const M50 = stripComments(raw('0050_super_secretary_network_scope.sql'))
+function lastFunctionDefinition(source, signature) {
+  const start = source.lastIndexOf(`CREATE OR REPLACE FUNCTION public.${signature}`)
+  if (start < 0) return ''
+  return (source.slice(start).match(/CREATE OR REPLACE FUNCTION[\s\S]*?\n\$\$;/) || [''])[0]
+}
+const M50_DOCTOR_SCOPE = lastFunctionDefinition(M50, 'ent_is_my_doctor(p_doctor uuid)')
+const M50_SWITCH_SCOPE = lastFunctionDefinition(M50, 'ent_super_secretary_network_doctor(p_doctor uuid)')
+const M50_VIEW_ALL_INDEX = lastFunctionDefinition(M50, 'ent_view_all_index(')
 chk('V5.28', 'Super Secretary clinic context is bound to the authenticated session',
   M50.includes('PRIMARY KEY (user_id, session_id)')
     && M50.includes("auth.jwt() ->> 'session_id'")
     && M50.includes('ent_set_active_clinic'))
-chk('V5.29', 'clinic switching validates the doctor against the managed network',
-  M50.includes('ent_super_secretary_network_doctor(p_doctor)')
-    && M50.includes('outside your managed clinic network'))
+chk('V5.29', 'clinic switching validates only primary and explicitly assigned doctors',
+  M50_SWITCH_SCOPE.includes('secretary_assignments')
+    && !M50_SWITCH_SCOPE.includes('managed_by'))
 chk('V5.30', 'report and photo read/write policies all enforce the active clinic',
   ['reports_select_owner', 'reports_insert_owner', 'reports_update_owner',
     'photos_select_owner', 'photos_insert_owner', 'photos_update_owner'].every(name => {
@@ -374,6 +384,15 @@ chk('V5.31', 'SECURITY DEFINER patient index and full-record checks apply the ac
   M50.includes('AND public.ent_super_secretary_context_matches(r.clinic_id)')
     && M50.includes('CREATE OR REPLACE FUNCTION public.ent_may_open_report(p_report uuid)')
     && M50.includes('public.ent_may_open_report(r.id)'))
+chk('V5.32', 'Super Secretary record scope and clinic switching require explicit doctor assignments',
+  M50_DOCTOR_SCOPE.includes('secretary_assignments')
+    && M50_DOCTOR_SCOPE.includes('ent_active_super_secretary_clinic_id')
+    && !M50_DOCTOR_SCOPE.includes('managed_by')
+    && M50_SWITCH_SCOPE.includes('secretary_assignments')
+    && !M50_SWITCH_SCOPE.includes('managed_by'))
+chk('V5.33', 'Super Secretary View All metadata is filtered to assigned doctors',
+  M50_VIEW_ALL_INDEX.includes('NOT public.ent_is_active_super_secretary()')
+    && M50_VIEW_ALL_INDEX.includes('OR public.ent_is_my_doctor(report.doctor_id)'))
 console.log('')
 console.log('  the resulting matrix, read straight off the SQL above:')
 console.log('')
@@ -428,8 +447,8 @@ console.log('==== NOT PROVEN HERE â€” needs a real Supabase project =======
   '   real proof the objects exist and no arm was traded away)',
   'sign in as a Super Secretary and verify switching clinic changes the',
   '   active-clinic context before reports, DB Records, photos and summaries load',
-  'verify the selected clinic can see all its doctors, while another network',
-  '   clinic, the View All index, and medical-document actions stay isolated',
+  'verify the selected clinic can see only assigned doctors, while unassigned',
+  '   doctors, the View All index, and medical-document actions stay isolated',
   'run scripts/diagnose_delete.mjs there: ent_may_soft_delete must answer TRUE',
   '   for a doctor on his own row and for an assigned secretary',
   'sign in as admin / doctor / secretary and repeat BOTH reported actions â€”',

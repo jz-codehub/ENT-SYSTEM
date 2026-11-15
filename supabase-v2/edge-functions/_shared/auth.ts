@@ -213,10 +213,21 @@ export async function authenticate(req) {
   })
   const { data: verified, error } = await probe.auth.getUser(jwt)
   if (error || !verified?.user) return null
+  const tokenParts = jwt.split('.')
+  let assuranceLevel = ''
+  if (tokenParts.length === 3) {
+    try {
+      const payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4)
+      assuranceLevel = String(JSON.parse(atob(paddedPayload)).aal || '')
+    } catch {
+      assuranceLevel = ''
+    }
+  }
 
   const { data: profile, error: pErr } = await admin()
     .from('staff_profiles')
-    .select('id, username, full_name, role, clinic_id, assigned_doctor_id, is_super_secretary, is_active, must_change_password')
+    .select('id, username, full_name, role, clinic_id, assigned_doctor_id, is_super_secretary, is_active, must_change_password, admin_mfa_required')
     .eq('id', verified.user.id)
     .maybeSingle()
   if (pErr) throw new Error(pErr.message)
@@ -239,6 +250,8 @@ export async function authenticate(req) {
     clinicId: profile.clinic_id,
     doctorId: profile.role === 'doctor' ? profile.id : (profile.assigned_doctor_id || null),
     mustChangePassword: !!profile.must_change_password,
+    adminMfaRequired: !!profile.admin_mfa_required,
+    assuranceLevel,
   }
 }
 
@@ -276,6 +289,15 @@ export async function requireAdmin(req) {
   if (got.user.role !== 'admin') {
     await audit(got.user, 'ACCESS_DENIED', `refused admin action`, '', '')
     return { error: json({ ok: false, error: 'Administrator role required.' }, 403) }
+  }
+  if (got.user.adminMfaRequired && got.user.assuranceLevel !== 'aal2') {
+    return {
+      error: json({
+        ok: false,
+        code: 'MFA_REQUIRED',
+        error: 'Complete administrator multi-factor authentication first.',
+      }, 403),
+    }
   }
   return got
 }

@@ -128,7 +128,7 @@
        lives in SESSION STORAGE because it is a per-login convenience, not a
        fact about the account. For Super Secretaries, the active clinic is
        also bound to the authenticated session and checked by RLS; the
-       network-wide doctor list is only for switching. It is dropped on
+       explicitly assigned doctor list is only for switching. It is dropped on
        sign-out so the next account inherits no selection. */
     const WORKING_DOCTOR_KEY = 'ent_working_doctor_v1';
     const SUPER_WORKING_DOCTOR_KEY = 'ent_super_secretary_working_doctor_v1';
@@ -268,7 +268,7 @@
             selected = doctors.find(function (doctor) { return doctor.is_primary; }) || null;
         }
         if (!selected) {
-            throw new Error('No active doctor was found in your managed clinic network.');
+            throw new Error('No active doctor is assigned to this Super Secretary.');
         }
         if (activeClinicContextDoctorId === String(selected.doctor_id)) return;
         const activeClinicId = await api('rpc/ent_ensure_active_clinic', {
@@ -284,7 +284,7 @@
                 return String(doctor.clinic_id || '') === activeClinicId;
             }) || null;
             if (!contextDoctor) {
-                throw new Error('The active clinic is no longer in your managed network.');
+                throw new Error('The selected doctor is no longer assigned to this Super Secretary.');
             }
             setWorkingChoice({
                 id: String(contextDoctor.doctor_id),

@@ -9,7 +9,11 @@ const migration = readFileSync(
     resolve(root, 'supabase-v2/migrations/0049_notifications_and_staff_chat.sql'),
     'utf8'
 )
-const notificationTrigger = migration.match(
+const assignmentsMigration = readFileSync(
+    resolve(root, 'supabase-v2/migrations/0050_super_secretary_network_scope.sql'),
+    'utf8'
+)
+const notificationTrigger = assignmentsMigration.match(
     /CREATE OR REPLACE FUNCTION public\.ent_notify_doctor_work_completion\(\)[\s\S]*?\n\$\$;/
 )
 assert.ok(notificationTrigger, 'doctor work completion trigger function exists')
@@ -23,14 +27,17 @@ const checks = [
     ['only a newly completed report triggers an alert', /OLD\.report_type = NEW\.report_type[\s\S]*?ent_doctor_work_percent\(OLD\.report_type, OLD\.payload\) = 100/],
     ['only the active doctor can trigger the notification', /WHERE id = public\.ent_auth_uid\(\)[\s\S]*?AND is_active[\s\S]*?AND role = 'doctor'/],
     ['assigned secretaries are notification recipients', /secretary\.assigned_doctor_id = actor\.id[\s\S]*?secretary_assignments assignment[\s\S]*?assignment\.doctor_id = actor\.id/],
-    ['Super Secretaries receive notifications within their clinic network', /secretary\.is_super_secretary[\s\S]*?doctor_clinic\.id = secretary_clinic\.id[\s\S]*?doctor_clinic\.managed_by = secretary_clinic\.managed_by/],
+    ['Super Secretaries receive notifications only for explicitly assigned doctors', /secretary_assignments assignment[\s\S]*?assignment\.secretary_id = secretary\.id[\s\S]*?assignment\.doctor_id = actor\.id/],
     ['notifications are idempotent per report and recipient', /ON CONFLICT \(recipient_id, source_id\)[\s\S]*?WHERE kind = 'doctor_work_complete'[\s\S]*?DO NOTHING/],
     ['notifications contain no patient-identifying details', /Open DB Records to review/],
     ['notification opens the records list', /'pages\/viewAll\.html'/],
 ]
 
 for (const [label, pattern] of checks) {
-    assert.match(migration, pattern, label)
+    const source = label.startsWith('Super Secretaries')
+        ? notificationTrigger && notificationTrigger[0]
+        : migration
+    assert.match(source, pattern, label)
     console.log(`  PASS  ${label}`)
 }
 

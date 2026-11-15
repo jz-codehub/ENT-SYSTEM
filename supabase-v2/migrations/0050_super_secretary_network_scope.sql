@@ -1,22 +1,17 @@
 -- =====================================================================
---  0050 · SUPER SECRETARY - all clinics in one admin-owned network
+--  0050 - SUPER SECRETARY selected doctors and active clinics
 -- ---------------------------------------------------------------------
---  A Super Secretary remains a secretary for all existing role checks,
---  but receives a server-side flag that expands her doctor assignment to
---  every active doctor in the same admin-owned clinic network.
---
---  This is deliberately NOT a global cross-tenant grant. The secretary's
---  home clinic must have a non-NULL clinics.managed_by owner; target
---  doctors must belong to a clinic with that same owner. Legacy clinics
---  with no owner only match their own clinic. Admin provisioning remains
---  the only way to change the flag.
+--  A Super Secretary remains a secretary for all existing role checks.
+--  Her primary and explicitly selected doctors determine access; the
+--  active-clinic context still prevents cross-clinic data access.
+--  Existing network access is backfilled once at the end of this file.
 -- =====================================================================
 
 ALTER TABLE public.staff_profiles
     ADD COLUMN IF NOT EXISTS is_super_secretary boolean NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN public.staff_profiles.is_super_secretary IS
-    'When true for an active secretary, ent_is_my_doctor includes every active doctor in the same non-NULL managed_by clinic network. Never grants access across admin owners.';
+    'When true for an active secretary, allows clinic switching among her primary and explicitly assigned active doctors.';
 
 -- This is the single live permission predicate used by record, photo,
 -- write, delete, recycle-bin and filing policies. The role and flag are
@@ -170,6 +165,220 @@ COMMENT ON FUNCTION public.my_secretaries() IS
 
 -- CREATE OR REPLACE preserves the existing EXECUTE grants. The column has
 -- no authenticated UPDATE grant; auth-admin (service_role) is its writer.
+NOTIFY pgrst, 'reload schema';
+
+ALTER TABLE public.staff_profiles
+    ADD COLUMN IF NOT EXISTS admin_mfa_required boolean NOT NULL DEFAULT false;
+
+ALTER TYPE public.ent_activity ADD VALUE IF NOT EXISTS 'ADMIN_MFA_ENABLED';
+
+CREATE OR REPLACE FUNCTION public.ent_is_active_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1
+          FROM public.staff_profiles profile
+         WHERE profile.id = public.ent_auth_uid()
+           AND profile.role = 'admin'
+           AND profile.is_active
+           AND (
+                NOT profile.admin_mfa_required
+             OR auth.jwt() ->> 'aal' = 'aal2'
+           )
+    )
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_admin_set_active(
+    p_user_id uuid,
+    p_active boolean
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    me public.staff_profiles;
+    target public.staff_profiles;
+    has_other_admin boolean;
+BEGIN
+    IF NOT public.ent_is_active_admin() THEN
+        RAISE EXCEPTION 'refused: administrator role required'
+            USING ERRCODE = '42501';
+    END IF;
+
+    SELECT * INTO me
+      FROM public.staff_profiles
+     WHERE id = public.ent_auth_uid();
+    SELECT * INTO target
+      FROM public.staff_profiles
+     WHERE id = p_user_id
+     FOR UPDATE;
+
+    IF target.id IS NULL THEN
+        RAISE EXCEPTION 'unknown account';
+    END IF;
+    IF NOT public.ent_admin_covers_clinic(target.clinic_id) THEN
+        RAISE EXCEPTION 'refused: that account belongs to another clinic'
+            USING ERRCODE = '42501';
+    END IF;
+    IF target.id = me.id AND NOT p_active THEN
+        RAISE EXCEPTION 'you cannot deactivate your own account';
+    END IF;
+
+    IF NOT p_active AND target.role = 'admin' AND target.is_active THEN
+        PERFORM pg_advisory_xact_lock(hashtext('ent-last-active-admin'));
+        SELECT EXISTS (
+            SELECT 1
+              FROM public.staff_profiles other_admin
+             WHERE other_admin.role = 'admin'
+               AND other_admin.is_active
+               AND other_admin.id <> target.id
+        ) INTO has_other_admin;
+        IF NOT has_other_admin THEN
+            RAISE EXCEPTION 'cannot deactivate the last active administrator';
+        END IF;
+    END IF;
+
+    UPDATE public.staff_profiles
+       SET is_active = p_active,
+           admin_mfa_required = CASE
+               WHEN target.role = 'admin' THEN true
+               ELSE admin_mfa_required
+           END
+     WHERE id = target.id;
+
+    INSERT INTO public.activity_logs
+        (actor_id, actor_role, actor_label, clinic_id, action, detail,
+         target_type, target_id)
+    VALUES
+        (me.id, me.role::text,
+         coalesce(nullif(me.full_name, ''), me.username::text),
+         me.clinic_id,
+         (CASE WHEN p_active THEN 'USER_ACTIVATED'
+               ELSE 'USER_DEACTIVATED' END)::ent_activity,
+         CASE WHEN p_active THEN 'Activated ' ELSE 'Deactivated ' END || target.username,
+         'staff', target.id::text);
+
+    RETURN jsonb_build_object('id', target.id, 'is_active', p_active);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_guard_last_active_admin()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF OLD.role = 'admin'
+       AND OLD.is_active
+       AND (NEW.role <> 'admin' OR NOT NEW.is_active) THEN
+        PERFORM pg_advisory_xact_lock(hashtext('ent-last-active-admin'));
+        IF NOT EXISTS (
+            SELECT 1
+              FROM public.staff_profiles other_admin
+             WHERE other_admin.role = 'admin'
+               AND other_admin.is_active
+               AND other_admin.id <> OLD.id
+        ) THEN
+            RAISE EXCEPTION 'cannot demote or deactivate the last active administrator';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_last_active_admin ON public.staff_profiles;
+CREATE TRIGGER trg_guard_last_active_admin
+    BEFORE UPDATE OF role, is_active ON public.staff_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION public.ent_guard_last_active_admin();
+
+REVOKE ALL ON FUNCTION public.ent_guard_last_active_admin() FROM anon, public;
+
+CREATE OR REPLACE FUNCTION public.ent_admin_set_secretary_assignments(
+    p_secretary_id uuid,
+    p_doctor_ids uuid[]
+)
+RETURNS uuid[]
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    secretary public.staff_profiles;
+    doctor_id uuid;
+    clean_ids uuid[];
+BEGIN
+    IF NOT public.ent_is_active_admin() THEN
+        RAISE EXCEPTION 'refused: administrator role required'
+            USING ERRCODE = '42501';
+    END IF;
+
+    SELECT * INTO secretary
+      FROM public.staff_profiles profile
+     WHERE profile.id = p_secretary_id
+       AND profile.role = 'secretary'
+        AND profile.is_active
+     FOR UPDATE;
+
+    IF secretary.id IS NULL THEN
+        RAISE EXCEPTION 'unknown secretary account';
+    END IF;
+    IF NOT public.ent_admin_covers_clinic(secretary.clinic_id) THEN
+        RAISE EXCEPTION 'refused: that secretary belongs to another clinic'
+            USING ERRCODE = '42501';
+    END IF;
+
+    SELECT coalesce(array_agg(requested.doctor_id ORDER BY requested.doctor_id), ARRAY[]::uuid[])
+      INTO clean_ids
+      FROM (
+            SELECT DISTINCT input.doctor_id
+              FROM unnest(coalesce(p_doctor_ids, ARRAY[]::uuid[])) AS input(doctor_id)
+             WHERE input.doctor_id IS NOT NULL
+      ) requested;
+
+    IF secretary.id = ANY(clean_ids) THEN
+        RAISE EXCEPTION 'a secretary cannot be assigned to herself'
+            USING ERRCODE = '22023';
+    END IF;
+
+    FOREACH doctor_id IN ARRAY clean_ids LOOP
+        IF NOT EXISTS (
+            SELECT 1
+              FROM public.staff_profiles doctor
+             WHERE doctor.id = doctor_id
+               AND doctor.role = 'doctor'
+               AND doctor.is_active
+               AND public.ent_admin_covers_clinic(doctor.clinic_id)
+        ) THEN
+            RAISE EXCEPTION 'one of the doctors is inactive, invalid, or outside your clinics'
+                USING ERRCODE = '42501';
+        END IF;
+    END LOOP;
+
+    DELETE FROM public.secretary_assignments
+     WHERE secretary_id = secretary.id;
+
+    INSERT INTO public.secretary_assignments (secretary_id, doctor_id)
+    SELECT secretary.id, doctor_id
+      FROM unnest(clean_ids) AS assigned(doctor_id);
+
+    RETURN clean_ids;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ent_admin_set_secretary_assignments(uuid, uuid[]) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_admin_set_secretary_assignments(uuid, uuid[]) TO authenticated;
+
+COMMENT ON FUNCTION public.ent_admin_set_secretary_assignments(uuid, uuid[]) IS
+    'Atomically replaces a secretary''s additional doctors after checking live admin authority and clinic ownership.';
+
 NOTIFY pgrst, 'reload schema';
 
 DO $$
@@ -1006,5 +1215,333 @@ REVOKE ALL ON FUNCTION public.ent_my_chat_message_receipts(uuid) FROM anon, publ
 GRANT EXECUTE ON FUNCTION public.ent_my_chat_message_receipts(uuid) TO authenticated;
 REVOKE ALL ON FUNCTION public.ent_mark_chat_read(uuid) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.ent_mark_chat_read(uuid) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
+
+-- =====================================================================
+-- 0050 - SUPER SECRETARY explicit doctor assignments
+-- ---------------------------------------------------------------------
+-- Keep the active-clinic context above, but limit the secretary to her
+-- primary doctor and the doctors selected by an admin. Existing network
+-- access is backfilled once so it is not unexpectedly removed.
+-- =====================================================================
+
+INSERT INTO public.secretary_assignments (secretary_id, doctor_id)
+SELECT secretary.id, doctor.id
+  FROM public.staff_profiles secretary
+  JOIN public.clinics home_clinic ON home_clinic.id = secretary.clinic_id
+  JOIN public.staff_profiles doctor
+    ON doctor.role = 'doctor'
+   AND doctor.is_active
+  JOIN public.clinics doctor_clinic ON doctor_clinic.id = doctor.clinic_id
+ WHERE secretary.role = 'secretary'
+   AND secretary.is_super_secretary
+   AND home_clinic.is_active
+   AND doctor_clinic.is_active
+   AND (
+        doctor_clinic.id = home_clinic.id
+     OR (
+            home_clinic.managed_by IS NOT NULL
+        AND doctor_clinic.managed_by = home_clinic.managed_by
+     )
+   )
+ON CONFLICT (secretary_id, doctor_id) DO NOTHING;
+
+-- Retain the function name for the existing clinic-switching RPCs, but
+-- make it mean "an explicitly assigned doctor", never "any network doctor".
+CREATE OR REPLACE FUNCTION public.ent_super_secretary_network_doctor(p_doctor uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1
+          FROM public.staff_profiles me
+          JOIN public.clinics home_clinic
+            ON home_clinic.id = me.clinic_id
+           AND home_clinic.is_active
+          JOIN public.staff_profiles doctor
+            ON doctor.id = p_doctor
+           AND doctor.role = 'doctor'
+           AND doctor.is_active
+          JOIN public.clinics doctor_clinic
+            ON doctor_clinic.id = doctor.clinic_id
+           AND doctor_clinic.is_active
+         WHERE me.id = public.ent_auth_uid()
+           AND me.is_active
+           AND me.role = 'secretary'
+           AND me.is_super_secretary
+           AND p_doctor IS NOT NULL
+           AND (
+                me.assigned_doctor_id = doctor.id
+             OR EXISTS (
+                    SELECT 1
+                      FROM public.secretary_assignments assignment
+                     WHERE assignment.secretary_id = me.id
+                       AND assignment.doctor_id = doctor.id
+                )
+           )
+    )
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_is_my_doctor(p_doctor uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1
+          FROM public.staff_profiles me
+          JOIN public.staff_profiles doctor
+            ON doctor.id = p_doctor
+           AND doctor.role = 'doctor'
+           AND doctor.is_active
+         WHERE me.id = public.ent_auth_uid()
+           AND me.is_active
+           AND me.role = 'secretary'
+           AND p_doctor IS NOT NULL
+           AND (
+                me.assigned_doctor_id = doctor.id
+             OR EXISTS (
+                    SELECT 1
+                      FROM public.secretary_assignments assignment
+                     WHERE assignment.secretary_id = me.id
+                       AND assignment.doctor_id = doctor.id
+                )
+           )
+           AND (
+                NOT me.is_super_secretary
+             OR (
+                    doctor.clinic_id = public.ent_active_super_secretary_clinic_id()
+                AND public.ent_super_secretary_network_doctor(doctor.id)
+                )
+           )
+    )
+$$;
+
+CREATE OR REPLACE FUNCTION public.my_secretaries()
+RETURNS TABLE (
+    id                 uuid,
+    username           text,
+    full_name          text,
+    role               public.ent_role,
+    assigned_doctor_id uuid,
+    is_active          boolean
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT DISTINCT secretary.id,
+           secretary.username::text,
+           secretary.full_name,
+           secretary.role,
+           secretary.assigned_doctor_id,
+           secretary.is_active
+      FROM public.staff_profiles doctor
+      JOIN public.staff_profiles secretary
+        ON secretary.role = 'secretary'
+       AND (
+            secretary.assigned_doctor_id = doctor.id
+         OR EXISTS (
+                SELECT 1
+                  FROM public.secretary_assignments assignment
+                 WHERE assignment.secretary_id = secretary.id
+                   AND assignment.doctor_id = doctor.id
+            )
+       )
+     WHERE doctor.id = public.ent_auth_uid()
+       AND doctor.role = 'doctor'
+     ORDER BY secretary.full_name
+$$;
+
+COMMENT ON FUNCTION public.ent_is_my_doctor(uuid) IS
+    'An active secretary may work only under her primary doctor or an explicit secretary_assignments row. Super Secretaries keep the active-clinic boundary and may switch only among those assigned doctors.';
+COMMENT ON FUNCTION public.ent_super_secretary_network_doctor(uuid) IS
+    'Compatibility helper for Super Secretary clinic switching; validates only the primary or explicitly assigned active doctors.';
+COMMENT ON FUNCTION public.my_assigned_doctors() IS
+    'Active primary and explicitly assigned doctors only. Super Secretaries may switch clinics only among this selected set.';
+COMMENT ON FUNCTION public.my_secretaries() IS
+    'Secretaries assigned directly or through secretary_assignments; Super Secretary status no longer implies access to every doctor in a managed network.';
+
+-- The clinic-wide metadata index must not reveal other doctors' patient
+-- details to a Super Secretary who has not been assigned to those doctors.
+CREATE OR REPLACE FUNCTION public.ent_view_all_index(
+    p_search text DEFAULT NULL,
+    p_limit integer DEFAULT 100,
+    p_offset integer DEFAULT 0
+)
+RETURNS TABLE (
+    report_id uuid,
+    clinic_id uuid,
+    clinic_name text,
+    doctor_name text,
+    patient_name text,
+    case_number text,
+    report_type text,
+    procedure_date date,
+    created_at timestamptz,
+    can_view boolean,
+    can_edit boolean,
+    can_delete boolean
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    WITH me AS (
+        SELECT profile.id, profile.clinic_id, profile.role
+          FROM public.staff_profiles profile
+         WHERE profile.id = public.ent_auth_uid()
+           AND profile.is_active
+    )
+    SELECT report.id,
+           report.clinic_id,
+           coalesce(nullif(btrim(clinic.name), ''), clinic.code),
+           coalesce(nullif(btrim(doctor.full_name), ''), btrim(doctor.username::text), 'Unknown'),
+           report.patient_name,
+           report.case_number,
+           report.report_type::text,
+           report.procedure_date,
+           report.created_at,
+           public.ent_may_open_report(report.id),
+           public.ent_may_edit_report(report.clinic_id, report.doctor_id, report.id),
+           (me.role = 'admin' AND me.clinic_id = report.clinic_id)
+      FROM public.reports report
+      JOIN me ON true
+      LEFT JOIN public.clinics clinic ON clinic.id = report.clinic_id
+      LEFT JOIN public.staff_profiles doctor ON doctor.id = report.doctor_id
+     WHERE report.is_draft = false
+       AND public.ent_super_secretary_context_matches(report.clinic_id)
+       AND (
+            NOT public.ent_is_active_super_secretary()
+         OR public.ent_is_my_doctor(report.doctor_id)
+       )
+       AND (
+              p_search IS NULL
+           OR btrim(p_search) = ''
+           OR report.patient_name ILIKE '%' || p_search || '%'
+           OR report.case_number ILIKE '%' || p_search || '%'
+           OR coalesce(nullif(btrim(clinic.name), ''), clinic.code, '') ILIKE '%' || p_search || '%'
+       )
+     ORDER BY report.created_at DESC
+     LIMIT least(greatest(coalesce(p_limit, 100), 1), 500)
+    OFFSET greatest(coalesce(p_offset, 0), 0)
+$$;
+
+COMMENT ON FUNCTION public.ent_view_all_index(text, integer, integer) IS
+    'Final-record metadata index. Super Secretaries receive rows only for explicitly assigned doctors in the active clinic; other roles retain the existing visibility rules.';
+
+REVOKE ALL ON FUNCTION public.ent_view_all_index(text, integer, integer) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_view_all_index(text, integer, integer) TO authenticated;
+
+-- Keep completion alerts consistent with the selected doctor list.
+CREATE OR REPLACE FUNCTION public.ent_notify_doctor_work_completion()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    actor public.staff_profiles;
+BEGIN
+    IF NEW.is_draft
+       OR NEW.doctor_id IS DISTINCT FROM public.ent_auth_uid()
+       OR public.ent_doctor_work_percent(NEW.report_type, NEW.payload) <> 100 THEN
+        RETURN NEW;
+    END IF;
+
+    IF TG_OP = 'UPDATE'
+       AND NOT OLD.is_draft
+       AND OLD.report_type = NEW.report_type
+       AND public.ent_doctor_work_percent(OLD.report_type, OLD.payload) = 100 THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT * INTO actor
+      FROM public.staff_profiles
+     WHERE id = public.ent_auth_uid()
+       AND is_active
+       AND role = 'doctor';
+
+    IF actor.id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO public.app_notifications
+        (recipient_id, kind, title, body, target_url, source_id)
+    SELECT secretary.id,
+           'doctor_work_complete',
+           'Doctor work completed',
+           coalesce(nullif(btrim(actor.full_name), ''), actor.username::text, 'Your doctor')
+               || ' completed the doctor work for a '
+               || CASE NEW.report_type
+                      WHEN 'cf4' THEN 'CF4'
+                      WHEN 'nasal' THEN 'Nasal'
+                      WHEN 'laryngeal' THEN 'Laryngeal'
+                  END
+               || ' report (100%). Open DB Records to review.',
+           'pages/viewAll.html',
+           NEW.id
+      FROM public.staff_profiles secretary
+     WHERE secretary.role = 'secretary'
+       AND secretary.is_active
+       AND (
+            secretary.assigned_doctor_id = actor.id
+         OR EXISTS (
+                SELECT 1
+                  FROM public.secretary_assignments assignment
+                 WHERE assignment.secretary_id = secretary.id
+                   AND assignment.doctor_id = actor.id
+            )
+       )
+    ON CONFLICT (recipient_id, source_id)
+        WHERE kind = 'doctor_work_complete'
+        DO NOTHING;
+
+    RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+    doctor_scope text;
+    switch_scope text;
+    index_scope text;
+BEGIN
+    SELECT pg_get_functiondef(oid) INTO doctor_scope
+      FROM pg_proc
+     WHERE oid = to_regprocedure('public.ent_is_my_doctor(uuid)');
+    SELECT pg_get_functiondef(oid) INTO switch_scope
+      FROM pg_proc
+     WHERE oid = to_regprocedure('public.ent_super_secretary_network_doctor(uuid)');
+    SELECT pg_get_functiondef(oid) INTO index_scope
+      FROM pg_proc
+     WHERE oid = to_regprocedure('public.ent_view_all_index(text,integer,integer)');
+
+    IF doctor_scope IS NULL
+       OR doctor_scope NOT ILIKE '%secretary_assignments%'
+       OR doctor_scope NOT ILIKE '%ent_active_super_secretary_clinic_id%'
+       OR doctor_scope ILIKE '%managed_by%' THEN
+        RAISE EXCEPTION '0050 guard failed: doctor access is not limited to explicit assignments and active clinic.';
+    END IF;
+    IF switch_scope IS NULL
+       OR switch_scope NOT ILIKE '%secretary_assignments%'
+       OR switch_scope ILIKE '%managed_by%' THEN
+        RAISE EXCEPTION '0050 guard failed: clinic switching still includes unassigned network doctors.';
+    END IF;
+    IF index_scope IS NULL
+       OR index_scope NOT ILIKE '%ent_is_my_doctor%'
+       OR index_scope NOT ILIKE '%ent_is_active_super_secretary%' THEN
+        RAISE EXCEPTION '0050 guard failed: View All metadata is not filtered to assigned Super Secretary doctors.';
+    END IF;
+END
+$$;
 
 NOTIFY pgrst, 'reload schema';

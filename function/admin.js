@@ -62,7 +62,10 @@
     const MIN_PASSWORD_LENGTH = Auth.MIN_PASSWORD_LENGTH || 6;
 
     let users = [];
+    let secretaryAssignmentsById = Object.create(null);
+    let secretaryAssignmentsError = '';
     let sessions = [];
+    let sessionsError = '';
     /* A CORS/origin failure never heals by retrying: the server keeps
      * answering without Access-Control-Allow-Origin and the browser keeps
      * throwing every reply away. Without this counter each 30s liveTick and
@@ -218,6 +221,165 @@
         return data;
     }
 
+    async function ensureAdminMfa() {
+        const status = await callAdmin({ action: 'capabilities' });
+        const user = status.user || {};
+        if (user.role !== 'admin') return true;
+
+        const client = window.EntSupabase.getClient();
+        const mfa = client && client.auth && client.auth.mfa;
+        if (!mfa || !mfa.getAuthenticatorAssuranceLevel || !mfa.listFactors) {
+            if (user.adminMfaRequired) {
+                throw new Error('Administrator MFA is required, but this browser client does not support TOTP. Update the Supabase JS client before continuing.');
+            }
+            return true;
+        }
+
+        const level = await mfa.getAuthenticatorAssuranceLevel();
+        if (level.error) throw level.error;
+        if (level.data && level.data.currentLevel === 'aal2') {
+            if (!user.adminMfaRequired) await callAdmin({ action: 'enable_admin_mfa' });
+            return true;
+        }
+
+        const listed = await mfa.listFactors();
+        if (listed.error) throw listed.error;
+        const verified = (listed.data && listed.data.totp || []).filter(function (factor) {
+            return factor.status === 'verified';
+        });
+        const pending = (listed.data && listed.data.totp || []).filter(function (factor) {
+            return factor.status !== 'verified';
+        });
+        const required = !!user.adminMfaRequired;
+
+        document.body.insertAdjacentHTML('afterbegin',
+            '<div class="admin-mfa-backdrop" id="adminMfaModal">'
+            + '<section class="admin-mfa-card" role="dialog" aria-modal="true" aria-labelledby="adminMfaTitle">'
+            + '<div class="admin-mfa-mark" aria-hidden="true">🔐</div>'
+            + '<p class="admin-mfa-kicker">ADMIN ACCOUNT SECURITY</p>'
+            + '<h2 id="adminMfaTitle">Protect your administrator account</h2>'
+            + '<p class="admin-mfa-intro">' + (required
+                ? 'A second factor is required for this administrator account. Use an authenticator app and keep your device available when signing in.'
+                : 'Authenticator setup is being introduced gradually. Once enabled, access to administrator features will require a code.')
+            + '</p>'
+            + '<div id="adminMfaContent"></div>'
+            + '<p class="admin-mfa-recovery">Recovery: keep access to the Supabase project dashboard. If your authenticator is lost, a project owner must remove the lost factor there before you can enroll another one. Store the setup key somewhere private.</p>'
+            + '<p class="admin-mfa-error" id="adminMfaError" role="alert"></p>'
+            + '</section></div>');
+
+        return new Promise(function (resolve) {
+            let factorId = '';
+            let qrCode = '';
+            let secret = '';
+            let finished = false;
+            const content = byId('adminMfaContent');
+            const errorBox = byId('adminMfaError');
+
+            function finish(result) {
+                if (finished) return;
+                finished = true;
+                const modal = byId('adminMfaModal');
+                if (modal) modal.remove();
+                resolve(result);
+            }
+            function report(error) {
+                if (errorBox) errorBox.textContent = (error && error.message) || String(error);
+            }
+            function renderChoice() {
+                content.innerHTML = '<div class="admin-mfa-actions">'
+                    + '<button type="button" class="ent-btn ent-btn-primary" id="adminMfaStart">'
+                    + (verified.length ? 'Verify authenticator' : 'Set up authenticator') + '</button>'
+                    + (!required ? '<button type="button" class="ent-btn" id="adminMfaLater">Not now</button>' : '')
+                    + '</div>';
+                byId('adminMfaStart').addEventListener('click', start);
+                const later = byId('adminMfaLater');
+                if (later) later.addEventListener('click', function () { finish(true); });
+            }
+            function renderCode() {
+                content.innerHTML = (qrCode
+                    ? '<div class="admin-mfa-qr"><img alt="Authenticator setup QR code" id="adminMfaQr"></div>'
+                        + '<p class="admin-mfa-secret-label">Can’t scan? Enter this setup key manually:</p>'
+                        + '<code class="admin-mfa-secret" id="adminMfaSecret"></code>'
+                    : '')
+                    + '<label class="admin-mfa-code-label" for="adminMfaCode">6-digit authenticator code</label>'
+                    + '<input id="adminMfaCode" class="admin-mfa-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6">'
+                    + '<div class="admin-mfa-actions"><button type="button" class="ent-btn ent-btn-primary" id="adminMfaVerify">Verify and continue</button>'
+                    + (!required ? '<button type="button" class="ent-btn" id="adminMfaLater">Not now</button>' : '')
+                    + '</div>';
+                if (qrCode) {
+                    byId('adminMfaQr').src = qrCode;
+                    byId('adminMfaSecret').textContent = secret;
+                }
+                byId('adminMfaVerify').addEventListener('click', verify);
+                const later = byId('adminMfaLater');
+                if (later) later.addEventListener('click', function () { finish(true); });
+                byId('adminMfaCode').focus();
+            }
+            async function start() {
+                if (errorBox) errorBox.textContent = '';
+                try {
+                    if (verified.length) {
+                        factorId = verified[0].id;
+                    } else {
+                        for (const factor of pending) {
+                            const removed = await mfa.unenroll({ factorId: factor.id });
+                            if (removed.error) throw removed.error;
+                        }
+                        const enrolled = await mfa.enroll({
+                            factorType: 'totp',
+                            friendlyName: 'ENT admin authenticator',
+                        });
+                        if (enrolled.error) throw enrolled.error;
+                        factorId = enrolled.data.id;
+                        qrCode = enrolled.data.totp.qr_code;
+                        secret = enrolled.data.totp.secret;
+                    }
+                    renderCode();
+                } catch (error) {
+                    report(error);
+                }
+            }
+            async function verify() {
+                const codeInput = byId('adminMfaCode');
+                const code = String(codeInput && codeInput.value || '').replace(/\D/g, '');
+                if (!/^\d{6}$/.test(code)) {
+                    report(new Error('Enter the 6-digit code from your authenticator app.'));
+                    return;
+                }
+                const button = byId('adminMfaVerify');
+                button.disabled = true;
+                if (errorBox) errorBox.textContent = '';
+                try {
+                    const challenge = await mfa.challenge({ factorId: factorId });
+                    if (challenge.error) throw challenge.error;
+                    const checked = await mfa.verify({
+                        factorId: factorId,
+                        challengeId: challenge.data.id,
+                        code: code,
+                    });
+                    if (checked.error) throw checked.error;
+                    const current = await mfa.getAuthenticatorAssuranceLevel();
+                    if (current.error) throw current.error;
+                    if (!current.data || current.data.currentLevel !== 'aal2') {
+                        throw new Error('The authenticator was verified, but the session did not reach the required security level. Sign out and sign in again.');
+                    }
+                    await callAdmin({ action: 'enable_admin_mfa' });
+                    finish(true);
+                } catch (error) {
+                    report(error);
+                    if (button) button.disabled = false;
+                }
+            }
+
+            if (required) {
+                if (verified.length) start();
+                else renderChoice();
+            } else {
+                renderChoice();
+            }
+        });
+    }
+
     /* ------------------------------------------------------------------
        PHOTOS CALL — the only door to Storage bytes, and only for the one
        thing the REST API cannot do: freeing the objects of an
@@ -357,6 +519,28 @@
     }
 
     /* ----------------------------- loading --------------------------- */
+    async function loadSecretaryDirectoryAssignments() {
+        try {
+            const rows = await api('secretary_assignments?select=secretary_id,doctor_id');
+            if (!Array.isArray(rows)) throw new Error('The server returned an invalid assignment list.');
+            const assignments = Object.create(null);
+            rows.forEach(function (row) {
+                if (!row || !row.secretary_id || !row.doctor_id) return;
+                const id = String(row.secretary_id);
+                if (!assignments[id]) assignments[id] = [];
+                if (assignments[id].indexOf(String(row.doctor_id)) === -1) {
+                    assignments[id].push(String(row.doctor_id));
+                }
+            });
+            secretaryAssignmentsById = assignments;
+            secretaryAssignmentsError = '';
+        } catch (error) {
+            secretaryAssignmentsById = Object.create(null);
+            secretaryAssignmentsError = (error && error.message) || String(error);
+            console.error('Could not load secretary doctor assignments:', error);
+        }
+    }
+
     async function loadUsers(force) {
         // v2: the directory comes from auth-admin, which returns only the
         // caller's own clinic and only to a live admin. There is no
@@ -386,13 +570,15 @@
         if (!users.length) {
             try {
                 const direct = await api('staff_profiles?select=id,username,full_name,role,'
-                    + 'clinic_id,assigned_doctor_id,specialty,license_no,email,phone,'
+                    + 'clinic_id,assigned_doctor_id,is_super_secretary,specialty,license_no,email,phone,'
                     + 'is_active,must_change_password,last_login_at,created_at&order=full_name');
                 if (Array.isArray(direct) && direct.length) users = direct;
             } catch (e) {
                 console.warn('Staff list fell back to a direct read and that failed too:', e);
             }
         }
+        await loadSecretaryDirectoryAssignments();
+        renderClinicDirectory();
 
         /* The open ticket panel names its reporter by looking that person up
          * in `users`. It used to be rendered once, when the thread loaded,
@@ -421,8 +607,10 @@
             const result = await callAdmin({ action: 'presence' });
             const rows = (result && Array.isArray(result.presence)) ? result.presence : [];
             sessions = rows.map(normaliseSession);
+            sessionsError = '';
         } catch (error) {
-            sessions = [];
+            sessionsError = (error && error.message) || String(error);
+            throw error;
         }
     }
 
@@ -568,7 +756,9 @@
 
     function renderOverviewSessions() {
         const live = sessions.filter(isActiveSession).slice(0, 8);
-        if (!live.length) return emptyRow('overviewSessions', 5, 'Nobody is signed in right now.');
+        if (!live.length) return emptyRow('overviewSessions', 5, sessionsError
+            ? 'Could not refresh live sessions; the last successful data may be out of date.'
+            : 'Nobody is signed in right now.');
         byId('overviewSessions').innerHTML = live.map(s => `
             <tr>
                 <td data-label="Who"><strong>${esc(sessionName(s))}</strong></td>
@@ -771,10 +961,18 @@
         setText('sessionMetricTotal', fmtNum(sessions.length));
         setText('sessionMetricOffline', fmtNum(offline));
         setText('sessionMetricRevoked', fmtNum(revoked));
-        setText('sessionsResultCount', rows.length
-            ? 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(sessions.length) + ' latest sessions'
-            : 'No session records to show');
-        if (!rows.length) return emptyRow('sessionsTable', 7, 'No sessions recorded yet.');
+        setText('sessionsResultCount', sessionsError
+            ? (sessions.length
+                ? 'Could not refresh; showing the last successful session list.'
+                : 'Could not load session records.')
+            : (rows.length
+                ? 'Showing ' + fmtNum(rows.length) + ' of ' + fmtNum(sessions.length) + ' latest sessions'
+                : 'No session records to show'));
+        if (!rows.length) {
+            return emptyRow('sessionsTable', 7, sessionsError
+                ? 'Could not load sessions: ' + sessionsError
+                : 'No sessions recorded yet.');
+        }
         byId('sessionsTable').innerHTML = rows.map(s => {
             const live = isActiveSession(s);
             const mine = s.user_id === session.user.id;
@@ -952,6 +1150,13 @@
         const allSelected = opts.length > 0 && opts.every(function (option) { return option.selected; });
         button.disabled = opts.length === 0;
         button.textContent = allSelected ? 'Clear additional doctors' : 'Select all other doctors';
+        const primary = byId('fAssigned').value;
+        const total = (primary ? 1 : 0) + collectExtraDoctors(primary).length;
+        const count = byId('doctorAssignmentCount');
+        if (count) {
+            count.textContent = total + ' doctor' + (total === 1 ? '' : 's') + ' assigned'
+                + (primary ? ' (' + (total - 1) + ' additional).' : '.');
+        }
     }
 
     /* The current junction set for a secretary, straight from the server.
@@ -995,6 +1200,8 @@
         // like the primary assigned-doctor field above it.
         const extraWrap = byId('extraWrap');
         if (extraWrap) extraWrap.style.display = secretary ? '' : 'none';
+        const addDoctorWrap = byId('addDoctorInlineWrap');
+        if (addDoctorWrap) addDoctorWrap.hidden = !secretary;
         if (secretary) populateExtraDoctors();
     }
 
@@ -1015,6 +1222,13 @@
         byId('fActive').checked = user ? user.is_active !== false : true;
         byId('fSuperSecretary').checked = !!(user && user.is_super_secretary);
         byId('fPassword').value = '';
+        byId('inlineDoctorFullName').value = '';
+        byId('inlineDoctorUsername').value = '';
+        byId('inlineDoctorPassword').value = '';
+        byId('addDoctorInlineForm').hidden = true;
+        byId('addDoctorInlineBtn').setAttribute('aria-expanded', 'false');
+        byId('addDoctorInlineNotice').textContent = '';
+        byId('addDoctorInlineNotice').hidden = true;
         extraAssignmentsLoading = !!(user && user.role === 'secretary');
         extraAssignmentsError = '';
         byId('passwordLabel').textContent = user ? 'New password (blank = keep current)' : 'Password';
@@ -1053,6 +1267,98 @@
         const returnFocus = userModalReturnFocus;
         userModalReturnFocus = null;
         if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    }
+
+    function inlineDoctorSay(message, bad) {
+        const notice = byId('addDoctorInlineNotice');
+        notice.textContent = message || '';
+        notice.className = 'ent-user-inline-doctor-notice' + (bad ? ' is-bad' : ' is-ok');
+        notice.hidden = !message;
+    }
+
+    async function addDoctorToSecretary() {
+        const fullName = byId('inlineDoctorFullName').value.trim();
+        const username = byId('inlineDoctorUsername').value.trim().toLowerCase().replace(/\s+/g, '');
+        const password = byId('inlineDoctorPassword').value;
+        const button = byId('createDoctorInlineBtn');
+        const usernameValid = /^[a-z0-9._-]{3,32}$/.test(username);
+
+        if (!fullName) return inlineDoctorSay('Enter the doctor’s full name.', true);
+        if (!usernameValid) {
+            return inlineDoctorSay('Username must be 3–32 lowercase letters, numbers, dots, dashes, or underscores.', true);
+        }
+        if (users.some(function (user) {
+            return String(user.username || '').toLowerCase() === username;
+        })) {
+            return inlineDoctorSay('That username is already in use.', true);
+        }
+        if (password && password.length < MIN_PASSWORD_LENGTH) {
+            return inlineDoctorSay('Starting password must be at least ' + MIN_PASSWORD_LENGTH + ' characters.', true);
+        }
+
+        const assigned = byId('fAssigned').value;
+        const selectedExtras = collectExtraDoctors(assigned);
+        let created = null;
+        button.disabled = true;
+        button.textContent = 'Creating doctor…';
+        inlineDoctorSay('');
+        try {
+            created = await callAdmin({
+                action: 'create',
+                username: username,
+                password: password || undefined,
+                full_name: fullName,
+                role: 'doctor',
+                assigned_doctor_id: null,
+                is_super_secretary: false,
+                specialty: '',
+                license_no: '',
+                is_active: true
+            });
+            if (!created || !created.id) {
+                throw new Error('The server did not confirm the new doctor account.');
+            }
+
+            await loadUsers(true);
+            const doctor = users.find(function (user) {
+                return String(user.id) === String(created.id) && user.role === 'doctor';
+            });
+            if (!doctor) {
+                throw new Error('The doctor was created, but the refreshed user list did not return the account. Refresh Users before assigning it.');
+            }
+
+            populateDoctors(assigned);
+            populateExtraDoctors();
+            const extraSelect = byId('fExtraDoctors');
+            const selectedIds = selectedExtras.concat([String(created.id)]);
+            if (extraSelect && extraSelect.options) {
+                for (let i = 0; i < extraSelect.options.length; i++) {
+                    extraSelect.options[i].selected =
+                        selectedIds.indexOf(String(extraSelect.options[i].value)) !== -1;
+                }
+            }
+            syncExtraDoctorsToggle();
+            renderStats();
+            renderUsers();
+            byId('inlineDoctorFullName').value = '';
+            byId('inlineDoctorUsername').value = '';
+            byId('inlineDoctorPassword').value = '';
+            const temporaryPassword = created.starter_password || password;
+            inlineDoctorSay(
+                'Doctor created and selected. Save the secretary to apply this assignment.'
+                + (temporaryPassword ? ' Temporary password (copy now): ' + temporaryPassword : ''),
+                false
+            );
+        } catch (error) {
+            inlineDoctorSay(
+                (created && created.id ? 'The doctor may have been created, but setup did not finish: ' : 'Could not create the doctor: ')
+                    + ((error && error.message) || String(error)),
+                true
+            );
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Create doctor and select';
+        }
     }
 
     async function saveUser() {
@@ -1355,7 +1661,7 @@
         }
         try {
             await loadSessions();
-        } catch (e) { problems.push('sessions: ' + e.message); fail('sessionsTable', 7, e); fail('overviewSessions', 5, e); }
+        } catch (e) { problems.push('sessions: ' + e.message); }
         try {
             await loadActivity(loud);
         } catch (e) { problems.push('activity log: ' + e.message); fail('activityTable', 6, e); }
@@ -1409,6 +1715,8 @@
             /* keep the previous picture on a dropped request. A CORS/origin
              * failure also stops the poll after 3 strikes - see
              * noteAdminCall, otherwise F12 fills with blocked rows. */
+            renderOverviewSessions();
+            renderSessions();
             noteAdminCall(false, e);
         }
     }
@@ -2310,11 +2618,40 @@
     ================================================================== */
     let systemFlags = [];
 
+    const ANNOUNCEMENT_TEMPLATES = {
+        schedule: {
+            title: 'Clinic Schedule Update',
+            body: 'Please take note of the updated clinic schedule:\n\n[Add schedule details]\n\nThank you.'
+        },
+        maintenance: {
+            title: 'System Maintenance Notice',
+            body: 'The ENT Endoscopy System will undergo maintenance on [date/time]. Access may be unavailable during this period.\n\nThank you for your understanding.'
+        },
+        reminder: {
+            title: 'Important Reminder',
+            body: 'This is a reminder to [add the action or task]. Please complete it by [date/time].\n\nThank you.'
+        }
+    };
+
     function announcementSay(msg, bad) {
         const box = byId('announcementNotice');
         if (!box) return;
         box.textContent = msg || '';
         box.className = 'ent-announcement-notice' + (msg ? ' show' : '') + (bad ? ' is-bad' : ' is-ok');
+    }
+
+    function applyAnnouncementTemplate() {
+        const key = byId('announcementTemplate').value;
+        const template = ANNOUNCEMENT_TEMPLATES[key];
+        if (!template) return announcementSay('Choose a template first.', true);
+        const titleInput = byId('announcementTitle');
+        const bodyInput = byId('announcementBody');
+        if ((titleInput.value.trim() || bodyInput.value.trim())
+            && !window.confirm('Replace the current announcement with this template?')) return;
+        titleInput.value = template.title;
+        bodyInput.value = template.body;
+        announcementSay('Template loaded. Edit the title or message before sending.', false);
+        titleInput.focus();
     }
 
     async function publishAnnouncement() {
@@ -2334,7 +2671,10 @@
             if (bodyInput) bodyInput.focus();
             return;
         }
-        if (!window.confirm('Send this announcement to every active user across all clinics?')) return;
+        if (!window.confirm(
+            'Send this announcement to every active user across all clinics?\n\n'
+            + 'Title: ' + title + '\n\nMessage:\n' + body
+        )) return;
 
         announcementSay('');
         if (button) {
@@ -2703,6 +3043,7 @@ const FLAG_INFO = {
             openAdminTicket(btn.getAttribute('data-id'));
         });
         byId('publishAnnouncementBtn').addEventListener('click', publishAnnouncement);
+        byId('applyAnnouncementTemplateBtn').addEventListener('click', applyAnnouncementTemplate);
         // ---- settings ----
         byId('refreshSettingsBtn').addEventListener('click', function () {
             loadSettings().catch(function (e) { settingsSay(String((e && e.message) || e).slice(0, 160), true); });
@@ -2744,6 +3085,15 @@ const FLAG_INFO = {
             opts.forEach(function (option) { option.selected = selectAll; });
             syncExtraDoctorsToggle();
         });
+        byId('fExtraDoctors').addEventListener('change', syncExtraDoctorsToggle);
+        byId('addDoctorInlineBtn').addEventListener('click', function () {
+            const form = byId('addDoctorInlineForm');
+            const open = !!form.hidden;
+            form.hidden = !open;
+            byId('addDoctorInlineBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) byId('inlineDoctorFullName').focus();
+        });
+        byId('createDoctorInlineBtn').addEventListener('click', addDoctorToSecretary);
         byId('userModal').addEventListener('click', function (e) {
             if (e.target === byId('userModal')) closeUserModal();
         });
@@ -2980,8 +3330,8 @@ const FLAG_INFO = {
         if (!force && latestRows.length && Date.now() - latestAt < LATEST_MIN_AGE_MS) return;
         latestBusy = true;
         const since = new Date(Date.now() - LATEST_DAYS * 86400000).toISOString();
-        const base = 'id,clinic_id,doctor_id,created_by,report_type,patient_name,'
-            + 'patient_id,procedure_date,file_name,created_at,updated_at';
+        const base = 'id,clinic_id,doctor_id,created_by,report_type,'
+            + 'procedure_date,created_at,updated_at';
         const query = function (extra) {
             return 'reports?is_draft=eq.false&created_at=gte.' + encodeURIComponent(since)
                 + '&select=' + base + extra + '&order=created_at.desc&limit=' + LATEST_LIMIT;
@@ -3080,12 +3430,9 @@ const FLAG_INFO = {
         const type = LATEST_TYPES[row.report_type] || 'Other report';
         const meta = type + (row.procedure_date ? ' \u00b7 ' + row.procedure_date : '');
         const when = latestWhen(row.updated_at || row.created_at);
-        const patient = String(row.patient_name || '').trim()
-            || String(row.file_name || '').trim()
-            || 'Untitled record';
         return '<div class="ent-latest-row">'
             + '<span class="ent-latest-main">'
-            + '<span class="ent-latest-name">' + esc(patient) + '</span>'
+            + '<span class="ent-latest-name">Clinical record</span>'
             + '<span class="ent-latest-meta">' + esc(meta) + '</span>'
             + '</span>'
             + latestSiteChip(row)
@@ -3195,7 +3542,7 @@ const FLAG_INFO = {
 
     async function loadFollowUps() {
         const since = new Date(Date.now() - FOLLOWUP_DAYS * 86400000).toISOString();
-        const base = 'clinic_id,patient_name,procedure_date,report_type';
+        const base = 'clinic_id,procedure_date,report_type';
         const query = function (extra) {
             return 'reports?is_draft=eq.false&created_at=gte.' + encodeURIComponent(since)
                 + '&select=' + base + extra + '&order=created_at.desc&limit=' + FOLLOWUP_LIMIT;
@@ -3254,7 +3601,7 @@ const FLAG_INFO = {
             return '<div class="ent-followup-row ' + f.state.cls + '">'
                 + '<span class="ent-followup-date">' + esc(f.date) + '</span>'
                 + '<span class="ent-followup-main"><span class="ent-followup-name">'
-                + esc(prettyName(f.row.patient_name) || 'Untitled record') + '</span>'
+                + 'Follow-up visit</span>'
                 + '<span class="ent-followup-meta">' + esc(label)
                 + (f.row.procedure_date ? ' &middot; seen ' + esc(f.row.procedure_date) : '')
                 + ' &middot; ' + esc(clinicLabel(f.row.clinic_id)) + '</span></span>'
@@ -3862,6 +4209,13 @@ const FLAG_INFO = {
     }
 
     function clinicOfUser(user) { return String((user && user.clinic_id) || 'main_clinic'); }
+    function secretaryWorksWithDoctor(secretary, doctor) {
+        const doctorId = String(doctor && doctor.id || '');
+        if (!doctorId) return false;
+        if (String(secretary && secretary.assigned_doctor_id || '') === doctorId) return true;
+        const assigned = secretaryAssignmentsById[String(secretary && secretary.id || '')] || [];
+        return assigned.indexOf(doctorId) !== -1;
+    }
     function byStaffName(a, b) {
         return String(displayName(a) || '').localeCompare(String(displayName(b) || ''));
     }
@@ -3947,6 +4301,7 @@ const FLAG_INFO = {
         const secretaries = users.filter(function (u) { return u && u.role === 'secretary'; });
         const orphans = [];
         const cards = [];
+        const knownDoctorIds = doctors.map(function (doctor) { return String(doctor.id); });
         clinicIds().forEach(function (id) {
             const docs = doctors.filter(function (u) { return clinicOfUser(u) === id; }).sort(byStaffName);
 
@@ -3973,13 +4328,16 @@ const FLAG_INFO = {
 
             const ids = docs.map(function (d) { return String(d.id); });
             const mine = secretaries.filter(function (u) {
-                return u.assigned_doctor_id && ids.indexOf(String(u.assigned_doctor_id)) !== -1;
+                return docs.some(function (doctor) {
+                    return secretaryWorksWithDoctor(u, doctor);
+                });
             });
             const loose = [];
             secretaries.forEach(function (u) {
                 if (!u.assigned_doctor_id) {
                     if (clinicOfUser(u) === id) loose.push(u);
-                } else if (ids.indexOf(String(u.assigned_doctor_id)) === -1) {
+                } else if (knownDoctorIds.indexOf(String(u.assigned_doctor_id)) === -1
+                    && orphans.indexOf(u) === -1) {
                     orphans.push(u);
                 }
             });
@@ -4014,7 +4372,7 @@ const FLAG_INFO = {
 
             const body = docs.map(function (d) {
                 const mineSecs = mine.filter(function (s) {
-                    return String(s.assigned_doctor_id) === String(d.id);
+                    return secretaryWorksWithDoctor(s, d);
                 }).sort(byStaffName);
                 const dCount = t.doctors[String(d.id)] || 0;
                 return '<div class="ent-doc-group">' + personRow(d, 'doc', dCount, t.month)
@@ -4073,8 +4431,11 @@ const FLAG_INFO = {
                 + orphans.sort(byStaffName).map(function (u) { return personRow(u, 'sec', ''); }).join('')
                 + '</div></section>');
         }
-        host.innerHTML = cards.join('')
-            || '<div class="ent-empty">No clinic matches this search.</div>';
+        host.innerHTML = (secretaryAssignmentsError
+            ? '<p class="ent-hint ent-clinic-assignment-warning" role="status">Could not load secretary doctor assignments: '
+                + esc(secretaryAssignmentsError) + '. Some clinic secretary listings may be incomplete.</p>'
+            : '')
+            + (cards.join('') || '<div class="ent-empty">No clinic matches this search.</div>');
 
         /* Search feedback. Without this, typing in the box silently
          * removes cards and there is no way to tell "your search found one
@@ -4113,7 +4474,7 @@ const FLAG_INFO = {
             }
             docs.forEach(function (d) {
                 const secs = users.filter(function (u) {
-                    return u && u.role === 'secretary' && String(u.assigned_doctor_id) === String(d.id);
+                    return u && u.role === 'secretary' && secretaryWorksWithDoctor(u, d);
                 });
                 if (!secs.length) {
                     rows.push([clinicLabel(id), id, displayName(d), d.username,
@@ -4819,6 +5180,18 @@ const FLAG_INFO = {
             }
         });
         if (!session || !session.user) return;
+        try {
+            await ensureAdminMfa();
+        } catch (error) {
+            document.body.insertAdjacentHTML('afterbegin',
+                '<div class="admin-mfa-backdrop"><section class="admin-mfa-card" role="alert">'
+                + '<h2>Administrator security check failed</h2>'
+                + '<p>' + esc((error && error.message) || error) + '</p>'
+                + '<button type="button" class="ent-btn ent-btn-primary" id="adminMfaRetry">Try again</button>'
+                + '</section></div>');
+            byId('adminMfaRetry').addEventListener('click', function () { window.location.reload(); });
+            return;
+        }
         wire();
         wireDrawer();
         wireAnalytics();

@@ -112,12 +112,22 @@ migration history first—do not paste the whole chain blindly.
 0046_rename_main_clinic_doc_jess.sql
 0047_bounded_patient_record_reads.sql
 0048_dashboard_summary_counts.sql
+0049_notifications_and_staff_chat.sql
+0050_super_secretary_network_scope.sql
+0051_global_announcements.sql
 ```
 
 The browser uses the bounded patient-record reads from `0047` and the exact
 dashboard aggregates from `0048`. Apply both before deploying the matching
 frontend; without `0048`, dashboard counts fall back to the bounded loaded
 rows.
+
+The updated `0050` also adds atomic Super Secretary assignment replacement,
+last-active-admin protection, and staged admin TOTP enforcement. Existing
+active admins are not forced into MFA during the schema rollout; new and
+reactivated admin accounts must enroll before using admin features. Apply migrations
+through `0051` before deploying the matching frontend and rebuilt
+`auth-admin` Edge Function bundle.
 
 **Check it:** `node supabase-v2/scripts/check_migrations.mjs`
 This is a static check, not proof that the migration has run successfully on

@@ -946,7 +946,10 @@
 // v177: compact the View All access summary without changing its controls.
 // v178: show historical finalized patient work and remove the 60-day queue cutoff.
 // v181: widen the notification panel and clarify notification labels.
-const CACHE_NAME = 'ent-report-system-v182-doctor-work-toggle';
+// v183: list Super Secretaries in their managed clinics.
+// v184: use explicit doctor assignments for Super Secretary clinic access.
+// v185: add staged admin MFA, atomic assignment updates, and admin hardening.
+const CACHE_NAME = 'ent-report-system-v185-admin-hardening';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

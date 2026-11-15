@@ -818,8 +818,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
      *
      * RLS is the access control; this is the COUNTING rule, and it is a second
      * opinion rather than a replacement. A doctor counts his own shelf, a
-     * secretary her assigned doctors, and a Super Secretary every doctor in
-     * the selected clinic only; an admin counts the whole clinic.
+     * secretary her assigned doctors, and a Super Secretary only assigned
+     * doctors in the selected clinic; an admin counts the whole clinic.
      *
      * Rows with no doctor_id are this DEVICE's own history (loadDeviceRows
      * stamps them with the local username), and they are kept - they were

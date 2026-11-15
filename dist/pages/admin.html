@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v60-announcement-composer">
+    <link rel="stylesheet" href="../style/admin.css?v=v62-admin-hardening">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -222,18 +222,16 @@
                 </div>
             </div>
 
-            <!-- LATEST PATIENT RECORDS, per clinic. The Overview already said
-                 HOW MANY records each clinic has; this answers WHO filed the
-                 newest ones, WHERE the patient was seen (RMCI / CUMC) and HOW
-                 LONG AGO - the three questions an admin is asked in the
-                 hallway and otherwise has to open DB Records to answer.
+            <!-- RECENT CLINICAL ACTIVITY, per clinic. Patient identifiers are
+                 intentionally omitted from this admin summary; it shows the
+                 record type, clinic, author and recency only.
                  Newest first, one block per clinic, capped at the five newest
                  rows each so one busy clinic cannot push the rest off screen. -->
             <div class="ent-card overview-card-latest">
                 <div class="ent-card-head">
                     <div class="overview-card-title">
                         <span class="overview-title-icon is-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H5V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M8 13h8M8 17h5"/></svg></span>
-                        <span><h3>Latest patient records</h3><span class="overview-card-subtitle">Recent submissions grouped by clinic</span></span>
+                        <span><h3>Recent clinical activity</h3><span class="overview-card-subtitle">Recent submissions grouped by clinic</span></span>
                     </div>
                     <span class="ent-hint" id="latestPatientsHint">Newest first &middot; grouped by clinic</span>
                 </div>
@@ -257,10 +255,10 @@
                 </div>
             </div>
 
-            <!-- Clinic-wide follow-up tracker: every patient across the whole
-                 clinic who was told to come back, soonest (overdue) first.
+            <!-- Clinic-wide follow-up tracker, soonest (overdue) first.
                  Reads payload.followUpDate, so it needs no migration and is
-                 empty until a record is saved with a follow-up date. -->
+                 empty until a record is saved with a follow-up date. Patient
+                 identifiers are not included in this overview. -->
             <div class="ent-card overview-card-followups">
                 <div class="ent-card-head">
                     <div class="overview-card-title">
@@ -924,6 +922,18 @@
                     </div>
                     <span class="ent-announcement-audience">All active users</span>
                 </div>
+                <div class="ent-announcement-template-tools">
+                    <label class="ent-announcement-template-field" for="announcementTemplate">
+                        <span>Start from a template</span>
+                        <select id="announcementTemplate">
+                            <option value="">Choose a template&hellip;</option>
+                            <option value="schedule">Schedule update</option>
+                            <option value="maintenance">System maintenance</option>
+                            <option value="reminder">Important reminder</option>
+                        </select>
+                    </label>
+                    <button type="button" class="ent-btn" id="applyAnnouncementTemplateBtn">Use template</button>
+                </div>
                 <label class="ent-announcement-field" for="announcementTitle">
                     <span>Title</span>
                     <input type="text" id="announcementTitle" maxlength="120" placeholder="What should everyone know?">
@@ -1123,15 +1133,39 @@
                             <div class="ent-hint">Changing the primary doctor transfers the secretary&rsquo;s home clinic. Additional doctor assignments stay available.</div>
                             <label class="ent-user-check ent-user-super-check">
                                 <input type="checkbox" id="fSuperSecretary">
-                                <span><b>Super Secretary</b><small>Access active doctors and patient records in this admin&rsquo;s managed clinic network, including future doctors. Does not cross into another admin&rsquo;s network.</small></span>
+                                <span><b>Super Secretary</b><small>Can switch between the clinics of her assigned doctors. Access is limited to the doctors selected below.</small></span>
                             </label>
                             <p class="ent-user-role-note">Doctor assignments determine which patient records a secretary can open.</p>
                         </div>
                         <div class="ent-field" id="extraWrap" style="display:none;">
-                            <label for="fExtraDoctors">Additional doctors</label>
+                            <label for="fExtraDoctors">Additional assigned doctors</label>
                             <select id="fExtraDoctors" multiple size="4"></select>
                             <button type="button" class="ent-btn ent-user-select-doctors" id="fExtraDoctorsToggle">Select all other doctors</button>
-                            <div class="ent-hint">Choose additional doctors in clinics you manage. Leave empty to keep access to the primary doctor only.</div>
+                            <div class="ent-hint">Choose every other doctor this secretary may work with. Use Ctrl/Cmd-click to select multiple doctors.</div>
+                            <p class="ent-user-role-note" id="doctorAssignmentCount" role="status" aria-live="polite"></p>
+                        </div>
+                        <div class="ent-user-add-doctor-wrap" id="addDoctorInlineWrap">
+                            <button type="button" class="ent-btn" id="addDoctorInlineBtn" aria-expanded="false">
+                                + Add a doctor
+                            </button>
+                            <div class="ent-user-inline-doctor" id="addDoctorInlineForm" hidden>
+                                <b>Add a doctor to this admin network</b>
+                                <p class="ent-hint">The new doctor will be selected as an additional assignment. Save the secretary to apply the assignment.</p>
+                                <label class="ent-field" for="inlineDoctorFullName">
+                                    <span>Doctor&rsquo;s full name</span>
+                                    <input type="text" id="inlineDoctorFullName" autocomplete="name" placeholder="Enter the doctor&rsquo;s name">
+                                </label>
+                                <label class="ent-field" for="inlineDoctorUsername">
+                                    <span>Username</span>
+                                    <input type="text" id="inlineDoctorUsername" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. doctor.santos">
+                                </label>
+                                <label class="ent-field" for="inlineDoctorPassword">
+                                    <span>Starting password <small>(optional)</small></span>
+                                    <input type="password" id="inlineDoctorPassword" autocomplete="new-password" placeholder="Leave blank to generate one">
+                                </label>
+                                <button type="button" class="ent-btn primary" id="createDoctorInlineBtn">Create doctor and select</button>
+                                <p class="ent-user-inline-doctor-notice" id="addDoctorInlineNotice" role="status" aria-live="polite" hidden></p>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1169,10 +1203,10 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36n-admin-all-clinics" defer></script>
+    <script src="../function/auth.js?v=v36o-super-secretary-explicit-doctors" defer></script>
     <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v48-global-announcements" defer></script>
+    <script src="../function/admin.js?v=v51-admin-hardening" defer></script>
 </body>
 </html>

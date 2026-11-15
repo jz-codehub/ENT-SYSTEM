@@ -50,6 +50,34 @@ const SECRETARY_PROFILE = {
   is_active: true,
   must_change_password: false,
 }
+const NETWORK_DOCTOR = {
+  id: '33333333-3333-4333-8333-333333333333',
+  username: 'networkdoc',
+  full_name: 'Network Doctor',
+  role: 'doctor',
+  clinic_id: '00000000-0000-4000-8000-00000000c11c',
+  assigned_doctor_id: null,
+  is_active: true,
+}
+const SECOND_NETWORK_DOCTOR = {
+  id: '44444444-4444-4444-8444-444444444444',
+  username: 'satellitedoc',
+  full_name: 'Satellite Doctor',
+  role: 'doctor',
+  clinic_id: '99999999-9999-4999-8999-999999999999',
+  assigned_doctor_id: null,
+  is_active: true,
+}
+const SUPER_SECRETARY_PROFILE = {
+  id: '55555555-5555-4555-8555-555555555555',
+  username: 'supersec',
+  full_name: 'Super Secretary',
+  role: 'secretary',
+  clinic_id: NETWORK_DOCTOR.clinic_id,
+  assigned_doctor_id: NETWORK_DOCTOR.id,
+  is_super_secretary: true,
+  is_active: true,
+}
 
 /* Newest finished reports, as the Overview card's query asks for them:
  * the author's name (created_by_name, 0028) and the hospital tag
@@ -60,8 +88,8 @@ const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
 /* Real clinic names, so the card's header can be asserted to say a NAME
  * rather than the uuid the id fallback would print. */
 const CLINICS = [
-  { id: '00000000-0000-4000-8000-00000000c11c', name: 'ENT Clinic Doc Jess', code: 'JESS', is_active: true },
-  { id: '99999999-9999-4999-8999-999999999999', name: 'Bolmen Clinic', code: 'BOLM', is_active: true },
+  { id: '00000000-0000-4000-8000-00000000c11c', name: 'ENT Clinic Doc Jess', code: 'JESS', is_active: true, managed_by: ADMIN_PROFILE.id },
+  { id: '99999999-9999-4999-8999-999999999999', name: 'Bolmen Clinic', code: 'BOLM', is_active: true, managed_by: ADMIN_PROFILE.id },
 ]
 const LATEST_REPORTS = [
   { id: 'rep-1', clinic_id: '00000000-0000-4000-8000-00000000c11c',
@@ -85,7 +113,23 @@ function makeEl(id) {
   const listeners = {}
   return {
     id: id, value: '', checked: false, disabled: false,
-    textContent: '', innerHTML: '', dataset: {}, style: {}, options: [], children: [],
+    textContent: '', _innerHTML: '', dataset: {}, style: {}, options: [], children: [],
+    get innerHTML() { return this._innerHTML },
+    set innerHTML(value) {
+        this._innerHTML = value
+        if (id === 'fExtraDoctors') {
+            this.options = Array.from(String(value || '').matchAll(
+                /<option value="([^"]*)"([^>]*)>([\s\S]*?)<\/option>/g
+            )).map(function (match) {
+                return {
+                    value: match[1],
+                    disabled: /\bdisabled\b/.test(match[2]),
+                    selected: /\bselected\b/.test(match[2]),
+                    textContent: match[3],
+                }
+            })
+        }
+    },
     classList: { add() {}, remove() {}, contains: () => false, toggle() {} },
     addEventListener: (ev, fn) => { (listeners[ev] = listeners[ev] || []).push(fn) },
     removeEventListener() {},
@@ -100,10 +144,13 @@ function makeEl(id) {
 function makeWindow() {
   const els = new Map()
   const json = (b) => ({ ok: true, status: 200, text: async () => JSON.stringify(b), json: async () => b })
+  const createdUsers = []
   const win = {
     els: els,
     fetchLog: [],
     latestCalls: [],
+    confirmLog: [],
+    presenceFailure: false,
     winListeners: {},
     localStorage: { getItem: () => null, setItem() {}, removeItem() {}, clear() {} },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
@@ -120,7 +167,7 @@ function makeWindow() {
     setTimeout: (fn, ms) => setTimeout(fn, ms || 0),
     addEventListener: (ev, fn) => { (win.winListeners[ev] = win.winListeners[ev] || []).push(fn) },
     dispatchEvent() {},
-    confirm: () => true, alert() {},
+    confirm: (message) => { win.confirmLog.push(String(message)); return true }, alert() {},
     CustomEvent: class {},
     fetch: async (url, opts) => {
       const u = String(url)
@@ -129,6 +176,17 @@ function makeWindow() {
       try { body = o.body ? JSON.parse(o.body) : null } catch (e) { body = null }
       win.fetchLog.push({ url: u, method: o.method || 'GET', body: body })
       if (u.indexOf('/rest/v1/staff_profiles') !== -1) return json([ADMIN_PROFILE])
+      if (u.indexOf('/rest/v1/secretary_assignments?select=secretary_id,doctor_id') !== -1) {
+        return json([
+          { secretary_id: SUPER_SECRETARY_PROFILE.id, doctor_id: NETWORK_DOCTOR.id },
+          { secretary_id: SUPER_SECRETARY_PROFILE.id, doctor_id: SECOND_NETWORK_DOCTOR.id },
+        ])
+      }
+      if (u.indexOf('/rest/v1/secretary_assignments?select=doctor_id') !== -1) {
+        return json(u.indexOf(encodeURIComponent(SUPER_SECRETARY_PROFILE.id)) !== -1
+          ? [{ doctor_id: NETWORK_DOCTOR.id }, { doctor_id: SECOND_NETWORK_DOCTOR.id }]
+          : [])
+      }
       /* The Overview's "Latest patients records" card: newest finished
        * reports WITH the author name and the hospital tag selected. Matched
        * precisely (created_by_name + limit=40) so no other reports query the
@@ -144,8 +202,35 @@ function makeWindow() {
       if (u.indexOf('/rest/v1/rpc/ent_send_announcement') !== -1) return json(2)
       if (u.indexOf('/functions/v1/auth-admin') !== -1) {
         const action = body && body.action
-        if (action === 'list') return json({ ok: true, users: [ADMIN_PROFILE, SECRETARY_PROFILE] })
+        if (action === 'capabilities') return json({
+          ok: true,
+          user: { role: 'admin', adminMfaRequired: false },
+        })
+        if (action === 'enable_admin_mfa') return json({ ok: true, admin_mfa_required: true })
+        if (action === 'presence') {
+          if (win.presenceFailure) {
+            return { ok: false, status: 503, json: async () => ({ ok: false, error: 'presence unavailable' }) }
+          }
+          return json({ ok: true, presence: [] })
+        }
+        if (action === 'list') return json({
+          ok: true,
+          users: [ADMIN_PROFILE, SECRETARY_PROFILE, NETWORK_DOCTOR, SECOND_NETWORK_DOCTOR, SUPER_SECRETARY_PROFILE].concat(createdUsers),
+        })
         if (action === 'create') {
+          if (body.role === 'doctor') {
+            const id = 'created-doctor-' + body.username
+            createdUsers.push({
+              id: id,
+              username: body.username,
+              full_name: body.full_name,
+              role: 'doctor',
+              clinic_id: SECOND_NETWORK_DOCTOR.clinic_id,
+              assigned_doctor_id: null,
+              is_active: true,
+            })
+            return json({ ok: true, id: id, username: body.username, starter_password: body.password || 'TempPass123!' })
+          }
           return json({ ok: true, id: 'new-id', username: body.username, starter_password: 'Zz!generated1' })
         }
         return json({ ok: true, password: 'Zz!generated1' })
@@ -161,6 +246,12 @@ function makeWindow() {
           }),
           updateUser: async () => ({ data: {}, error: null }),
           signOut: async () => ({ error: null }),
+          mfa: {
+            getAuthenticatorAssuranceLevel: async () => ({
+              data: { currentLevel: 'aal2', nextLevel: 'aal2' }, error: null,
+            }),
+            listFactors: async () => ({ data: { totp: [] }, error: null }),
+          },
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
         },
       }),
@@ -215,6 +306,49 @@ is('A1b', 'an admin can sign in and is recognised as admin',
 // Fire it here so the real Save listener exists, exactly as in a browser.
 const dcl = (win.winListeners.DOMContentLoaded) || []
 await Promise.all(dcl.map(function (fn) { return fn({}) }))
+await new Promise(function (resolve) { setTimeout(resolve, 100) })
+is('A1b1', 'an already-elevated admin session enables MFA before admin data loads',
+   win.fetchLog.some(function (call) {
+     return call.url.indexOf('/functions/v1/auth-admin') !== -1
+       && call.body && call.body.action === 'enable_admin_mfa'
+   }),
+   'admin actions: ' + JSON.stringify(win.fetchLog.filter(function (call) {
+     return call.url.indexOf('/functions/v1/auth-admin') !== -1
+   }).map(function (call) { return call.body && call.body.action })))
+win.presenceFailure = true
+await el('refreshSessionsBtn').fire('click')
+await new Promise(function (resolve) { setTimeout(resolve, 80) })
+is('A1b2', 'a session fetch failure is displayed as an error instead of an empty result',
+   /Could not load session records/.test(el('sessionsResultCount').textContent)
+     && /Could not load sessions:/.test(el('sessionsTable').innerHTML),
+   el('sessionsResultCount').textContent || 'no session error state')
+win.presenceFailure = false
+
+el('announcementTemplate').value = 'schedule'
+await el('applyAnnouncementTemplateBtn').fire('click')
+is('A1c1', 'an announcement template fills in editable title and message fields',
+   el('announcementTitle').value === 'Clinic Schedule Update'
+     && el('announcementBody').value.indexOf('[Add schedule details]') !== -1,
+   el('announcementTitle').value || 'template did not load')
+el('announcementTitle').value = 'Edited clinic schedule'
+is('A1c2', 'admins can edit a loaded template before sending',
+   el('announcementTitle').value === 'Edited clinic schedule',
+   el('announcementTitle').value)
+
+/* The clinic directory should show a network Super Secretary under doctors
+ * in other clinics owned by the same administrator, not just her primary. */
+el('clinicSearch').value = ''
+await el('clinicSearch').fire('input')
+const directoryHtml = el('clinicDirectory').innerHTML
+const bolmenStart = directoryHtml.indexOf('<h3>Bolmen Clinic</h3>')
+const bolmenEnd = directoryHtml.indexOf('</section>', bolmenStart)
+const networkClinicHtml = bolmenStart === -1
+  ? ''
+  : directoryHtml.slice(bolmenStart, bolmenEnd === -1 ? undefined : bolmenEnd)
+is('A1c', 'a Super Secretary appears under doctors in another managed clinic',
+   networkClinicHtml.indexOf('Super Secretary') !== -1
+     && networkClinicHtml.indexOf('Satellite Doctor') !== -1,
+   networkClinicHtml.indexOf('Super Secretary') !== -1 ? 'selected clinic lists the secretary' : 'secretary missing')
 
 /* Fill the real form, click the real Save button, report what happened. */
 async function tryCreate(o) {
@@ -277,7 +411,7 @@ const secRes = await tryCreate({
 is('A7', 'creating a SECRETARY sends its assigned doctor',
    !!secRes.call && !!secRes.call.body.assigned_doctor_id,
    secRes.call ? 'assigned_doctor_id=' + secRes.call.body.assigned_doctor_id : 'no call')
-is('A7b', 'the admin can explicitly provision Super Secretary network access',
+is('A7b', 'the admin can explicitly enable Super Secretary clinic switching',
    !!secRes.call && secRes.call.body.is_super_secretary === true,
    secRes.call ? 'is_super_secretary=' + secRes.call.body.is_super_secretary : 'no call')
 
@@ -294,6 +428,12 @@ is('A7c', 'publishing an announcement calls the admin-only broadcast RPC',
      && announcementCall.body.p_title === 'Clinic update'
      && announcementCall.body.p_body === 'Please review the new clinic schedule.',
    announcementCall ? JSON.stringify(announcementCall.body) : 'no RPC request')
+is('A7c1', 'the confirmation shows the exact title and message before sending',
+   win.confirmLog.some(function (message) {
+     return message.indexOf('Title: Clinic update') !== -1
+       && message.indexOf('Please review the new clinic schedule.') !== -1
+   }),
+   win.confirmLog[win.confirmLog.length - 1] || 'no confirmation shown')
 is('A7d', 'the admin sees the confirmed recipient count and the form clears',
    /2 active accounts/.test(el('announcementNotice').textContent)
      && !el('announcementTitle').value && !el('announcementBody').value,
@@ -307,6 +447,18 @@ is('A7e', 'empty announcements are stopped before they reach the server',
    !win.fetchLog.some(function (r) { return r.url.indexOf('/rpc/ent_send_announcement') !== -1 })
      && /title/i.test(el('announcementNotice').textContent),
    el('announcementNotice').textContent || 'no validation message')
+
+el('announcementTitle').value = 'Keep draft'
+el('announcementBody').value = 'This should not be sent.'
+win.confirm = () => false
+win.fetchLog.length = 0
+await el('publishAnnouncementBtn').fire('click')
+is('A7f', 'canceling the exact-message confirmation keeps the draft and sends nothing',
+   !win.fetchLog.some(function (r) { return r.url.indexOf('/rpc/ent_send_announcement') !== -1 })
+     && el('announcementTitle').value === 'Keep draft'
+     && el('announcementBody').value === 'This should not be sent.',
+   'draft retained after cancellation')
+win.confirm = (message) => { win.confirmLog.push(String(message)); return true }
 
 /* ---- A8: a secretary with no doctor is refused before any request -- */
 const noDoc = await tryCreate({
@@ -330,8 +482,8 @@ is('A10', 'a 6-character password IS accepted (the platform floor)', !!sixPw.cal
 /* ---- A11: EDITING must not wipe a stored licence number ---------- */
 /* Open the real Edit modal by clicking the real card button, so editingId
    is set by admin.js itself rather than poked from outside. */
-async function openEditModal() {
-  const card = { dataset: { id: ADMIN_PROFILE.id } }
+async function openEditModal(userId) {
+  const card = { dataset: { id: userId || ADMIN_PROFILE.id } }
   const btn = { dataset: { act: 'edit' }, closest: () => card }
   await el('usersGrid').fire('click', { target: { closest: () => btn } })
 }
@@ -386,9 +538,11 @@ await el('fExtraDoctorsToggle').fire('click')
 is('A13a', 'admins can select and clear all additional doctors in one click',
    selectedAllDoctors
      && clearExtraDoctorsLabel === 'Clear additional doctors'
-     && extraDoctors.options.every(function (option) { return !option.selected }),
+     && extraDoctors.options.every(function (option) { return !option.selected })
+     && el('doctorAssignmentCount').textContent === '0 doctors assigned.',
    'selected=' + selectedAllDoctors + ', label=' + clearExtraDoctorsLabel
-     + ', cleared=' + extraDoctors.options.every(function (option) { return !option.selected }))
+     + ', cleared=' + extraDoctors.options.every(function (option) { return !option.selected })
+     + ', count=' + el('doctorAssignmentCount').textContent)
 
 /* ---- A13b: editing a secretary reads the junction with valid PostgREST syntax */
 win.fetchLog.length = 0
@@ -402,6 +556,41 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
    !!assignmentRead
      && assignmentRead.url.indexOf('secretary_id=eq.' + SECRETARY_PROFILE.id) !== -1,
    assignmentRead ? assignmentRead.url : 'no assignment query was sent')
+
+/* ---- A13d: add a doctor from the secretary editor ------------------ */
+await openEditModal(SUPER_SECRETARY_PROFILE.id)
+await new Promise(function (resolve) { setTimeout(resolve, 10) })
+await el('addDoctorInlineBtn').fire('click')
+el('inlineDoctorFullName').value = 'Inline Network Doctor'
+el('inlineDoctorUsername').value = 'inline.doctor'
+el('inlineDoctorPassword').value = ''
+win.fetchLog.length = 0
+await el('createDoctorInlineBtn').fire('click')
+const inlineDoctorCreate = win.fetchLog.find(function (r) {
+  return r.url.indexOf('/functions/v1/auth-admin') !== -1
+    && r.body && r.body.action === 'create' && r.body.username === 'inline.doctor'
+})
+const inlineDoctorOption = el('fExtraDoctors').options.find(function (option) {
+  return option.value === 'created-doctor-inline.doctor'
+})
+is('A13d', 'an admin can create and select a doctor from the secretary editor',
+   !!inlineDoctorCreate && inlineDoctorCreate.body.role === 'doctor'
+     && !!inlineDoctorOption && inlineDoctorOption.selected
+     && /Temporary password \(copy now\)/.test(el('addDoctorInlineNotice').textContent),
+   inlineDoctorOption ? 'new doctor created and selected' : el('addDoctorInlineNotice').textContent)
+
+/* ---- A13e: saving persists the newly selected doctor ---------------- */
+win.fetchLog.length = 0
+await el('userModalSave').fire('click')
+const savedDoctorAssignments = win.fetchLog.find(function (r) {
+  return r.url.indexOf('/functions/v1/auth-admin') !== -1
+    && r.body && r.body.action === 'set_assignments'
+})
+is('A13e', 'saving the secretary persists the newly selected doctor',
+   !!savedDoctorAssignments
+     && Array.isArray(savedDoctorAssignments.body.doctor_ids)
+     && savedDoctorAssignments.body.doctor_ids.indexOf('created-doctor-inline.doctor') !== -1,
+   savedDoctorAssignments ? JSON.stringify(savedDoctorAssignments.body.doctor_ids) : 'no assignment write')
 
 
 /* ---- A14: the Tickets panel and the nav links actually exist ------ */
@@ -467,7 +656,7 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v60-announcement-composer/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v62-admin-hardening/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -1096,11 +1285,11 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      'shared theme variables replace one-off teal and violet accents')
 
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v48-global-announcements/.test(html)
-       && /admin\.css\?v=v60-announcement-composer/.test(html)
+     /admin\.js\?v=v51-admin-hardening/.test(html)
+       && /admin\.css\?v=v62-admin-hardening/.test(html)
        && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
        && /notifications\.css\?v=v8-notification-panel-width/.test(html)
-       && /ent-report-system-v182-doctor-work-toggle/.test(
+       && /ent-report-system-v185-admin-hardening/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',
@@ -1311,10 +1500,9 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      !/Fetching the staff list/.test(s) && /auth-admin/.test(s),
      'it used to print "Loading staff list" and "Fetching the staff list"')
 }
-/* ---- A104+: the Overview's "Latest patients records" card ----------- */
-/* The card answers the three questions an admin is asked in the hallway:
-   WHICH patient, at WHICH hospital (RMCI / CUMC), filed by WHICH secretary
-   or doctor. Everything below reads the innerHTML the console really
+/* ---- A104+: the Overview's recent clinical activity card ------------ */
+/* The card includes clinic, type and author context but deliberately omits
+   patient identifiers. Everything below reads the innerHTML the console really
    painted from the fixture rows at the top of this file - the render is
    async (it lands while boot() is still fetching), so wait for it rather
    than asserting on a snapshot taken too early. */
@@ -1339,15 +1527,16 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      (html.match(/ent-latest-clinic/g) || []).length === 2,
      (html.match(/ent-latest-clinic/g) || []).length + ' clinic blocks')
 
-  is('A106', 'every record names the patient',
-     ['RACOMA, ALLOY', 'ME, OWN', 'SOLO, ONE'].every(function (n) { return html.includes(n) }),
+  is('A106', 'the overview omits patient names and identifiers',
+     !['RACOMA, ALLOY', 'ME, OWN', 'SOLO, ONE'].some(function (n) { return html.includes(n) })
+       && !/patient_id|patient_name/.test(html),
      html.slice(0, 160))
 
   is('A107', 'the secretary who filed it is named WITH her role',
      html.includes('Secretary') && html.includes('saved by Tara Bautista'),
      html.includes('saved by Tara Bautista') ? 'Secretary + name present' : 'NO creator line: ' + html.slice(0, 200))
 
-  is('A108', 'the hospital each patient was seen at is on the row',
+  is('A108', 'the hospital associated with the record is on the row',
      html.includes('ent-latest-site is-rmci') && html.includes('ent-latest-site is-cumc'),
      (html.match(/ent-latest-site is-\w+/g) || []).join(', ') || 'no hospital chip')
 
@@ -1355,9 +1544,10 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
      html.includes('ENT Clinic Doc Jess') && html.includes('Bolmen Clinic'),
      html.slice(0, 160))
 
-  is('A109', 'the query asks for the author name and the hospital tag',
+  is('A109', 'the query requests author and site metadata without patient identifiers',
      win.latestCalls.some(function (u) {
        return u.indexOf('created_by_name') !== -1 && u.indexOf('site') !== -1
+         && !/patient_name|patient_id|file_name/.test(u)
      }),
      (win.latestCalls[0] || 'NO latest-patients query at all').slice(0, 150))
 
@@ -1366,6 +1556,45 @@ is('A13b', 'editing a secretary uses the PostgREST eq operator for its assignmen
        && aJs.includes('function renderLatestPatients'),
      'markup, renderer and CSS all present')
 }
+
+{
+  const adminJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
+  const sharedAuth = readFileSync(join(APP, 'supabase-v2', 'edge-functions', '_shared', 'auth.ts'), 'utf8')
+  const adminEdge = readFileSync(join(APP, 'supabase-v2', 'edge-functions', 'auth-admin', 'index.ts'), 'utf8')
+  const photoEdge = readFileSync(join(APP, 'supabase-v2', 'edge-functions', 'patient-photos', 'index.ts'), 'utf8')
+  const hardeningSql = readFileSync(join(APP, 'supabase-v2', 'migrations', '0050_super_secretary_network_scope.sql'), 'utf8')
+  const assignmentAction = (adminEdge.match(/if \(action === 'set_assignments'\)[\s\S]*?\n    if \(action === 'set_flag'\)/) || [''])[0]
+
+  is('A111', 'admin TOTP setup verifies an authenticator code and explains recovery',
+     /mfa\.enroll/.test(adminJs) && /mfa\.challenge/.test(adminJs)
+       && /mfa\.verify/.test(adminJs) && /project dashboard/.test(adminJs),
+     'TOTP enrollment, challenge, verification and recovery are wired')
+
+  is('A112', 'server-side admin actions require AAL2 once MFA is enabled',
+     /adminMfaRequired && got\.user\.assuranceLevel !== 'aal2'/.test(sharedAuth)
+       && /admin_mfa_required: role === 'admin'/.test(adminEdge),
+     'live profile flag is enforced by requireAdmin')
+
+  is('A113', 'secretary assignments are replaced through one atomic RPC',
+     /ent_admin_set_secretary_assignments/.test(assignmentAction)
+       && !/\.from\('secretary_assignments'\)\s*\.delete\(/.test(assignmentAction)
+       && /DELETE FROM public\.secretary_assignments[\s\S]*?INSERT INTO public\.secretary_assignments/.test(hardeningSql),
+     'Edge Function delegates validation and replacement to the transaction')
+
+  is('A114', 'the final active admin cannot be demoted or deactivated',
+     /cannot demote or deactivate the last active administrator/.test(hardeningSql)
+       && /Cannot demote the last active administrator/.test(adminEdge),
+     'database trigger and account-update guard both protect the last admin')
+
+  is('A115', 'password reset reports profile-flag and sign-out failures',
+     /error: profileError/.test(adminEdge) && /error: signOutError/.test(adminEdge),
+     'partial password-reset failures are returned explicitly')
+
+  is('A116', 'admin photo purges use the shared MFA-aware admin gate',
+     /if \(action === 'purge_report'\)[\s\S]*?requireAdmin\(req\)/.test(photoEdge),
+     'the service-role purge path cannot bypass admin assurance checks')
+}
+
 console.log('')
 console.log('==== ' + (failed ? failed + ' FAILED' : 'ADMIN CONSOLE OK') + ' - ' +
   passed + ' passed, ' + failed + ' failed ====')
