@@ -73,18 +73,20 @@
             + '<span class="ent-notification-state ' + readClass + '">' + readLabel + '</span></span>';
         var attrs = ' data-notification-id="' + esc(row.id) + '"'
             + (conversationMatch ? ' data-chat-conversation="' + esc(conversationMatch[1]) + '"' : '');
-
-        if (href) {
-            return '<a class="ent-notification-item' + kindClass + unreadClass + '" href="'
-                + esc(href) + '"' + attrs + '>' + content + '</a>';
-        }
-
-        return '<article class="ent-notification-item is-static' + kindClass + unreadClass + '">'
-            + content
-            + (row.read_at ? '' : '<button type="button" class="ent-notification-mark-read"'
-                + ' data-notification-id="' + esc(row.id) + '" aria-label="Mark '
-                + esc(row.title) + ' as read">Mark as read</button>')
-            + '</article>';
+        var itemContent = href
+            ? '<a class="ent-notification-open" href="' + esc(href) + '"' + attrs + '>' + content + '</a>'
+            : content;
+        var actions = '<div class="ent-notification-actions">'
+            + (!href && !row.read_at
+                ? '<button type="button" class="ent-notification-mark-read"'
+                    + ' data-notification-id="' + esc(row.id) + '" aria-label="Mark '
+                    + esc(row.title) + ' as read">Mark as read</button>'
+                : '')
+            + '<button type="button" class="ent-notification-delete" data-notification-delete="'
+            + esc(row.id) + '" aria-label="Delete ' + esc(row.title)
+            + ' from your notifications">Delete</button></div>';
+        return '<article class="ent-notification-item' + (href ? '' : ' is-static')
+            + kindClass + unreadClass + '">' + itemContent + actions + '</article>';
     }
 
     function notifyDashboard() {
@@ -189,6 +191,25 @@
         unreadCount = 0;
         render();
         notifyDashboard();
+    }
+
+    async function deleteNotification(id) {
+        if (!id || !userId) return false;
+        var deleted = await api('/rpc/ent_delete_notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_notification_id: id })
+        });
+        if (deleted !== true) {
+            await load();
+            return false;
+        }
+        var removed = rows.find(function (row) { return row.id === id; });
+        rows = rows.filter(function (row) { return row.id !== id; });
+        if (removed && !removed.read_at) unreadCount = Math.max(0, unreadCount - 1);
+        render();
+        notifyDashboard();
+        return true;
     }
 
     function renderGeneric() {
@@ -314,6 +335,16 @@
             if (readAll) {
                 markAllRead().catch(function (error) {
                     console.error('[Notifications] Could not mark notifications as read.', error);
+                });
+                return;
+            }
+            var deleteButton = event.target.closest('[data-notification-delete]');
+            if (deleteButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!window.confirm('Delete this notification from your inbox?')) return;
+                deleteNotification(deleteButton.getAttribute('data-notification-delete')).catch(function (error) {
+                    console.error('[Notifications] Could not delete notification.', error);
                 });
                 return;
             }

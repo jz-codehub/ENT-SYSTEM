@@ -74,11 +74,12 @@ separate files, walang all-in-one.
    chat receipts, at admin hardening.
 
 10. Kasama sa `0049_notifications_and_staff_chat.sql` ang notification kapag
-    umabot sa 100% ang Doctor's work ng final CF4, Nasal, o Laryngeal report.
+    umabot sa 100% ang Doctor's work ng final CF4, Nasal, o Laryngeal report,
+    pati ang RPC para mag-delete ang active user ng sarili niyang notification.
     Para sa existing project na na-run na ang dating 0049, i-run ulit nang
-    isang beses ang updated na 0049 file para idagdag ang notification trigger.
-    Idempotent ang mga policy, trigger, at chat-membership backfill nito; hindi
-    kailangan ng browser-code change.
+    isang beses ang updated na 0049 file para idagdag ang delete RPC at trigger.
+    Kasama na rito ang `announcement` kind para manatiling compatible kapag
+    inulit matapos ang 0051; hindi nito binabago ang ibang recipients' rows.
 
 11. Ang `0051_global_announcements.sql` ay nagdaragdag ng admin-only RPC para
     magpadala ng announcement bilang pribadong notification sa lahat ng active

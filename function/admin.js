@@ -2655,6 +2655,14 @@
             title: 'Clinic Schedule Update',
             body: 'Please take note of the updated clinic schedule:\n\n[Add schedule details]\n\nThank you.'
         },
+        closure: {
+            title: 'Clinic Closure Notice',
+            body: 'Please be advised that [clinic name] will be closed on [date] due to [reason].\n\nRegular clinic operations will resume on [date/time].\n\nPlease contact [contact details] if you need assistance.'
+        },
+        holiday: {
+            title: 'Holiday Clinic Hours',
+            body: 'Please take note of our clinic hours for [holiday]:\n\n[Add operating hours or closure details]\n\nRegular hours will resume on [date]. Thank you.'
+        },
         maintenance: {
             title: 'System Maintenance Notice',
             body: 'The ENT Endoscopy System will undergo maintenance on [date/time]. Access may be unavailable during this period.\n\nThank you for your understanding.'
@@ -2662,6 +2670,22 @@
         reminder: {
             title: 'Important Reminder',
             body: 'This is a reminder to [add the action or task]. Please complete it by [date/time].\n\nThank you.'
+        },
+        meeting: {
+            title: 'Staff Meeting Notice',
+            body: 'A staff meeting is scheduled for [date] at [time] via [location or meeting link].\n\nTopics: [add topics]\n\nPlease confirm your attendance with [contact person].'
+        },
+        training: {
+            title: 'Training Session Announcement',
+            body: 'A training session on [topic] will be held on [date] at [time] via [location or meeting link].\n\nPlease prepare [materials or requirements] and confirm your attendance with [contact person].'
+        },
+        update: {
+            title: 'Important System Update',
+            body: 'We have an update about [system or process]:\n\n[Add the update and any action required]\n\nFor assistance, contact [support contact].'
+        },
+        urgent: {
+            title: 'Urgent Service Notice',
+            body: 'Please be advised of a service disruption affecting [service or location] starting [date/time].\n\n[Add the impact and any recommended action]\n\nWe will share another update by [date/time].'
         }
     };
 
@@ -2673,12 +2697,14 @@
     }
 
     function applyAnnouncementTemplate() {
-        const key = byId('announcementTemplate').value;
+        const templateSelect = byId('announcementTemplate');
+        const key = templateSelect && templateSelect.value;
         const template = ANNOUNCEMENT_TEMPLATES[key];
         if (!template) return announcementSay('Choose a template first.', true);
         const titleInput = byId('announcementTitle');
         const bodyInput = byId('announcementBody');
-        if ((titleInput.value.trim() || bodyInput.value.trim())
+        const alreadyLoaded = titleInput.value === template.title && bodyInput.value === template.body;
+        if ((titleInput.value.trim() || bodyInput.value.trim()) && !alreadyLoaded
             && !window.confirm('Replace the current announcement with this template?')) return;
         titleInput.value = template.title;
         bodyInput.value = template.body;
@@ -3127,6 +3153,7 @@ const FLAG_INFO = {
             openAdminTicket(btn.getAttribute('data-id'));
         });
         byId('publishAnnouncementBtn').addEventListener('click', openAnnouncementConfirm);
+        byId('announcementTemplate').addEventListener('change', applyAnnouncementTemplate);
         byId('applyAnnouncementTemplateBtn').addEventListener('click', applyAnnouncementTemplate);
         byId('announcementConfirmSend').addEventListener('click', sendAnnouncement);
         byId('announcementConfirmCancel').addEventListener('click', closeAnnouncementConfirm);

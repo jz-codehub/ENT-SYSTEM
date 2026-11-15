@@ -338,11 +338,23 @@ is('A1b2', 'a session fetch failure is displayed as an error instead of an empty
 win.presenceFailure = false
 
 el('announcementTemplate').value = 'schedule'
-await el('applyAnnouncementTemplateBtn').fire('click')
-is('A1c1', 'an announcement template fills in editable title and message fields',
+await el('announcementTemplate').fire('change')
+is('A1c1', 'choosing an announcement template fills in editable title and message fields',
    el('announcementTitle').value === 'Clinic Schedule Update'
      && el('announcementBody').value.indexOf('[Add schedule details]') !== -1,
    el('announcementTitle').value || 'template did not load')
+el('announcementTemplate').value = 'training'
+await el('announcementTemplate').fire('change')
+is('A1c1b', 'additional announcement templates also fill both fields',
+   el('announcementTitle').value === 'Training Session Announcement'
+     && el('announcementBody').value.indexOf('[topic]') !== -1,
+   el('announcementTitle').value || 'additional template did not load')
+const templateConfirmCount = win.confirmLog.length
+await el('applyAnnouncementTemplateBtn').fire('click')
+is('A1c1c', 'the Use template button can reapply the selected template without a replacement prompt',
+   win.confirmLog.length === templateConfirmCount
+     && el('announcementTitle').value === 'Training Session Announcement',
+   'selected template remains loaded')
 el('announcementTitle').value = 'Edited clinic schedule'
 is('A1c2', 'admins can edit a loaded template before sending',
    el('announcementTitle').value === 'Edited clinic schedule',
@@ -1311,15 +1323,15 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
   const settingsHtml = readFileSync(join(APP, 'pages/settings.html'), 'utf8')
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v54-announcement-send-modal/.test(html)
+     /admin\.js\?v=v55-announcement-template-autofill/.test(html)
        && /admin\.css\?v=v65-announcement-send-modal/.test(html)
-       && /notificationCenter\.js\?v=v6-notification-labels/.test(html)
-       && /notifications\.css\?v=v8-notification-panel-width/.test(html)
+       && /notificationCenter\.js\?v=v7-notification-delete/.test(html)
+       && /notifications\.css\?v=v9-notification-delete/.test(html)
        && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
        && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
        && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
-       && /ent-report-system-v191-announcement-confirm-modal/.test(
+       && /ent-report-system-v193-notification-delete/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',

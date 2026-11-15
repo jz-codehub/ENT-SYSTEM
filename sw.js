@@ -955,7 +955,9 @@
 // v189: compact the Settings intro banner.
 // v190: align the Settings page title and signed-in profile in the header.
 // v191: confirm global announcements in a custom modal.
-const CACHE_NAME = 'ent-report-system-v191-announcement-confirm-modal';
+// v192: auto-fill announcement templates and expand the template library.
+// v193: add per-recipient notification deletion.
+const CACHE_NAME = 'ent-report-system-v193-notification-delete';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

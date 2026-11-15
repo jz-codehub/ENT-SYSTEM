@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/notifications.css?v=v8-notification-panel-width">
+    <link rel="stylesheet" href="../style/notifications.css?v=v9-notification-delete">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
     <link rel="stylesheet" href="../style/admin.css?v=v65-announcement-send-modal">
@@ -929,8 +929,14 @@
                             <select id="announcementTemplate">
                                 <option value="">Choose a template&hellip;</option>
                                 <option value="schedule">Schedule update</option>
+                                <option value="closure">Clinic closure</option>
+                                <option value="holiday">Holiday hours</option>
                                 <option value="maintenance">System maintenance</option>
                                 <option value="reminder">Important reminder</option>
+                                <option value="meeting">Staff meeting</option>
+                                <option value="training">Training session</option>
+                                <option value="update">System update</option>
+                                <option value="urgent">Urgent service notice</option>
                             </select>
                             <button type="button" class="ent-btn" id="applyAnnouncementTemplateBtn">Use template</button>
                         </div>
@@ -1267,9 +1273,9 @@
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/auth.js?v=v36o-super-secretary-explicit-doctors" defer></script>
-    <script src="../function/notificationCenter.js?v=v6-notification-labels" defer></script>
+    <script src="../function/notificationCenter.js?v=v7-notification-delete" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v54-announcement-send-modal" defer></script>
+    <script src="../function/admin.js?v=v55-announcement-template-autofill" defer></script>
 </body>
 </html>

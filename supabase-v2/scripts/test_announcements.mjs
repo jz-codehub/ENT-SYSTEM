@@ -7,7 +7,9 @@ import vm from 'node:vm'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const migration = readFileSync(join(ROOT, 'supabase-v2/migrations/0051_global_announcements.sql'), 'utf8')
+const notificationsMigration = readFileSync(join(ROOT, 'supabase-v2/migrations/0049_notifications_and_staff_chat.sql'), 'utf8')
 const adminHtml = readFileSync(join(ROOT, 'pages/admin.html'), 'utf8')
+const indexHtml = readFileSync(join(ROOT, 'index.html'), 'utf8')
 const adminJs = readFileSync(join(ROOT, 'function/admin.js'), 'utf8')
 const notificationsJs = readFileSync(join(ROOT, 'function/notificationCenter.js'), 'utf8')
 const notificationsCss = readFileSync(join(ROOT, 'style/notifications.css'), 'utf8')
@@ -34,6 +36,19 @@ check('authenticated users can call the RPC but cannot write notification rows d
     /REVOKE ALL ON FUNCTION public\.ent_send_announcement\(text, text\) FROM anon, public/.test(migration)
         && /GRANT EXECUTE ON FUNCTION public\.ent_send_announcement\(text, text\) TO authenticated/.test(migration)
         && !/GRANT\s+(?:INSERT|ALL)[\s\S]*?app_notifications/i.test(migration))
+const deleteFunction = notificationsMigration.match(
+    /CREATE OR REPLACE FUNCTION public\.ent_delete_notification\(p_notification_id uuid\)[\s\S]*?\n\$\$;/
+)
+check('notification delete RPC is restricted to the active recipient’s own row',
+    !!deleteFunction
+        && /DELETE FROM public\.app_notifications/.test(deleteFunction[0])
+        && /id = p_notification_id[\s\S]*?recipient_id = public\.ent_auth_uid\(\)/.test(deleteFunction[0])
+        && /p\.id = public\.ent_auth_uid\(\) AND p\.is_active/.test(deleteFunction[0]))
+check('only authenticated users can execute the notification delete RPC',
+    /REVOKE ALL ON FUNCTION public\.ent_delete_notification\(uuid\) FROM anon, public/.test(notificationsMigration)
+        && /GRANT EXECUTE ON FUNCTION public\.ent_delete_notification\(uuid\) TO authenticated/.test(notificationsMigration))
+check('reapplying the combined notifications migration keeps global announcements enabled',
+    /'doctor_work_complete', 'announcement'/.test(notificationsMigration))
 check('announcement kind and readable message length are supported',
     /'doctor_work_complete', 'announcement'/.test(migration)
         && /CHECK \(length\(body\) <= 1000\)/.test(migration))
@@ -49,6 +64,14 @@ check('notification cards use readable hierarchy and responsive message text',
         && /width:\s*min\(560px,\s*calc\(100vw - 24px\)\)/.test(notificationsCss)
         && /Math\.min\(560,\s*Math\.max\(0,\s*window\.innerWidth - 24\)\)/.test(notificationsJs)
         && /ent-notification-heading-copy/.test(notificationsJs))
+check('each notification has a separate accessible delete action',
+    /data-notification-delete=/.test(notificationsJs)
+        && /Delete this notification from your inbox\?/.test(notificationsJs)
+        && /\.ent-notification-delete\s*\{/.test(notificationsCss)
+        && /notificationCenter\.js\?v=v7-notification-delete/.test(adminHtml)
+        && /notifications\.css\?v=v9-notification-delete/.test(adminHtml)
+        && /notificationCenter\.js\?v=v7-notification-delete/.test(indexHtml)
+        && /notifications\.css\?v=v9-notification-delete/.test(indexHtml))
 
 const profile = {
     id: '11111111-1111-4111-8111-111111111111',
@@ -66,6 +89,9 @@ const apiCalls = []
 const documentListeners = {}
 const bodyChildren = []
 let markedRead = false
+let deletedNotification = false
+let confirmResult = true
+const confirmations = []
 
 function makeElement(id) {
     return {
@@ -135,6 +161,10 @@ const window = {
     CustomEvent: class CustomEvent {
         constructor(type, options) { this.type = type; this.detail = options && options.detail }
     },
+    confirm(message) {
+        confirmations.push(String(message))
+        return confirmResult
+    },
     EntAuth: {
         guard: async () => ({ user: profile }),
         escapeHtml(value) {
@@ -150,13 +180,18 @@ const window = {
             try { body = options && options.body ? JSON.parse(options.body) : null } catch (e) {}
             apiCalls.push({ endpoint, body })
             if (endpoint.indexOf('/app_notifications?') === 0) {
+                if (deletedNotification) return []
                 if (endpoint.indexOf('read_at=is.null') !== -1) return markedRead ? [] : [unsafeNotification]
                 return [Object.assign({}, unsafeNotification, { read_at: markedRead ? '2026-01-02T04:00:00.000Z' : null })]
             }
-            if (endpoint.indexOf('/rpc/ent_unread_notification_count') === 0) return markedRead ? 0 : 1
+            if (endpoint.indexOf('/rpc/ent_unread_notification_count') === 0) return markedRead || deletedNotification ? 0 : 1
             if (endpoint.indexOf('/rpc/ent_mark_notifications_read') === 0) {
                 markedRead = true
                 return null
+            }
+            if (endpoint.indexOf('/rpc/ent_delete_notification') === 0) {
+                deletedNotification = true
+                return true
             }
             throw new Error('Unexpected notification API request: ' + endpoint)
         },
@@ -182,6 +217,8 @@ check('announcement content is escaped and shown as a non-navigating card',
         && panel.innerHTML.includes('&lt;script&gt;alert(1)&lt;/script&gt;')
         && panel.innerHTML.includes('is-announcement is-unread')
         && panel.innerHTML.includes('class="ent-notification-mark-read"')
+        && panel.innerHTML.includes('data-notification-delete="' + unsafeNotification.id + '"')
+        && panel.innerHTML.includes('aria-label="Delete &lt;img src=x onerror=alert(1)&gt; from your notifications"')
         && !panel.innerHTML.includes('href="reportProblem.html"'))
 check('notification cards include kind, timestamp, and all-clinic context',
     panel.innerHTML.includes('Clinic-wide announcement')
@@ -208,5 +245,38 @@ await new Promise((resolve) => setTimeout(resolve, 10))
 const markCall = apiCalls.find((call) => call.endpoint.indexOf('/rpc/ent_mark_notifications_read') === 0)
 check('announcement read status is saved through the existing per-user RPC',
     !!markCall && markCall.body.p_notification_id === unsafeNotification.id && markedRead)
+
+const deleteButton = {
+    getAttribute(name) { return name === 'data-notification-delete' ? unsafeNotification.id : null },
+    closest(selector) {
+        return selector === '[data-notification-delete]' ? this : null
+    },
+}
+confirmResult = false
+await click({
+    target: deleteButton,
+    preventDefault() {},
+    stopPropagation() {},
+    composedPath() { return [deleteButton] },
+})
+await new Promise((resolve) => setTimeout(resolve, 10))
+check('canceling notification deletion leaves the row in the user’s inbox',
+    !apiCalls.some((call) => call.endpoint.indexOf('/rpc/ent_delete_notification') === 0)
+        && window.EntNotificationCenter.getItems().some((row) => row.id === unsafeNotification.id)
+        && confirmations[confirmations.length - 1] === 'Delete this notification from your inbox?')
+
+confirmResult = true
+await click({
+    target: deleteButton,
+    preventDefault() {},
+    stopPropagation() {},
+    composedPath() { return [deleteButton] },
+})
+await new Promise((resolve) => setTimeout(resolve, 10))
+const deleteCall = apiCalls.find((call) => call.endpoint.indexOf('/rpc/ent_delete_notification') === 0)
+check('confirmed deletion sends only the selected notification ID and removes its local card',
+    !!deleteCall
+        && deleteCall.body.p_notification_id === unsafeNotification.id
+        && window.EntNotificationCenter.getItems().every((row) => row.id !== unsafeNotification.id))
 
 console.log(`\n==== ANNOUNCEMENT CHECKS PASSED — ${passed} passed ====`)

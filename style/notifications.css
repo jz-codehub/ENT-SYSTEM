@@ -125,13 +125,14 @@
     cursor: pointer;
 }
 .ent-notification-heading button:disabled { opacity: .5; cursor: default; }
-.ent-notification-item[data-notification-id] {
+.ent-notification-open {
     display: grid;
     gap: 3px;
+    min-width: 0;
     color: var(--secondary-text-color);
     text-decoration: none;
 }
-.ent-notification-item[data-notification-id]:hover { border-color: var(--primary-color); }
+.ent-notification-open:hover { color: var(--text-color); text-decoration: none; }
 .ent-notification-item.is-unread { background: color-mix(in srgb, var(--primary-light) 55%, var(--bg-color)); }
 .ent-notification-item.is-unread strong { color: var(--primary-hover-color); }
 .ent-admin-actions > .ent-notification-center { position: relative; z-index: 20; }
@@ -277,12 +278,38 @@
     font-weight: 750;
     cursor: pointer;
 }
+.ent-notification-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 3px;
+}
+.ent-notification-actions .ent-notification-mark-read { margin-right: auto; }
+.ent-notification-delete {
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid color-mix(in srgb, var(--danger-color) 45%, var(--border-color));
+    border-radius: 8px;
+    background: var(--panel-bg-color);
+    color: var(--danger-color);
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+.ent-notification-delete:hover {
+    border-color: var(--danger-color);
+    background: color-mix(in srgb, var(--danger-color) 9%, var(--panel-bg-color));
+}
 .ent-notification-mark-read:hover {
     border-color: var(--primary-color);
     background: var(--primary-light);
 }
 .ent-notification-item:focus-visible,
-.ent-notification-mark-read:focus-visible {
+.ent-notification-open:focus-visible,
+.ent-notification-mark-read:focus-visible,
+.ent-notification-delete:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
 }

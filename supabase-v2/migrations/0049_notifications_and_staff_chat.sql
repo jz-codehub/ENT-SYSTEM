@@ -5,6 +5,7 @@
 -- and writes are limited by conversation membership; direct conversations
 -- may cross clinics, while each clinic has one automatically maintained
 -- group conversation. Chat is for staff coordination, not patient data.
+-- Notification reads, per-user deletion, and announcements share this schema.
 -- =====================================================================
 
 CREATE TABLE IF NOT EXISTS public.app_notifications (
@@ -13,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.app_notifications (
     kind         text NOT NULL CHECK (kind IN (
         'access_request', 'access_decision', 'chat_message',
         'ticket_new', 'ticket_message', 'ticket_status',
-        'doctor_work_complete'
+        'doctor_work_complete', 'announcement'
     )),
     title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
     body         text NOT NULL DEFAULT '' CHECK (length(body) <= 300),
@@ -29,7 +30,7 @@ ALTER TABLE public.app_notifications
     ADD CONSTRAINT app_notifications_kind_check CHECK (kind IN (
         'access_request', 'access_decision', 'chat_message',
         'ticket_new', 'ticket_message', 'ticket_status',
-        'doctor_work_complete'
+        'doctor_work_complete', 'announcement'
     ));
 
 CREATE INDEX IF NOT EXISTS idx_app_notifications_recipient
@@ -360,6 +361,28 @@ BEGIN
             WHERE p.id = public.ent_auth_uid() AND p.is_active
        )
        AND read_at IS NULL;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.ent_delete_notification(p_notification_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    deleted_count integer;
+BEGIN
+    DELETE FROM public.app_notifications
+     WHERE id = p_notification_id
+       AND recipient_id = public.ent_auth_uid()
+       AND EXISTS (
+           SELECT 1 FROM public.staff_profiles p
+            WHERE p.id = public.ent_auth_uid() AND p.is_active
+       );
+
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count = 1;
 END;
 $$;
 
@@ -982,6 +1005,8 @@ REVOKE ALL ON FUNCTION public.ent_mark_chat_read(uuid) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.ent_mark_chat_read(uuid) TO authenticated;
 REVOKE ALL ON FUNCTION public.ent_mark_notifications_read(uuid) FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.ent_mark_notifications_read(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.ent_delete_notification(uuid) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.ent_delete_notification(uuid) TO authenticated;
 REVOKE ALL ON FUNCTION public.ent_unread_notification_count() FROM anon, public;
 GRANT EXECUTE ON FUNCTION public.ent_unread_notification_count() TO authenticated;
 REVOKE ALL ON FUNCTION public.ent_ensure_clinic_chat(uuid) FROM anon, public, authenticated;
