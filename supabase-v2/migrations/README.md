@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0051_global_announcements.sql`). Isa-isa; hintayin ang
+   (ngayon: `0052_admin_active_clinic_context.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -85,6 +85,12 @@ separate files, walang all-in-one.
     magpadala ng announcement bilang pribadong notification sa lahat ng active
     accounts. I-run ito matapos ang 0050 at bago i-deploy ang Admin composer at
     updated notification center.
+
+12. Ang `0052_admin_active_clinic_context.sql` ay nagdaragdag ng server-validated
+    clinic/doctor context para sa admin app preview. Isang clinic lang ang
+    active sa bawat Supabase session; nire-recheck ng database ang admin,
+    managed clinic, at aktibong doctor bago magbasa o gumawa/mag-edit ng report.
+    I-run ito matapos ang 0051 at bago i-deploy ang admin clinic switcher.
 
 ## Mga tuntunin
 

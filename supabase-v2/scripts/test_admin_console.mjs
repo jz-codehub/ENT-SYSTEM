@@ -685,7 +685,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v65-announcement-send-modal/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v68-admin-drawer-close/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -694,6 +694,19 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
   is('A16h', 'the admin shell has mobile drawer and small-screen layouts',
      /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-nav\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?@media\s*\(max-width:\s*720px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?display:\s*grid;[\s\S]*?@media\s*\(max-width:\s*420px\)/.test(adminCss2),
      'tablet drawer, mobile header and narrow phone breakpoints are present')
+  is('A16p', 'the mobile header is left-aligned and its drawer enters from the left',
+     /@media\s*\(max-width:\s*980px\)[\s\S]*?\.ent-admin-header \.header-content\s*\{[\s\S]*?grid-template-columns:\s*44px\s+minmax\(0,\s*1fr\)/.test(adminCss2)
+       && /\.ent-nav-toggle\s*\{[\s\S]*?min-width:\s*44px;[\s\S]*?padding:\s*0;/.test(adminCss2)
+       && /\.ent-admin-actions\s*\{[\s\S]*?justify-content:\s*flex-start/.test(adminCss2)
+       && /\.ent-admin-actions \.ent-admin-back\s*\{\s*margin-left:\s*0;/.test(adminCss2)
+       && /\.ent-admin-nav\s*\{[\s\S]*?inset:\s*0 auto 0 0;[\s\S]*?transform:\s*translateX\(-105%\)/.test(adminCss2),
+     'header actions start at the left edge and the drawer uses a left-side entry')
+  is('A16q', 'the mobile drawer has a visible accessible close button',
+     /id="adminNavClose"[\s\S]*?aria-label="Close admin menu"/.test(adminHtml)
+       && /const close = byId\('adminNavClose'\)/.test(adminJs)
+       && /if \(!open && wasOpen\) t\.focus\(\)/.test(adminJs)
+       && /\.ent-admin-nav \.ent-nav-drawer-head\s*\{[\s\S]*?display:\s*flex/.test(adminCss2),
+     'the X closes the drawer and returns focus to the menu toggle')
   is('A16i', 'the admin redesign keeps its own dark-mode palette',
      /body\.dark-mode\.ent-admin-page[\s\S]*?body\.dark-mode \.ent-admin-header[\s\S]*?body\.dark-mode \.ent-overview-intro[\s\S]*?body\.dark-mode \.ent-table/.test(adminCss2),
      'dark theme remains readable across the shell, navigation and tables')
@@ -1323,15 +1336,16 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
   const settingsHtml = readFileSync(join(APP, 'pages/settings.html'), 'utf8')
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v55-announcement-template-autofill/.test(html)
-       && /admin\.css\?v=v65-announcement-send-modal/.test(html)
-       && /notificationCenter\.js\?v=v7-notification-delete/.test(html)
-       && /notifications\.css\?v=v9-notification-delete/.test(html)
+     /admin\.js\?v=v58-admin-drawer-close/.test(html)
+       && /auth\.js\?v=v36p-admin-clinic-context/.test(html)
+       &&        /admin\.css\?v=v68-admin-drawer-close/.test(html)
+         && /notificationCenter\.js\?v=v9-shared-notification-design/.test(html)
+         && /notifications\.css\?v=v11-shared-notification-design/.test(html)
        && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
        && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
        && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
-       && /ent-report-system-v193-notification-delete/.test(
+       && /ent-report-system-v198-shared-notification-design/.test(
          readFileSync(join(APP, 'sw.js'), 'utf8')),
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',
@@ -1642,6 +1656,43 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
   is('A116', 'admin photo purges use the shared MFA-aware admin gate',
      /if \(action === 'purge_report'\)[\s\S]*?requireAdmin\(req\)/.test(photoEdge),
      'the service-role purge path cannot bypass admin assurance checks')
+}
+
+{
+  const authJs = readFileSync(join(APP, 'function', 'auth.js'), 'utf8')
+  const dashboardJs = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
+  const recordsJs = readFileSync(join(APP, 'function', 'dbRecords.js'), 'utf8')
+  const adminHtml = readFileSync(join(APP, 'pages', 'admin.html'), 'utf8')
+  const adminContextSql = readFileSync(join(APP, 'supabase-v2', 'migrations',
+    '0052_admin_active_clinic_context.sql'), 'utf8')
+
+  is('A118', 'Back to app opens the authenticated admin clinic preview',
+     /href="\.\.\/index\.html\?admin-preview=1"/.test(adminHtml)
+       && /function adminPreviewRequested/.test(dashboardJs)
+       && /await startAdminPreview\(\)/.test(dashboardJs),
+     'the preview still passes Auth.guard before selecting a clinic')
+
+  is('A119', 'admin clinic choices are loaded through an ownership-checked RPC',
+     /rpc\/ent_admin_available_doctors/.test(authJs)
+       && /rpc\/ent_set_admin_active_clinic/.test(authJs)
+       && /public\.ent_admin_covers_clinic\(doctor\.clinic_id\)/.test(adminContextSql),
+     'the client cannot widen the list by sending a clinic id')
+
+  is('A120', 'admin report saves carry the selected clinic and doctor for server validation',
+     /clinicId:\s*scoped\.clinicId/.test(recordsJs)
+       && /owner\.role === 'admin' && owner\.clinicId && owner\.doctorId/.test(recordsJs)
+       && /public\.ent_admin_active_clinic_id\(\)/.test(adminContextSql),
+     'RLS and the ownership trigger re-check the session context')
+
+  is('A122', 'editing an opened doctor report retains its original clinic and doctor',
+     /select=id,record_key,clinic_id,doctor_id,payload/.test(recordsJs)
+       && /activeCloudOwner\.recordKey === record\.key[\s\S]*?activeCloudOwner\.doctorId/.test(recordsJs),
+     'new reports use the selected doctor; existing rows stay on their original shelf')
+
+  is('A121', 'opening the admin console clears the app-only clinic context',
+     /await Auth\.clearAdminClinicContext\(\)/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8'))
+       && /FUNCTION public\.ent_clear_admin_active_clinic\(\)/.test(adminContextSql),
+     'the console keeps its existing all-managed-clinics behavior')
 }
 
 console.log('')

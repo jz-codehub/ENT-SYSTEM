@@ -8,10 +8,10 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/notifications.css?v=v9-notification-delete">
+    <link rel="stylesheet" href="../style/notifications.css?v=v11-shared-notification-design">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v8-messenger-badge">
-    <link rel="stylesheet" href="../style/admin.css?v=v65-announcement-send-modal">
+    <link rel="stylesheet" href="../style/admin.css?v=v68-admin-drawer-close">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -32,7 +32,7 @@
             <div class="ent-admin-actions">
                 <span class="ent-conn" id="connPill"><span class="dot"></span><span id="connText">checking&hellip;</span></span>
                 <div class="header-user-slot" id="headerUserSlot"></div>
-                <a class="ent-btn ent-admin-back" href="../index.html">&larr; Back to app</a>
+                <a class="ent-btn ent-admin-back" href="../index.html?admin-preview=1">&larr; Back to app</a>
             </div>
         </div>
     </div>
@@ -54,6 +54,13 @@
              does, from reportProblem.html.
         -->
         <nav class="ent-admin-nav" id="adminTabs" aria-label="Admin sections">
+            <div class="ent-nav-drawer-head">
+                <span>Admin menu</span>
+                <button type="button" class="ent-nav-close" id="adminNavClose"
+                        aria-label="Close admin menu" title="Close menu">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                </button>
+            </div>
             <div class="ent-nav-cluster">
                 <span class="ent-nav-group-label">Workspace</span>
                 <button type="button" data-panel="overview" data-title="Overview" class="active" aria-current="true" title="Overview">
@@ -1272,10 +1279,10 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36o-super-secretary-explicit-doctors" defer></script>
-    <script src="../function/notificationCenter.js?v=v7-notification-delete" defer></script>
+    <script src="../function/auth.js?v=v36p-admin-clinic-context" defer></script>
+    <script src="../function/notificationCenter.js?v=v9-shared-notification-design" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v55-announcement-template-autofill" defer></script>
+    <script src="../function/admin.js?v=v58-admin-drawer-close" defer></script>
 </body>
 </html>

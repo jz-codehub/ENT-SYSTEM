@@ -184,6 +184,15 @@ function boot({
       }),
       currentUser: () => user,
       fetchAssignedDoctors: async () => assignedDoctors,
+      prepareAdminClinicContext: async () => {
+        const doctors = assignedDoctors.length ? assignedDoctors : [{
+          doctor_id: 'test-admin-doctor',
+          doctor_name: 'Test Admin Doctor',
+          clinic_id: 'test-admin-clinic',
+          clinic_name: 'Test Admin Clinic',
+        }]
+        return { doctors, selected: doctors[0] }
+      },
       openClinicPicker: doctors => clinicPickerCalls.push(doctors),
       isDocJessClinic: (clinicId, clinicName, clinicCode) =>
         String(clinicId || '').trim() === '00000000-0000-4000-8000-00000000c11c'
@@ -572,6 +581,7 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
        && env.nodes.dashNotificationCenter.innerHTML.includes('Apply migration 0048')
        && env.nodes.dashNotificationCenter.innerHTML.includes('Activity chart may be incomplete')
        && env.nodes.dashNotificationCenter.innerHTML.includes('Activity Growth could not load exact counts')
+       && !env.nodes.dashNotificationCenter.innerHTML.includes('undefined')
        && !env.nodes.dashNotices.innerHTML.includes('Counts may be incomplete'))
 }
 
@@ -854,7 +864,11 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
      notice().includes('aria-expanded="true"')
        && notice().includes('aria-controls="dashNotificationPanel"')
        && notice().includes('dashNotificationPanel')
-       && notice().includes('ent-notification-count'))
+       && notice().includes('ent-notification-count')
+       && notice().includes('ent-notification-heading-copy')
+       && notice().includes('Clinic-wide news, account updates, and messages')
+       && notice().includes('ent-notification-kind')
+       && notice().includes('ent-notification-body'))
 
   ok('T43', 'monthly reminder tells the user the JSON is sensitive and not a full backup',
      notice().includes('Monthly records download')
@@ -1051,11 +1065,13 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v46-doctor-work-toggle/.test(indexHtml)
-       && /dashboard\.css\?v=v41-doctor-work-toggle/.test(indexHtml)
-       && /auth\.js\?v=v36n-admin-all-clinics/.test(indexHtml)
+     /dashboard\.js\?v=v48-shared-notification-design/.test(indexHtml)
+       && /dashboard\.css\?v=v42-shared-notification-design/.test(indexHtml)
+       && /notificationCenter\.js\?v=v9-shared-notification-design/.test(indexHtml)
+       && /notifications\.css\?v=v11-shared-notification-design/.test(indexHtml)
+       && /auth\.js\?v=v36p-admin-clinic-context/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v182-doctor-work-toggle/.test(serviceWorker))
+       && /ent-report-system-v198-shared-notification-design/.test(serviceWorker))
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */

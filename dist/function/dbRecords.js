@@ -45,6 +45,7 @@
     let trashRows = [];
     let trashButton = null;
     let saving = false;
+    let activeCloudOwner = null;
     // Per-patient totals behind the "N records · N visits" chip, keyed by
     // patientStatsKey(). null = not counted yet (query failed or not run),
     // which simply means no chip - a wrong count would be worse than none.
@@ -339,6 +340,7 @@
         const user = typeof auth.currentUser === 'function' ? (auth.currentUser() || {}) : {};
         return {
             doctorId: scoped.doctorId || '',
+            clinicId: scoped.clinicId || '',
             seeAll: !!scoped.seeAll,
             username: user.username || 'unknown',
             role: user.role || ''
@@ -994,6 +996,14 @@ function doctorFilter() {
                 ...(owner.role === 'secretary' && owner.doctorId
                     ? { doctor_id: owner.doctorId }
                     : {}),
+                ...(owner.role === 'admin' && owner.clinicId && owner.doctorId
+                    ? {
+                        clinic_id: activeCloudOwner && activeCloudOwner.recordKey === record.key
+                            ? activeCloudOwner.clinicId : owner.clinicId,
+                        doctor_id: activeCloudOwner && activeCloudOwner.recordKey === record.key
+                            ? activeCloudOwner.doctorId : owner.doctorId
+                    }
+                    : {}),
                 // Held as a draft for now, so that a save which stops half way
                 // (photos uploaded, payload not yet written) leaves an honestly
                 // unfinished row instead of a final one. Cleared below.
@@ -1082,12 +1092,13 @@ function doctorFilter() {
                 : (Array.isArray(storedFormData.images) ? storedFormData.images.filter(Boolean).length : 0);
 
             // v2 column shape. Changes from v1, and why each one matters:
-            //   clinic_id / created_by — NOT SENT. The BEFORE
-            //     trigger ent_stamp_report_ownership (0004) overwrites them
-            //     from the caller's LIVE profile, so the browser cannot
-            //     choose a clinic or an author.
-            //   doctor_id — NOT SENT for a doctor or an admin (the trigger
-            //     stamps it from the live profile). A SECRETARY now sends it
+            //   clinic_id / doctor_id — an admin sends the selected clinic
+            //     and doctor; the trigger verifies both against the admin's
+            //     live session context. Other roles still derive them from
+            //     the live profile or assigned-doctor relationship.
+            //   created_by — NOT SENT; the trigger stamps the author from
+            //     the caller's live profile.
+            //   doctor_id — a SECRETARY sends it
             //     (0037) so she can file under a doctor she is assigned to
             //     who may sit in another clinic; the trigger validates it with
             //     ent_is_my_doctor() and falls back to her primary when it is
@@ -2716,6 +2727,7 @@ function doctorFilter() {
     }
 
     async function openRecordFromCloud(record, bridge) {
+        activeCloudOwner = null;
         setStatus(`Opening ${record.patient_name || record.record_key}...`, true, false);
         try {
             // v2: no clinic filter, no doctor filter. `metadata` is now `payload`, and
@@ -2735,7 +2747,7 @@ function doctorFilter() {
             const rows = await window.EntSupabase.apiRequest(
                 `reports` +
                 `?${target}` +
-                '&select=id,record_key,payload,report_type,updated_at,photo_count' +
+                '&select=id,record_key,clinic_id,doctor_id,payload,report_type,updated_at,photo_count' +
                 '&limit=1'
             );
             const row = Array.isArray(rows) ? rows[0] : null;
@@ -2753,6 +2765,11 @@ function doctorFilter() {
             if (row.report_type !== bridge.reportType) {
                 throw new Error('This record belongs to a different report type and cannot be opened on this page.');
             }
+            activeCloudOwner = {
+                recordKey: String(row.record_key || record.record_key || ''),
+                clinicId: String(row.clinic_id || ''),
+                doctorId: String(row.doctor_id || '')
+            };
 
             // ---- bring the photos back in ----------------------------------
             // Two shapes must both open. A report saved while Storage was off

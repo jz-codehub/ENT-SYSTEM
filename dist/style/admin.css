@@ -1303,11 +1303,11 @@ body:not(.dark-mode) {
     }
     .ent-admin-nav {
         position: fixed;
-        inset: 0 0 0 auto;
+        inset: 0 auto 0 0;
         z-index: 60;
         width: 260px;
         max-height: 100vh;
-        transform: translateX(100%);
+        transform: translateX(-100%);
         transition: transform var(--ent-transition);
         box-shadow: var(--ent-shadow-lg);
     }
@@ -1584,6 +1584,8 @@ body.ent-nav-open .ent-drawer-scrim {
 .ent-nav-toggle {
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    padding: 0;
     border-color: #e0e8ed;
     background: #fff;
     color: #536a7e;
@@ -2369,28 +2371,128 @@ body.ent-nav-open .ent-drawer-scrim {
     .ent-admin-main {
         grid-template-columns: minmax(0, 1fr);
         gap: 18px;
-        padding: 20px 20px 48px;
+        padding: 18px 16px 48px;
+    }
+
+    .ent-admin-header .header-content {
+        display: grid;
+        width: 100%;
+        min-height: 0;
+        grid-template-columns: 44px minmax(0, 1fr);
+        justify-content: start;
+        gap: 8px 10px;
+        padding: 10px 16px;
     }
 
     .ent-nav-toggle {
         display: flex;
+        grid-column: 1;
+        grid-row: 1;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        padding: 0;
+    }
+
+    .ent-admin-brand {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: start;
+    }
+
+    .ent-admin-actions {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 7px;
+        padding-top: 8px;
+        border-top: 1px solid #edf1f3;
+    }
+
+    .ent-admin-actions .header-user-slot {
+        flex: 0 1 auto;
+    }
+
+    .ent-admin-actions .ent-admin-back {
+        margin-left: 0;
     }
 
     .ent-admin-nav {
         position: fixed;
-        inset: 0 0 0 auto;
+        inset: 0 auto 0 0;
         z-index: 60;
-        width: min(84vw, 320px);
-        max-height: 100dvh;
+        width: min(88vw, 360px);
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
         padding: calc(18px + env(safe-area-inset-top, 0px)) 14px calc(18px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
         border-radius: 0;
-        transform: translateX(105%);
+        transform: translateX(-105%);
         transition: transform .22s ease;
-        box-shadow: -16px 0 45px rgba(12, 38, 53, .2);
+        box-shadow: 16px 0 45px rgba(12, 38, 53, .2);
     }
+
+    body.ent-nav-open { overflow: hidden; }
 
     body.ent-nav-open .ent-admin-nav {
         transform: translateX(0);
+    }
+
+    .ent-drawer-scrim {
+        z-index: 55;
+    }
+
+    .ent-admin-nav button {
+        min-height: 46px;
+    }
+
+    .ent-admin-nav .ent-nav-drawer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 2px 6px;
+        padding: 0 0 10px;
+        border-bottom: 1px solid rgba(220, 236, 243, .16);
+        color: #e8f1f5;
+        font-size: .86rem;
+        font-weight: 750;
+        letter-spacing: .01em;
+    }
+
+    .ent-nav-close {
+        display: grid;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        place-items: center;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, .2);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .ent-nav-close:hover {
+        background: rgba(255, 255, 255, .2);
+    }
+
+    .ent-nav-close svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-width: 2;
     }
 
     .ent-admin-bar {
@@ -2398,25 +2500,20 @@ body.ent-nav-open .ent-drawer-scrim {
     }
 }
 
+.ent-nav-drawer-head { display: none; }
+
 @media (max-width: 720px) {
     .ent-admin-header .header-content {
-        display: grid;
         width: calc(100% - 28px);
-        min-height: 0;
-        grid-template-columns: 40px minmax(0, 1fr);
-        gap: 7px 10px;
+        margin: 0 auto;
         padding: 9px 0;
     }
 
     .ent-nav-toggle {
-        display: flex;
-        grid-column: 1;
-        grid-row: 1;
+        align-self: center;
     }
 
     .ent-admin-brand {
-        grid-column: 2;
-        grid-row: 1;
         gap: 8px;
     }
 
@@ -2441,17 +2538,20 @@ body.ent-nav-open .ent-drawer-scrim {
     }
 
     .ent-admin-actions {
-        grid-column: 1 / -1;
-        flex-wrap: wrap;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 6px;
-        min-width: 0;
         padding-top: 7px;
-        border-top: 1px solid #edf1f3;
+    }
+
+    .ent-admin-actions > *,
+    .ent-admin-actions .header-user-slot {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .ent-admin-header #entUserChip {
         margin-left: 0;
+        max-width: 100%;
     }
 
     .ent-admin-header #entUserChip .ent-user-meta small {
@@ -2467,14 +2567,39 @@ body.ent-nav-open .ent-drawer-scrim {
     }
 
     .ent-admin-back {
-        min-height: 34px;
-        padding: 6px 9px;
-        font-size: .68rem;
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: .73rem;
     }
 
     .ent-admin-main {
+        width: 100%;
+        min-width: 0;
         gap: 16px;
         padding: 16px 13px 36px;
+    }
+
+    .ent-admin-body,
+    .ent-admin-panel,
+    .ent-card {
+        min-width: 0;
+    }
+
+    .ent-admin-panel input:not([type="checkbox"]):not([type="radio"]),
+    .ent-admin-panel select,
+    .ent-admin-panel textarea {
+        font-size: 16px;
+    }
+
+    .ent-admin-panel .ent-table-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #panel-clinics .ent-clinic-hero-actions .ent-btn {
+        min-height: 44px;
     }
 
     .ent-admin-body {
@@ -2558,6 +2683,20 @@ body.ent-nav-open .ent-drawer-scrim {
 @media (max-width: 420px) {
     .ent-admin-main {
         padding-inline: 10px;
+    }
+
+    .ent-admin-header .header-content {
+        width: calc(100% - 20px);
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 7px 8px;
+    }
+
+    .ent-admin-actions {
+        column-gap: 6px;
+    }
+
+    .ent-admin-nav {
+        width: min(90vw, 340px);
     }
 
     .overview-metrics {

@@ -19,6 +19,7 @@
      V4  the 0023 gap is deliberate, documented, and nothing was lost
      V5  the delete / restore / bin authorization MATRIX, read off the real SQL
      V6  nothing disables RLS or grants anything to anon
+     V7  admin clinic context is live-validated and session-bound
 
    WHAT THIS DOES NOT PROVE, SAID PLAINLY
 
@@ -430,6 +431,36 @@ chk('V6b', '0007 REVOKEs the anon grants it warns about',
 chk('V6c', 'RLS is ENABLED on reports',
   raw('0004_reports.sql').includes('ENABLE ROW LEVEL SECURITY'))
 
+/* ------------------------------------------------------------------ V7 */
+console.log('')
+console.log('--- V7 · admin clinic context is live-validated -------------------')
+const M52 = raw('0052_admin_active_clinic_context.sql')
+chk('V7.1', 'admin clinic context storage is RLS-enabled and inaccessible to clients',
+  /ALTER TABLE public\.ent_admin_active_clinics ENABLE ROW LEVEL SECURITY/.test(M52)
+    && /REVOKE ALL ON TABLE public\.ent_admin_active_clinics FROM PUBLIC, anon, authenticated/.test(M52))
+chk('V7.2', 'available clinics come from live admin ownership, not a client-supplied scope',
+  /FUNCTION public\.ent_admin_available_doctors\(\)/.test(M52)
+    && /me\.role = 'admin'[\s\S]*?me\.is_active[\s\S]*?public\.ent_admin_covers_clinic\(clinic\.id\)/.test(M52))
+chk('V7.3', 'clinic switching validates the active doctor and binds context to the auth session',
+  /FUNCTION public\.ent_set_admin_active_clinic\(p_doctor uuid\)/.test(M52)
+    && /doctor\.role = 'doctor'[\s\S]*?doctor\.is_active[\s\S]*?public\.ent_admin_covers_clinic\(doctor\.clinic_id\)/.test(M52)
+    && /session_key := nullif\(auth\.jwt\(\) ->> 'session_id', ''\)/.test(M52)
+    && /VALUES \(public\.ent_auth_uid\(\), session_key, target_clinic, p_doctor, now\(\)\)/.test(M52))
+chk('V7.4', 'an existing but invalid admin context fails closed at the clinic predicate',
+  /WHEN public\.ent_is_active_admin\(\)[\s\S]*?FROM public\.ent_admin_active_clinics active[\s\S]*?p_clinic = public\.ent_admin_active_clinic_id\(\)/.test(M52))
+chk('V7.5', 'managed-clinic report reads and writes require the selected server context',
+  /me\.role = 'admin'[\s\S]*?p_clinic = public\.ent_admin_active_clinic_id\(\)[\s\S]*?public\.ent_admin_covers_clinic\(p_clinic\)/.test(M52)
+    && /keep_clinic = public\.ent_admin_active_clinic_id\(\)/.test(M52)
+    && /NEW\.doctor_id IS DISTINCT FROM public\.ent_admin_active_doctor_id\(\)/.test(M52))
+chk('V7.6', 'context RPCs are granted only to authenticated users',
+  /REVOKE ALL ON FUNCTION public\.ent_set_admin_active_clinic\(uuid\) FROM PUBLIC, anon/.test(M52)
+    && /GRANT EXECUTE ON FUNCTION public\.ent_set_admin_active_clinic\(uuid\) TO authenticated/.test(M52)
+    && !/GRANT EXECUTE ON FUNCTION public\.ent_set_admin_active_clinic\(uuid\) TO anon/.test(M52))
+chk('V7.7', 'editing an existing doctor shelf preserves its clinic and doctor identity',
+  /existing\.clinic_id = keep_clinic[\s\S]*?existing\.doctor_id = NEW\.doctor_id[\s\S]*?existing\.record_key = NEW\.record_key/.test(M52)
+    && /record_key,clinic_id,doctor_id,payload/.test(
+      readFileSync(join(ROOT, '..', 'function', 'dbRecords.js'), 'utf8')))
+
 /* ------------------------------------------------------------------ report */
 console.log('')
 console.log('==== RESULT ====')
@@ -442,13 +473,15 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0051 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0052 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
   'sign in as a Super Secretary and verify switching clinic changes the',
   '   active-clinic context before reports, DB Records, photos and summaries load',
   'verify the selected clinic can see only assigned doctors, while unassigned',
   '   doctors, the View All index, and medical-document actions stay isolated',
+  'sign in as an admin and verify the clinic switcher lists only owned clinics',
+  '   and that report reads/writes stop when the selected clinic or doctor is revoked',
   'run scripts/diagnose_delete.mjs there: ent_may_soft_delete must answer TRUE',
   '   for a doctor on his own row and for an assigned secretary',
   'sign in as admin / doctor / secretary and repeat BOTH reported actions â€”',

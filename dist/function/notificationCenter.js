@@ -14,6 +14,10 @@
     var channel = null;
     var host = null;
     var panelNode = null;
+    var deleteModalNode = null;
+    var pendingDeleteId = '';
+    var deleteReturnFocus = null;
+    var deleteInProgress = false;
     var api = Supabase.apiRequest;
 
     function esc(value) { return Auth.escapeHtml(String(value == null ? '' : value)); }
@@ -56,7 +60,8 @@
         });
     }
 
-    function renderNotification(row) {
+    function renderNotification(row, options) {
+        options = options || {};
         var conversationMatch = /^pages\/messages\.html\?conversation=([0-9a-f-]{36})$/i
             .exec(String(row.target_url || ''));
         var href = getHref(row);
@@ -76,15 +81,16 @@
         var itemContent = href
             ? '<a class="ent-notification-open" href="' + esc(href) + '"' + attrs + '>' + content + '</a>'
             : content;
-        var actions = '<div class="ent-notification-actions">'
+        var actionItems = ''
             + (!href && !row.read_at
                 ? '<button type="button" class="ent-notification-mark-read"'
                     + ' data-notification-id="' + esc(row.id) + '" aria-label="Mark '
                     + esc(row.title) + ' as read">Mark as read</button>'
                 : '')
-            + '<button type="button" class="ent-notification-delete" data-notification-delete="'
-            + esc(row.id) + '" aria-label="Delete ' + esc(row.title)
-            + ' from your notifications">Delete</button></div>';
+            + (options.includeDelete === false ? '' : '<button type="button" class="ent-notification-delete" data-notification-delete="'
+                + esc(row.id) + '" data-notification-title="' + esc(row.title) + '" aria-label="Delete ' + esc(row.title)
+                + ' from your notifications">Delete</button>');
+        var actions = actionItems ? '<div class="ent-notification-actions">' + actionItems + '</div>' : '';
         return '<article class="ent-notification-item' + (href ? '' : ' is-static')
             + kindClass + unreadClass + '">' + itemContent + actions + '</article>';
     }
@@ -210,6 +216,124 @@
         render();
         notifyDashboard();
         return true;
+    }
+
+    function closeDeleteModal() {
+        if (!deleteModalNode || deleteInProgress) return;
+        deleteModalNode.hidden = true;
+        pendingDeleteId = '';
+        var returnFocus = deleteReturnFocus;
+        deleteReturnFocus = null;
+        if (returnFocus && returnFocus.isConnected) {
+            returnFocus.focus();
+            return;
+        }
+        var toggle = host && host.querySelector('.ent-notification-toggle');
+        if (toggle) toggle.focus();
+    }
+
+    async function confirmDeleteNotification() {
+        if (deleteInProgress || !pendingDeleteId) return;
+        var confirmButton = deleteModalNode.querySelector('[data-notification-delete-confirm]');
+        var errorMessage = deleteModalNode.querySelector('[data-notification-delete-error]');
+        deleteInProgress = true;
+        confirmButton.disabled = true;
+        confirmButton.textContent = 'Deleting…';
+        errorMessage.hidden = true;
+        errorMessage.textContent = '';
+        try {
+            var deleted = await deleteNotification(pendingDeleteId);
+            if (!deleted) {
+                errorMessage.textContent = 'This notification is no longer available. Your inbox was refreshed.';
+                errorMessage.hidden = false;
+                return;
+            }
+            deleteInProgress = false;
+            closeDeleteModal();
+        } catch (error) {
+            console.error('[Notifications] Could not delete notification.', error);
+            errorMessage.textContent = 'Could not delete this notification. Please try again.';
+            errorMessage.hidden = false;
+        } finally {
+            deleteInProgress = false;
+            if (confirmButton) {
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'Delete notification';
+            }
+        }
+    }
+
+    function ensureDeleteModal() {
+        if (deleteModalNode) return;
+        var modal = document.createElement('div');
+        modal.id = 'entNotificationDeleteModal';
+        modal.className = 'ent-notification-delete-modal';
+        modal.hidden = true;
+        modal.innerHTML = '<section class="ent-notification-delete-dialog" role="alertdialog"'
+            + ' aria-modal="true" aria-labelledby="entNotificationDeleteTitle"'
+            + ' aria-describedby="entNotificationDeleteDescription" tabindex="-1">'
+            + '<span class="ent-notification-delete-icon" aria-hidden="true">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            + ' stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/>'
+            + '<path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13.1a2 2 0 0 0-3.4 0Z"/></svg></span>'
+            + '<h2 id="entNotificationDeleteTitle">Delete notification?</h2>'
+            + '<p class="ent-notification-delete-title" data-notification-delete-title></p>'
+            + '<p id="entNotificationDeleteDescription">This removes it only from your notification box. Other recipients keep their copies.</p>'
+            + '<p class="ent-notification-delete-error" data-notification-delete-error role="alert" hidden></p>'
+            + '<div class="ent-notification-delete-actions">'
+            + '<button type="button" class="ent-notification-delete-cancel"'
+            + ' data-notification-delete-cancel>Keep notification</button>'
+            + '<button type="button" class="ent-notification-delete-confirm"'
+            + ' data-notification-delete-confirm>Delete notification</button></div></section>';
+        modal.addEventListener('click', function (event) {
+            var cancel = event.target.closest('[data-notification-delete-cancel]');
+            var confirm = event.target.closest('[data-notification-delete-confirm]');
+            if (event.target === modal || cancel) {
+                event.preventDefault();
+                if (!deleteInProgress) closeDeleteModal();
+            } else if (confirm) {
+                event.preventDefault();
+                confirmDeleteNotification();
+            }
+        });
+        modal.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!deleteInProgress) closeDeleteModal();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            var buttons = modal.querySelectorAll('button:not(:disabled)');
+            if (!buttons.length) {
+                event.preventDefault();
+                modal.querySelector('[role="alertdialog"]').focus();
+                return;
+            }
+            var first = buttons[0];
+            var last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+        document.body.appendChild(modal);
+        deleteModalNode = modal;
+    }
+
+    function openDeleteModal(id, title, trigger) {
+        ensureDeleteModal();
+        pendingDeleteId = id;
+        deleteReturnFocus = trigger;
+        deleteModalNode.querySelector('[data-notification-delete-title]').textContent = title;
+        var errorMessage = deleteModalNode.querySelector('[data-notification-delete-error]');
+        errorMessage.textContent = '';
+        errorMessage.hidden = true;
+        deleteModalNode.hidden = false;
+        deleteModalNode.querySelector('[data-notification-delete-cancel]').focus();
     }
 
     function renderGeneric() {
@@ -342,10 +466,11 @@
             if (deleteButton) {
                 event.preventDefault();
                 event.stopPropagation();
-                if (!window.confirm('Delete this notification from your inbox?')) return;
-                deleteNotification(deleteButton.getAttribute('data-notification-delete')).catch(function (error) {
-                    console.error('[Notifications] Could not delete notification.', error);
-                });
+                openDeleteModal(
+                    deleteButton.getAttribute('data-notification-delete'),
+                    deleteButton.getAttribute('data-notification-title') || 'this notification',
+                    deleteButton
+                );
                 return;
             }
             var link = event.target.closest('[data-notification-id]');
@@ -372,7 +497,9 @@
                 var eventPath = typeof event.composedPath === 'function' ? event.composedPath() : [];
                 var insideHost = host.contains(event.target) || eventPath.indexOf(host) !== -1;
                 var insidePanel = panelNode && (panelNode.contains(event.target) || eventPath.indexOf(panelNode) !== -1);
-                if (!insideHost && !insidePanel) {
+                var insideDeleteModal = deleteModalNode
+                    && (deleteModalNode.contains(event.target) || eventPath.indexOf(deleteModalNode) !== -1);
+                if (!insideHost && !insidePanel && !insideDeleteModal) {
                     panelOpen = false;
                     render();
                 }
@@ -428,6 +555,7 @@
         getItems: function () { return rows.slice(); },
         getUnreadCount: function () { return unreadCount; },
         getHref: getHref,
+        renderItem: function (row) { return renderNotification(row, { includeDelete: false }); },
         markRead: markRead
     };
 

@@ -957,7 +957,10 @@
 // v191: confirm global announcements in a custom modal.
 // v192: auto-fill announcement templates and expand the template library.
 // v193: add per-recipient notification deletion.
-const CACHE_NAME = 'ent-report-system-v193-notification-delete';
+// v194: confirm notification deletion in an accessible modal.
+// v197: add an explicit mobile drawer close button and compact the touch login screen.
+// v198: share the notification card design between the dashboard and admin.
+const CACHE_NAME = 'ent-report-system-v198-shared-notification-design';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

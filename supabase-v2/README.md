@@ -68,6 +68,7 @@ browser/device.
 | `migrations/0049_notifications_and_staff_chat.sql` | staff notifications and clinic/direct chat foundation |
 | `migrations/0050_super_secretary_network_scope.sql` | Super Secretary selected-doctor assignments and active-clinic access, plus recipient-scoped staff chat delivery/read receipts |
 | `migrations/0051_global_announcements.sql` | Admin-only global announcement RPC that sends each active account a private, read-tracked notification |
+| `migrations/0052_admin_active_clinic_context.sql` | Session-bound admin clinic/doctor selection, verified against live clinic ownership and enforced for report reads and writes |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing

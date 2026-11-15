@@ -35,6 +35,15 @@
 
     const HEARTBEAT_MS = 30000;
     const PUBLIC_PAGES = ['login.html'];
+    const ADMIN_CLINIC_CONTEXT_PAGES = [
+        'abstract.html',
+        'cf4form.html',
+        'laryngealendoscopy.html',
+        'medicalcertificate.html',
+        'nasalendoscopy.html',
+        'records-doctor.html',
+        'viewall.html'
+    ];
 
     /* ------------------------------------------------------------------
        PAGE PATHS.
@@ -132,6 +141,7 @@
        sign-out so the next account inherits no selection. */
     const WORKING_DOCTOR_KEY = 'ent_working_doctor_v1';
     const SUPER_WORKING_DOCTOR_KEY = 'ent_super_secretary_working_doctor_v1';
+    const ADMIN_WORKING_DOCTOR_KEY = 'ent_admin_working_doctor_v1';
     const DOC_JESS_CLINIC_ID = '00000000-0000-4000-8000-00000000c11c';
     const DOC_JESS_CLINIC_CODES = ['main_clinic', 'jess', 'ent-jess'];
     // Set once the picker has been shown this session so it does not nag on
@@ -139,6 +149,7 @@
     const WORKING_PROMPTED_KEY = 'ent_working_prompted_v1';
     // In-memory cache of rpc/my_assigned_doctors (null = not fetched yet).
     let assignedDoctorsCache = null;
+    let adminDoctorsCache = null;
     let activeClinicContextDoctorId = '';
     let activeClinicContextError = null;
     let clinicContextWarningShown = false;
@@ -174,7 +185,15 @@
     /** The stored working choice { id, name, clinic }, or null. Never throws. */
     function workingChoice() {
         const user = currentUser();
-        if (user && user.is_super_secretary === true) {
+        if (user && user.role === 'admin') {
+            try {
+                const shared = window.localStorage.getItem(ADMIN_WORKING_DOCTOR_KEY);
+                if (shared) {
+                    const value = JSON.parse(shared);
+                    if (value && value.user_id === user.id && value.id) return value;
+                }
+            } catch (e) { /* use the current tab's choice */ }
+        } else if (user && user.is_super_secretary === true) {
             try {
                 const shared = window.localStorage.getItem(SUPER_WORKING_DOCTOR_KEY);
                 if (shared) {
@@ -200,28 +219,35 @@
             }
         } catch (e) { /* private mode: the primary stays the shelf */ }
         const user = currentUser();
-        if (user && user.is_super_secretary === true) {
+        if (user && (user.is_super_secretary === true || user.role === 'admin')) {
             try {
                 if (choice && choice.id) {
-                    window.localStorage.setItem(SUPER_WORKING_DOCTOR_KEY, JSON.stringify(
-                        Object.assign({}, choice, { user_id: user.id })
-                    ));
+                    const key = user.role === 'admin' ? ADMIN_WORKING_DOCTOR_KEY : SUPER_WORKING_DOCTOR_KEY;
+                    window.localStorage.setItem(key, JSON.stringify(Object.assign({}, choice, { user_id: user.id })));
                 } else {
-                    window.localStorage.removeItem(SUPER_WORKING_DOCTOR_KEY);
+                    window.localStorage.removeItem(user.role === 'admin'
+                        ? ADMIN_WORKING_DOCTOR_KEY : SUPER_WORKING_DOCTOR_KEY);
                 }
             } catch (e) { /* the server still validates this tab's selection */ }
         }
     }
 
-    function clearWorkingChoice() {
+    function clearWorkingChoice(userOverride) {
         try { window.sessionStorage.removeItem(WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
-        try { window.localStorage.removeItem(SUPER_WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
+        const user = userOverride || currentUser();
+        if (user && user.role === 'admin') {
+            try { window.localStorage.removeItem(ADMIN_WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
+        } else if (user && user.is_super_secretary === true) {
+            try { window.localStorage.removeItem(SUPER_WORKING_DOCTOR_KEY); } catch (e) { /* ignore */ }
+        }
     }
 
     function bindSuperSecretaryChoiceSync(user) {
-        if (!user || user.is_super_secretary !== true || typeof window.addEventListener !== 'function') return;
+        if (!user || (user.is_super_secretary !== true && user.role !== 'admin')
+            || typeof window.addEventListener !== 'function') return;
+        const key = user.role === 'admin' ? ADMIN_WORKING_DOCTOR_KEY : SUPER_WORKING_DOCTOR_KEY;
         window.addEventListener('storage', function (event) {
-            if (!event || event.key !== SUPER_WORKING_DOCTOR_KEY) return;
+            if (!event || event.key !== key) return;
             try {
                 if (event.newValue) {
                     const choice = JSON.parse(event.newValue);
@@ -295,6 +321,77 @@
         }
         activeClinicContextDoctorId = String(contextDoctor.doctor_id);
         activeClinicContextError = null;
+    }
+
+    async function setAdminActiveClinicContext(doctorId, ensure) {
+        const id = String(doctorId || '').trim();
+        if (!id) throw new Error('Choose a doctor in the clinic you want to open.');
+        const clinicId = await api(ensure
+            ? 'rpc/ent_ensure_admin_active_clinic'
+            : 'rpc/ent_set_admin_active_clinic', {
+            method: 'POST',
+            body: JSON.stringify({ p_doctor: id })
+        });
+        if (typeof clinicId !== 'string' || !clinicId.trim()) {
+            throw new Error('The database did not confirm the selected clinic.');
+        }
+        activeClinicContextDoctorId = id;
+        activeClinicContextError = null;
+        clinicContextWarningShown = false;
+        return clinicId;
+    }
+
+    function fetchAdminDoctors(force, strict) {
+        const user = currentUser();
+        if (!user || user.role !== 'admin') return Promise.resolve([]);
+        if (adminDoctorsCache && !force) return Promise.resolve(adminDoctorsCache);
+        return api('rpc/ent_admin_available_doctors', { method: 'POST', body: '{}' })
+            .then(function (rows) {
+                adminDoctorsCache = Array.isArray(rows)
+                    ? rows.filter(function (row) { return row && row.doctor_id && row.clinic_id; })
+                    : [];
+                return adminDoctorsCache;
+            })
+            .catch(function (error) {
+                adminDoctorsCache = [];
+                if (strict) throw error;
+                console.error('[Auth] Could not load clinics available to this administrator:', error);
+                return adminDoctorsCache;
+            });
+    }
+
+    async function prepareAdminClinicContext() {
+        const user = currentUser();
+        if (!user || user.role !== 'admin' || offlineSessionActive) {
+            return { doctors: [], selected: null };
+        }
+        const doctors = await fetchAdminDoctors(true, true);
+        const current = workingChoice();
+        const selected = current && doctors.find(function (doctor) {
+            return String(doctor.doctor_id) === String(current.id)
+                && String(doctor.clinic_id) === String(current.clinic_id || '');
+        });
+        if (current && !selected) clearWorkingChoice();
+        if (selected) {
+            const clinicId = await setAdminActiveClinicContext(selected.doctor_id, true);
+            if (clinicId !== String(selected.clinic_id)) {
+                throw new Error('The selected doctor no longer belongs to the active clinic.');
+            }
+            setWorkingChoice({
+                id: String(selected.doctor_id),
+                name: selected.doctor_name || '',
+                clinic: selected.clinic_name || '',
+                clinic_id: String(selected.clinic_id)
+            });
+        }
+        return { doctors: doctors, selected: selected || null };
+    }
+
+    async function clearAdminClinicContext() {
+        const user = currentUser();
+        if (!user || user.role !== 'admin' || offlineSessionActive) return;
+        await api('rpc/ent_clear_admin_active_clinic', { method: 'POST', body: '{}' });
+        activeClinicContextDoctorId = '';
     }
 
     function showClinicContextError() {
@@ -809,6 +906,8 @@
     }
 
     function clearSession() {
+        const user = currentUser();
+        clearWorkingChoice(user);
         signedInUser = null;
         currentProfile = null;
         readyPromise = null;
@@ -817,7 +916,7 @@
         // so the next account on this device never inherits another shelf, and
         // the next secretary is asked afresh. The RPC cache goes too.
         assignedDoctorsCache = null;
-        clearWorkingChoice();
+        adminDoctorsCache = null;
         activeClinicContextDoctorId = '';
         activeClinicContextError = null;
         clinicContextWarningShown = false;
@@ -907,12 +1006,14 @@
     /* Picking a clinic stores its assigned doctor and reloads so every module
      * agrees on the new clinic context. */
     function openClinicPicker(doctors) {
-        if (!Array.isArray(doctors) || doctors.length < 2) return;
+        if (!Array.isArray(doctors)) return;
+        const pickerUser = currentUser();
+        const isAdmin = pickerUser && pickerUser.role === 'admin';
+        if (doctors.length < 2 && !isAdmin) return;
         if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
         const old = document.getElementById('entClinicPicker');
         if (old && old.parentNode) old.parentNode.removeChild(old);
 
-        const pickerUser = currentUser();
         const isSuperSecretary = pickerUser && pickerUser.is_super_secretary === true;
         const cur = workingChoice();
         const currentScope = scope();
@@ -972,19 +1073,21 @@
                 };
             });
         }
-        if (choices.length < 2) return;
+        if (choices.length < 2 && !isAdmin) return;
 
         const options = choices.map(function (choice) {
             const doctor = choice.doctor;
             const currentBadge = choice.isCurrent
-                ? '<span class="ent-clinic-current">Current clinic</span>' : '';
-            const title = isSuperSecretary
+                ? '<span class="ent-clinic-current">' + (isAdmin ? 'Current selection' : 'Current clinic') + '</span>' : '';
+            const title = isSuperSecretary || isAdmin
                 ? choice.clinicName
                 : 'Dr. ' + (doctor.doctor_name || 'Unknown');
             const detail = isSuperSecretary
                 ? 'Dr. ' + (doctor.doctor_name || 'Unknown') + ' · '
                     + choice.doctorCount + ' assigned doctor' + (choice.doctorCount === 1 ? '' : 's')
-                : choice.clinicName;
+                : isAdmin
+                    ? 'Dr. ' + (doctor.doctor_name || 'Unknown')
+                    : choice.clinicName;
             return '<button type="button" class="ent-clinic-opt' + (choice.isCurrent ? ' is-current' : '')
                 + '" data-id="' + escapeHtml(choice.id) + '" aria-pressed="' + String(choice.isCurrent) + '">'
                 + '<span class="ent-clinic-opt-icon" aria-hidden="true">'
@@ -1007,8 +1110,10 @@
         box.setAttribute('tabindex', '-1');
         const pickerHint = isSuperSecretary
             ? 'Your dashboard shows records from the selected clinic only. Clinical Abstract and Medical Certificate stay available in Doc Jess clinic.'
+            : isAdmin
+                ? 'Choose a clinic and a doctor you manage. The app will show that clinic only, and new reports will be filed under the selected doctor.'
             : 'Choose the doctor whose records you are working with. You can switch again anytime.';
-        const heading = isSuperSecretary ? 'Switch clinic' : 'Choose doctor';
+        const heading = isSuperSecretary ? 'Switch clinic' : (isAdmin ? 'Choose clinic & doctor' : 'Choose doctor');
         box.innerHTML = '<div class="ent-modal-card ent-clinic-picker-card">'
             + '<div class="ent-clinic-picker-heading">'
             + '<span class="ent-clinic-picker-mark" aria-hidden="true">'
@@ -1057,7 +1162,9 @@
             const user = currentUser();
             const contextReady = user && user.is_super_secretary === true
                 ? setActiveClinicContext(id)
-                : Promise.resolve();
+                : user && user.role === 'admin'
+                    ? setAdminActiveClinicContext(id, false)
+                    : Promise.resolve();
             contextReady.then(function () {
                 setWorkingChoice({
                     id: id,
@@ -1145,9 +1252,14 @@
         const user = currentUser();
         if (!user) return { role: 'guest', doctorId: '', seeAll: false, label: 'Not signed in' };
         if (user.role === 'admin') {
+            const selected = workingChoice();
             return {
                 role: 'admin',
-                doctorId: '',
+                doctorId: selected ? String(selected.id || '') : '',
+                clinicId: selected ? String(selected.clinic_id || '') : String(user.clinic_id || ''),
+                clinicName: selected ? String(selected.clinic || '') : String(user.clinic_name || ''),
+                activeClinicId: selected ? String(selected.clinic_id || '') : String(user.clinic_id || ''),
+                activeClinicName: selected ? String(selected.clinic || '') : String(user.clinic_name || ''),
                 seeAll: true,
                 label: user.full_name || user.username
             };
@@ -1680,7 +1792,7 @@
         }
         return decide();
 
-        function decide() {
+        async function decide() {
             const s = readSession();
             if (!s) { 
                 // v36a: the offline branch that used to live here read a
@@ -1703,6 +1815,21 @@
                 if (typeof opts.onDenied === 'function') return opts.onDenied(s);
                 window.location.replace(pageUrl('index.html') + '?denied=1');
                 return null;
+            }
+            if (s.user.role === 'admin' && ADMIN_CLINIC_CONTEXT_PAGES.indexOf(page) !== -1) {
+                try {
+                    const context = await prepareAdminClinicContext();
+                    if (!context.selected) {
+                        window.location.replace(pageUrl('index.html') + '?admin-preview=1');
+                        return null;
+                    }
+                } catch (error) {
+                    console.error('[Auth] Could not verify the admin clinic context:', error);
+                    if (typeof window.alert === 'function') {
+                        window.alert('Could not verify access to a managed clinic. Return to the app and choose a clinic again.');
+                    }
+                    return null;
+                }
             }
             return s;
         }
@@ -2068,6 +2195,9 @@
         renderChrome,
         // 0037 cross-clinic secretary: the "working today at ..." picker.
         fetchAssignedDoctors,
+        fetchAdminDoctors,
+        prepareAdminClinicContext,
+        clearAdminClinicContext,
         openClinicPicker,
         isDocJessClinic,
         getClinicIdentity,

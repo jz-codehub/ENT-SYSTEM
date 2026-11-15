@@ -25,7 +25,6 @@ const ok = (id, what, d = '') => { passed++; console.log(`  PASS  ${id.padEnd(4)
 const bad = (id, what, d = '') => { failed++; console.log(`  FAIL  ${id.padEnd(4)} ${what}${d ? ' — ' + d : ''}`) }
 const is = (id, what, cond, d = '') => cond ? ok(id, what, d) : bad(id, what, d)
 
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anon.fake'
 let sent = []
 let signInResult = { data: { user: null }, error: null }
 let sessionRow = null
@@ -785,10 +784,19 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
        && loginHtml.includes('ent-login-content')
        && loginHtml.includes('Remember on this device')
        && /auth\.css\?v=v33an-clinic-picker/.test(loginHtml)
+       && /mobile\.css\?v=v15-compact-login/.test(loginHtml)
        && authCss.includes('grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1.12fr)')
        && mobileCss.includes('grid-template-columns: minmax(0, 1fr)')
        && /ent-report-system-v\d+-[^'"]+/.test(sw),
      'desktop brand panel, mobile stack and unchanged sign-in controls')
+
+  is('D98', 'mobile sign-in keeps credentials above the fold without opening the keyboard',
+     /window\.matchMedia\('\(pointer: coarse\)'\)/.test(loginHtml)
+       && /if \(!isCompactTouchScreen\) userEl\.focus\(\)/.test(loginHtml)
+       && /@media screen and \(max-width: 640px\)[\s\S]*?\.ent-login-brand-copy,[\s\S]*?display:\s*none/.test(mobileCss)
+       && /grid-template-columns:\s*46px\s+minmax\(0,\s*1fr\)/.test(mobileCss)
+       && mobileCss.includes('min-height: 48px;'),
+     'touch phones skip auto-focus and get a compact brand plus tighter credential fields')
 
   is('D96', 'offline-ready status stays compact while details and retry remain available',
      ['ent-or-details', 'ent-or-more', 'aria-expanded',

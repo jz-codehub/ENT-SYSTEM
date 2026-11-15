@@ -12,6 +12,7 @@ const adminHtml = readFileSync(join(ROOT, 'pages/admin.html'), 'utf8')
 const indexHtml = readFileSync(join(ROOT, 'index.html'), 'utf8')
 const adminJs = readFileSync(join(ROOT, 'function/admin.js'), 'utf8')
 const notificationsJs = readFileSync(join(ROOT, 'function/notificationCenter.js'), 'utf8')
+const dashboardJs = readFileSync(join(ROOT, 'function/dashboard.js'), 'utf8')
 const notificationsCss = readFileSync(join(ROOT, 'style/notifications.css'), 'utf8')
 let passed = 0
 
@@ -66,12 +67,14 @@ check('notification cards use readable hierarchy and responsive message text',
         && /ent-notification-heading-copy/.test(notificationsJs))
 check('each notification has a separate accessible delete action',
     /data-notification-delete=/.test(notificationsJs)
-        && /Delete this notification from your inbox\?/.test(notificationsJs)
-        && /\.ent-notification-delete\s*\{/.test(notificationsCss)
-        && /notificationCenter\.js\?v=v7-notification-delete/.test(adminHtml)
-        && /notifications\.css\?v=v9-notification-delete/.test(adminHtml)
-        && /notificationCenter\.js\?v=v7-notification-delete/.test(indexHtml)
-        && /notifications\.css\?v=v9-notification-delete/.test(indexHtml))
+        && /role="alertdialog"[\s\S]*?aria-modal="true"/.test(notificationsJs)
+        && /entNotificationDeleteDescription/.test(notificationsJs)
+        && !/window\.confirm/.test(notificationsJs)
+        && /\.ent-notification-delete-modal\s*\{/.test(notificationsCss)
+        && /notificationCenter\.js\?v=v9-shared-notification-design/.test(adminHtml)
+        && /notifications\.css\?v=v11-shared-notification-design/.test(adminHtml)
+        && /notificationCenter\.js\?v=v9-shared-notification-design/.test(indexHtml)
+        && /notifications\.css\?v=v11-shared-notification-design/.test(indexHtml))
 
 const profile = {
     id: '11111111-1111-4111-8111-111111111111',
@@ -90,13 +93,12 @@ const documentListeners = {}
 const bodyChildren = []
 let markedRead = false
 let deletedNotification = false
-let confirmResult = true
-const confirmations = []
 
 function makeElement(id) {
     return {
         id: id || '',
         className: '',
+        hidden: false,
         parentNode: null,
         parentElement: null,
         dataset: {},
@@ -108,13 +110,40 @@ function makeElement(id) {
             const child = makeElement('generated-panel')
             child._innerHTML = value
             this.firstElementChild = child
+            if (this.id === 'entNotificationDeleteModal') {
+                const control = (selector) => ({
+                    disabled: false,
+                    hidden: false,
+                    textContent: '',
+                    closest(candidate) { return candidate === selector ? this : null },
+                    focus() {},
+                })
+                this.modalControls = {}
+                ;[
+                    ['[data-notification-delete-title]', 'title'],
+                    ['[data-notification-delete-error]', 'error'],
+                    ['[data-notification-delete-cancel]', 'cancel'],
+                    ['[data-notification-delete-confirm]', 'confirm'],
+                    ['[role="alertdialog"]', 'dialog'],
+                ].forEach(([selector, key]) => {
+                    this.modalControls[selector] = control(selector)
+                })
+            }
         },
         get innerHTML() { return this._innerHTML },
         addEventListener(type, fn) {
             (this.listeners[type] || (this.listeners[type] = [])).push(fn)
         },
         setAttribute() {},
-        querySelector() { return null },
+        querySelector(selector) {
+            return this.modalControls && this.modalControls[selector] || null
+        },
+        querySelectorAll(selector) {
+            return this.id === 'entNotificationDeleteModal' && selector === 'button:not(:disabled)'
+                ? [this.modalControls['[data-notification-delete-cancel]'],
+                    this.modalControls['[data-notification-delete-confirm]']].filter((button) => !button.disabled)
+                : []
+        },
         contains() { return false },
         getBoundingClientRect() { return { left: 0, width: 0, bottom: 0 } },
         removeChild(child) {
@@ -160,10 +189,6 @@ const window = {
     addEventListener() {},
     CustomEvent: class CustomEvent {
         constructor(type, options) { this.type = type; this.detail = options && options.detail }
-    },
-    confirm(message) {
-        confirmations.push(String(message))
-        return confirmResult
     },
     EntAuth: {
         guard: async () => ({ user: profile }),
@@ -226,6 +251,14 @@ check('notification cards include kind, timestamp, and all-clinic context',
         && panel.innerHTML.includes('<time datetime="2026-01-02T03:04:00.000Z">')
         && panel.innerHTML.includes('Clinic-wide news, account updates, and messages')
         && panel.innerHTML.includes('Mark all as read'))
+const dashboardItem = window.EntNotificationCenter.renderItem(unsafeNotification)
+check('dashboard reuses the same escaped notification card without adding admin delete actions',
+    /EntNotificationCenter\.renderItem\(n\)/.test(dashboardJs)
+        && dashboardItem.includes('class="ent-notification-item is-static is-announcement is-unread"')
+        && dashboardItem.includes('Clinic-wide announcement')
+        && dashboardItem.includes('&lt;script&gt;alert(1)&lt;/script&gt;')
+        && dashboardItem.includes('class="ent-notification-state is-unread"')
+        && !dashboardItem.includes('data-notification-delete'))
 
 const click = (documentListeners.click || [])[0]
 assert.equal(typeof click, 'function', 'notification click handler installed')
@@ -247,12 +280,15 @@ check('announcement read status is saved through the existing per-user RPC',
     !!markCall && markCall.body.p_notification_id === unsafeNotification.id && markedRead)
 
 const deleteButton = {
-    getAttribute(name) { return name === 'data-notification-delete' ? unsafeNotification.id : null },
+    getAttribute(name) {
+        if (name === 'data-notification-delete') return unsafeNotification.id
+        if (name === 'data-notification-title') return unsafeNotification.title
+        return null
+    },
     closest(selector) {
         return selector === '[data-notification-delete]' ? this : null
     },
 }
-confirmResult = false
 await click({
     target: deleteButton,
     preventDefault() {},
@@ -260,17 +296,37 @@ await click({
     composedPath() { return [deleteButton] },
 })
 await new Promise((resolve) => setTimeout(resolve, 10))
+const deleteModal = bodyChildren.find((node) => node.id === 'entNotificationDeleteModal')
+check('delete action opens a branded accessible modal with the correct notification title',
+    !!deleteModal
+        && !deleteModal.hidden
+        && deleteModal.modalControls['[data-notification-delete-title]'].textContent === unsafeNotification.title)
+
+const modalClick = deleteModal.listeners.click[0]
+const cancelDelete = deleteModal.modalControls['[data-notification-delete-cancel]']
+const cancelEvent = {
+    target: cancelDelete,
+    preventDefault() {},
+    composedPath() { return [cancelDelete, deleteModal] },
+}
+await modalClick(cancelEvent)
+await click(cancelEvent)
 check('canceling notification deletion leaves the row in the user’s inbox',
     !apiCalls.some((call) => call.endpoint.indexOf('/rpc/ent_delete_notification') === 0)
         && window.EntNotificationCenter.getItems().some((row) => row.id === unsafeNotification.id)
-        && confirmations[confirmations.length - 1] === 'Delete this notification from your inbox?')
+        && deleteModal.hidden)
 
-confirmResult = true
 await click({
     target: deleteButton,
     preventDefault() {},
     stopPropagation() {},
     composedPath() { return [deleteButton] },
+})
+const confirmDelete = deleteModal.modalControls['[data-notification-delete-confirm]']
+await modalClick({
+    target: confirmDelete,
+    preventDefault() {},
+    composedPath() { return [confirmDelete, deleteModal] },
 })
 await new Promise((resolve) => setTimeout(resolve, 10))
 const deleteCall = apiCalls.find((call) => call.endpoint.indexOf('/rpc/ent_delete_notification') === 0)

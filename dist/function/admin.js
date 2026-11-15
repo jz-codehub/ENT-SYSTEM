@@ -1795,11 +1795,13 @@
        guaranteed to be big, and Escape is what a keyboard user reaches for
        without being told. */
     function setDrawer(open) {
+        const wasOpen = document.body.classList.contains('ent-nav-open');
         document.body.classList.toggle('ent-nav-open', open);
         const t = byId('adminNavToggle');
         if (t) {
             t.setAttribute('aria-expanded', open ? 'true' : 'false');
             t.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+            if (!open && wasOpen) t.focus();
         }
     }
     function drawerIsOpen() {
@@ -1809,6 +1811,8 @@
     function wireDrawer() {
         const t = byId('adminNavToggle');
         if (t) t.addEventListener('click', function () { setDrawer(!drawerIsOpen()); });
+        const close = byId('adminNavClose');
+        if (close) close.addEventListener('click', function () { setDrawer(false); });
         const scrim = byId('adminNavScrim');
         if (scrim) scrim.addEventListener('click', function () { setDrawer(false); });
 
@@ -1824,13 +1828,13 @@
         });
 
         /* Rotating a phone back to landscape, or resizing a desktop window
-           past 860px, leaves a body class that no longer means anything:
+           past 980px, leaves a body class that no longer means anything:
            the rail is a grid column again and the scrim is display:none, so
            a hidden scrim over a visible page is the one thing that could
            still swallow taps. Clearing it is the fix, and the drawer simply
            is not available above the breakpoint. */
         window.addEventListener('resize', function () {
-            if (window.innerWidth > 860 && drawerIsOpen()) setDrawer(false);
+            if (window.innerWidth > 980 && drawerIsOpen()) setDrawer(false);
         });
     }
 
@@ -5328,6 +5332,14 @@ const FLAG_INFO = {
             }
         });
         if (!session || !session.user) return;
+        if (typeof Auth.clearAdminClinicContext === 'function') {
+            try {
+                await Auth.clearAdminClinicContext();
+            } catch (error) {
+                console.error('[Admin] Could not clear the app clinic context:', error);
+                toast('Could not reset the app clinic context. Some clinic records may remain scoped until you reload.', true);
+            }
+        }
         wire();
         wireDrawer();
         wireAnalytics();

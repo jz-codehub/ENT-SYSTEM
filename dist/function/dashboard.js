@@ -1162,15 +1162,17 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function renderHero(data) {
         const user = me || {};
         const isSuperSecretary = user.role === 'secretary' && user.is_super_secretary === true;
+        const isAdmin = user.role === 'admin';
         const selectedDoctor = selectedAssignedDoctor();
         const selectedDoctorName = prettyName(
             selectedDoctor && selectedDoctor.doctor_name || user.assigned_doctor_name
         );
-        const activeClinicName = String(scopeInfo && scopeInfo.activeClinicName || '').trim();
+        const activeClinicName = String(scopeInfo && scopeInfo.activeClinicName
+            || (isAdmin && user.clinic_name) || '').trim();
         const clinicContext = byId('dashClinicContext');
         const clinicNameEl = byId('dashClinicName');
         const clinicSwitchBtn = byId('dashClinicSwitchBtn');
-        if (clinicContext) clinicContext.hidden = !isSuperSecretary || !activeClinicName;
+        if (clinicContext) clinicContext.hidden = !(isSuperSecretary || isAdmin) || !activeClinicName;
         if (clinicNameEl) clinicNameEl.textContent = activeClinicName;
         if (clinicSwitchBtn) {
             const clinicIds = assignedDoctorRows.map(function (doctor) {
@@ -1178,7 +1180,10 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             }).filter(function (id, index, ids) {
                 return id && ids.indexOf(id) === index;
             });
-            clinicSwitchBtn.hidden = !isSuperSecretary || clinicIds.length < 2;
+            const hasMultipleChoices = isAdmin
+                ? assignedDoctorRows.length > 1
+                : clinicIds.length > 1;
+            clinicSwitchBtn.hidden = !(isSuperSecretary || isAdmin) || !hasMultipleChoices;
         }
         if (isSuperSecretary && typeof document.querySelector === 'function') {
             const profileSwitch = document.querySelector('#entUserChip .ent-user-switch');
@@ -1211,8 +1216,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                         + ' assigned doctors are included. New reports still file under your selected doctor.'
                     : 'You work under Dr. ' + (prettyName(user.assigned_doctor_name) || 'your assigned doctor')
                         + ' \u2014 only this doctor\u2019s patients are counted here.'))
-                : (user.role === 'admin'
-                    ? 'Administrator preview \u2014 these counters cover every doctor of this clinic.'
+                : (isAdmin
+                    ? 'Administrator preview \u2014 showing ' + (activeClinicName || 'the selected clinic')
+                        + ' for Dr. ' + (selectedDoctorName || 'the selected doctor') + '.'
                     : 'Your own patients: nasal & laryngeal endoscopy reports and CF4 claims.');
         }
 
@@ -1257,8 +1263,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
          * own patient counts" under a "Clinic-wide preview" pill.
          */
         const dr = prettyName(user.assigned_doctor_name);
-        const tagText = user.role === 'admin'
-            ? 'Clinic-wide preview \u2014 every doctor, every count'
+        const tagText = isAdmin
+            ? 'Clinic preview \u2014 ' + (activeClinicName || 'select a clinic') + ' · all clinic doctors'
             : (user.role === 'secretary'
                 ? (user.is_super_secretary === true
                     ? (scopeInfo && scopeInfo.activeClinicName
@@ -1376,7 +1382,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const toggle = notificationCenter.querySelector('.ent-notification-toggle');
             const panel = byId('dashNotificationPanel');
             if (!toggle || !panel) return;
-            const panelWidth = Math.min(420, Math.max(0, window.innerWidth - 24));
+            const panelWidth = Math.min(560, Math.max(0, window.innerWidth - 24));
             const toggleRect = toggle.getBoundingClientRect();
             const center = Math.max(panelWidth / 2 + 12,
                 Math.min(window.innerWidth - panelWidth / 2 - 12,
@@ -1497,19 +1503,22 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (summaryError) {
             notifications.push({
                 kind: 'is-warn',
-                html: '<strong>Counts may be incomplete.</strong> ' + esc(summaryError)
+                title: 'Counts may be incomplete',
+                body: summaryError,
             });
         }
         if (activitySummaryError) {
             notifications.push({
                 kind: 'is-warn',
-                html: '<strong>Activity chart may be incomplete.</strong> ' + esc(activitySummaryError)
+                title: 'Activity chart may be incomplete',
+                body: activitySummaryError,
             });
         }
         if (reportMixSummaryError) {
             notifications.push({
                 kind: 'is-warn',
-                html: '<strong>Report type counts may be incomplete.</strong> ' + esc(reportMixSummaryError)
+                title: 'Report type counts may be incomplete',
+                body: reportMixSummaryError,
             });
         }
         if (source === 'cloud' && cloudSummary && rows.length >= ROW_LIMIT) {
@@ -1530,8 +1539,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const canDownload = source === 'cloud' && !monthlyExportBusy;
             notifications.push({
                 kind: 'is-info',
-                html: '<strong>Monthly records download.</strong> Save a dated copy of the saved reports '
-                    + 'your account can access. This JSON is sensitive patient data; store it securely. '
+                title: 'Monthly records download',
+                body: 'Save a dated copy of the saved reports your account can access. '
+                    + 'This JSON is sensitive patient data; store it securely. '
                     + 'It does not include deleted reports, separately stored photo files, or account data. '
                     + 'It is not a full system backup.',
                 actions: '<div class="ent-notification-actions">'
@@ -1558,20 +1568,20 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 return Object.assign({ isStored: false }, n);
             });
             storedNotifications.forEach(function (n) {
-                const href = window.EntNotificationCenter.getHref(n);
                 dashboardItems.push({
-                    kind: 'is-info' + (n.read_at ? '' : ' is-unread'),
-                    html: '<strong>' + esc(n.title) + '</strong> ' + esc(n.body),
-                    actions: '<div class="ent-notification-actions"><a class="ent-btn ent-dash-ghost"'
-                        + ' href="' + esc(href) + '" data-notification-id="' + esc(n.id) + '">Open</a></div>',
+                    html: window.EntNotificationCenter.renderItem(n),
                     isStored: true
                 });
             });
             const notificationItems = dashboardItems.length
                 ? dashboardItems.map(function (n) {
+                    if (n.isStored) return n.html;
                     return '<article class="ent-notification-item ' + n.kind
                         + (n.actions ? ' is-monthly' : '') + '" role="status">'
-                        + '<div>' + n.html + '</div>' + (n.actions || '') + '</article>';
+                        + '<span class="ent-notification-kind">System reminder</span>'
+                        + '<strong>' + esc(n.title) + '</strong>'
+                        + '<span class="ent-notification-body">' + esc(n.body) + '</span>'
+                        + (n.actions || '') + '</article>';
                 }).join('')
                 : '<p class="ent-notification-empty">You\u2019re all caught up.</p>';
             const existingPanel = byId('dashNotificationPanel');
@@ -1592,7 +1602,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 + '</button>'
                 + '<section class="ent-notification-panel" id="dashNotificationPanel"'
                 + ' aria-label="Notifications"' + (notificationPanelOpen ? '' : ' hidden') + '>'
-                + '<div class="ent-notification-heading"><h2>Notifications</h2>'
+                + '<div class="ent-notification-heading"><div class="ent-notification-heading-copy">'
+                + '<h2>Notifications</h2><p>Clinic-wide news, account updates, and messages</p></div>'
                 + '<button type="button" data-notification-read-all'
                 + (unreadStored ? '' : ' disabled') + '>Mark all read</button></div>'
                 + '<div class="ent-notification-list">'
@@ -3248,8 +3259,11 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (exportBtn) exportBtn.addEventListener('click', exportDashboardCsv);
         const clinicSwitchBtn = byId('dashClinicSwitchBtn');
         if (clinicSwitchBtn) clinicSwitchBtn.addEventListener('click', function () {
-            if (!me || me.role !== 'secretary' || me.is_super_secretary !== true) return;
-            if (typeof Auth.fetchAssignedDoctors !== 'function'
+            const isAdmin = !!(me && me.role === 'admin');
+            const isSuperSecretary = !!(me && me.role === 'secretary' && me.is_super_secretary === true);
+            if (!isAdmin && !isSuperSecretary) return;
+            const fetchDoctors = isAdmin ? Auth.fetchAdminDoctors : Auth.fetchAssignedDoctors;
+            if (typeof fetchDoctors !== 'function'
                 || typeof Auth.openClinicPicker !== 'function') {
                 const error = new Error('The active-clinic switcher is unavailable.');
                 console.error('[Dashboard] Could not open the clinic switcher:', error);
@@ -3258,7 +3272,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 }
                 return;
             }
-            Auth.fetchAssignedDoctors(true, true).then(function (doctors) {
+            fetchDoctors(true, true).then(function (doctors) {
                 const clinicIds = Array.isArray(doctors)
                     ? doctors.map(function (doctor) {
                         return String(doctor && doctor.clinic_id || '').trim();
@@ -3266,7 +3280,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                         return id && ids.indexOf(id) === index;
                     })
                     : [];
-                if (clinicIds.length < 2) {
+                if (isAdmin ? doctors.length < 2 : clinicIds.length < 2) {
                     throw new Error('No other active clinic is available to switch to.');
                 }
                 Auth.openClinicPicker(doctors);
@@ -3445,12 +3459,48 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const goBtn = byId('gateDashboard');
         if (goBtn) goBtn.addEventListener('click', function () {
             try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, '1'); } catch (e) { /* ignore */ }
-            revealDashboard();
-            start();
+            window.location.reload();
         });
-        let remembered = false;
-        try { remembered = sessionStorage.getItem(ADMIN_PREVIEW_KEY) === '1'; } catch (e) { /* ignore */ }
-        if (remembered) { revealDashboard(); start(); }
+    }
+
+    function adminPreviewRequested() {
+        if (/[?&]admin-preview=1(?:&|$)/.test(String(window.location.search || ''))) {
+            try { sessionStorage.setItem(ADMIN_PREVIEW_KEY, '1'); } catch (e) { /* ignore */ }
+        }
+        try { return sessionStorage.getItem(ADMIN_PREVIEW_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    async function startAdminPreview() {
+        const prepared = await Auth.prepareAdminClinicContext();
+        assignedDoctorRows = prepared.doctors;
+        if (!prepared.doctors.length) {
+            showAdminGate();
+            if (typeof window.alert === 'function') {
+                window.alert('No active doctors were found in clinics you manage. Ask an administrator to add an active doctor first.');
+            }
+            return;
+        }
+        if (!prepared.selected) {
+            revealDashboard();
+            Auth.openClinicPicker(prepared.doctors);
+            return;
+        }
+        me.clinic_id = prepared.selected.clinic_id;
+        me.clinic_name = prepared.selected.clinic_name || 'Clinic not named';
+        scopeInfo = Auth.scope();
+        const clinicDoctors = assignedDoctorRows.filter(function (doctor) {
+            return String(doctor.clinic_id || '') === String(prepared.selected.clinic_id || '');
+        });
+        scopeInfo.activeClinicId = String(prepared.selected.clinic_id || '');
+        scopeInfo.activeClinicName = String(prepared.selected.clinic_name || 'Clinic not named');
+        scopeInfo.assignedDoctorIds = clinicDoctors.map(function (doctor) {
+            return String(doctor.doctor_id);
+        });
+        scopeInfo.allAssigned = clinicDoctors.length > 0;
+        setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, assignedDoctorRows));
+        revealDashboard();
+        wireDashActions();
+        start();
     }
 
     /* ------------------------------ wiring --------------------------- */
@@ -3659,10 +3709,22 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         myName = String(me.username || '').trim().toLowerCase();
         try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
 
-        if (me.role === 'admin') {                    // admins live in admin.html
-            scopeInfo = { role: 'admin', doctorId: '', seeAll: true };
-            setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, []));
-            showAdminGate();
+        if (me.role === 'admin') {
+            if (!adminPreviewRequested()) {
+                scopeInfo = { role: 'admin', doctorId: '', seeAll: true };
+                setMedicalDocumentAvailability(canUseMedicalDocuments(me, scopeInfo, []));
+                showAdminGate();
+                return;
+            }
+            try {
+                await startAdminPreview();
+            } catch (error) {
+                console.error('[Dashboard] Could not open the selected admin clinic:', error);
+                showAdminGate();
+                if (typeof window.alert === 'function') {
+                    window.alert('Could not verify access to the selected clinic. Check your connection and choose a clinic again.');
+                }
+            }
             return;
         }
         if (me.role !== 'doctor' && me.role !== 'secretary') {

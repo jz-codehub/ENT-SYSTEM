@@ -8,7 +8,7 @@
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/mobile.css?v=v14">
+    <link rel="stylesheet" href="../style/mobile.css?v=v15-compact-login">
 </head>
 <body class="ent-login-page">
     <script>try { if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); } catch (e) {}</script>
@@ -99,7 +99,7 @@
     <script src="../function/paths.js"></script>
     <script src="../function/supabaseClient.js"></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
-    <script src="../function/auth.js?v=v36o-super-secretary-explicit-doctors"></script>
+    <script src="../function/auth.js?v=v36p-admin-clinic-context"></script>
     <script src="../function/offlineStore.js"></script>
     <!-- v36a: "Preparing offline access / Offline-ready" status + retry.
          defer is fine: it registers with the service worker auth.js just
@@ -492,7 +492,11 @@
             }
         });
 
-        userEl.focus();
+        const isCompactTouchScreen = window.matchMedia && (
+            window.matchMedia('(max-width: 640px)').matches ||
+            window.matchMedia('(pointer: coarse)').matches
+        );
+        if (!isCompactTouchScreen) userEl.focus();
     })();
     </script>
 
