@@ -960,7 +960,11 @@
 // v194: confirm notification deletion in an accessible modal.
 // v197: add an explicit mobile drawer close button and compact the touch login screen.
 // v198: share the notification card design between the dashboard and admin.
-const CACHE_NAME = 'ent-report-system-v198-shared-notification-design';
+// v199: add camera capture to endoscopy forms and accept camera-sized originals for compression.
+// v200: show opened patient names in the admin log via authorized report lookups, not audit PHI.
+// v201: use live in-form camera preview and release the stream after capture or cancel.
+// v205: compact the dashboard hero and quick actions on mobile.
+const CACHE_NAME = 'ent-report-system-v205-mobile-dashboard-hero';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

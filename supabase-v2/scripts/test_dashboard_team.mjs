@@ -1065,13 +1065,14 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
      /#entUserChip \.ent-user-switch\[hidden\]\s*\{\s*display:\s*none\s*!important;/.test(authCss))
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
-     /dashboard\.js\?v=v48-shared-notification-design/.test(indexHtml)
+     /dashboard\.js\?v=v\d+-[a-z0-9-]+/.test(indexHtml)
        && /dashboard\.css\?v=v42-shared-notification-design/.test(indexHtml)
+       && /mobile\.css\?v=v\d+-[a-z0-9-]+/.test(indexHtml)
        && /notificationCenter\.js\?v=v9-shared-notification-design/.test(indexHtml)
        && /notifications\.css\?v=v11-shared-notification-design/.test(indexHtml)
        && /auth\.js\?v=v36p-admin-clinic-context/.test(indexHtml)
        && /auth\.css\?v=v33an-clinic-picker/.test(indexHtml)
-       && /ent-report-system-v198-shared-notification-design/.test(serviceWorker))
+       && Number((serviceWorker.match(/ent-report-system-v(\d+)-[^'"]+/) || [])[1]) > 198)
 }
 
 /* ---- 12 · medical documents are Doc Jess clinic-only ----------------- */

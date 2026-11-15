@@ -110,7 +110,7 @@ assert.match(read('style/notifications.css'), /\.ent-notification-panel\s*\{[^}]
 assert.match(notifications, /event\.composedPath\(\)[\s\S]*?eventPath\.indexOf\(host\)\s*!==\s*-1/, 'bell remains open after rendering replaces its clicked button')
 assert.match(read('style/notifications.css'), /\.ent-admin-actions > \.ent-notification-center \.ent-notification-toggle\s*\{[^}]*color:\s*#fff/, 'admin bell has contrast on the blue header')
 assert.match(messagesCss, /\.ent-messages-widget \.messages-bubble\.is-mine\s*\{[^}]*background:\s*var\(--primary-color\);[^}]*color:\s*#fff/, 'sent chat bubbles use the system blue')
-assert.match(messagesCss, /\.ent-messages-widget \.messages-conversation\.is-active\s*\{[^}]*background:\s*var\(--primary-light\)/, 'selected conversation is easy to identify')
+assert.match(messagesCss, /\.ent-messages-widget \.messages-conversation\.is-active\s*\{[^}]*background:\s*color-mix\(in srgb,\s*var\(--primary-light\)\s*72%,\s*var\(--panel-bg-color\)\)[^}]*box-shadow:\s*inset 3px 0 0 var\(--primary-color\)/, 'selected conversation is easy to identify')
 assert.match(messagesCss, /@media\s*\(max-width:\s*700px\)[\s\S]*?\.ent-messages-widget\s*\{[\s\S]*?width:\s*100%;[\s\S]*?height:\s*100dvh;[\s\S]*?min-height:\s*0;/, 'Messenger remains full-screen and responsive on mobile')
 assert.match(messagesCss, /body\.dark-mode \.ent-messages-widget \.messages-bubble\.is-mine/, 'Messenger retains readable outgoing bubbles in dark mode')
 

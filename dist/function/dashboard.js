@@ -3682,6 +3682,51 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
 
     /* ------------------------------- boot ---------------------------- */
+    function wireHeaderProfileMenu() {
+        const toggle = byId('dashProfileToggle');
+        const menu = byId('dashProfileMenu');
+        if (!toggle || !menu) return;
+
+        const mobileQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(max-width: 900px)')
+            : null;
+        function isMobileViewport() {
+            return mobileQuery ? mobileQuery.matches : !(window.innerWidth > 900);
+        }
+
+        function setOpen(open) {
+            const isOpen = !!open && isMobileViewport();
+            menu.classList.toggle('is-open', isOpen);
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            toggle.setAttribute('aria-label',
+                isOpen ? 'Close profile and quick controls' : 'Open profile and quick controls');
+        }
+
+        toggle.addEventListener('click', function () {
+            setOpen(!menu.classList.contains('is-open'));
+        });
+        document.addEventListener('click', function (event) {
+            if (!isMobileViewport() || !menu.classList.contains('is-open')) return;
+            const target = event.target;
+            if (menu.contains(target) || toggle.contains(target)) {
+                if (target && typeof target.closest === 'function'
+                    && target.closest('.ent-messages-link, #installAppBtn, .ent-user-admin, .ent-user-settings, .ent-user-logout, .ent-user-switch')) {
+                    setOpen(false);
+                }
+                return;
+            }
+            setOpen(false);
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape' || !menu.classList.contains('is-open')) return;
+            setOpen(false);
+            toggle.focus();
+        });
+        window.addEventListener('resize', function () {
+            if (!isMobileViewport()) setOpen(false);
+        });
+    }
+
     function start() {
         if (!scopeInfo) {
             try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
@@ -3706,6 +3751,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const session = await Auth.guard();
         if (!session || !session.user) return;
         me = session.user;
+        wireHeaderProfileMenu();
         myName = String(me.username || '').trim().toLowerCase();
         try { scopeInfo = Auth.scope(); } catch (e) { scopeInfo = { seeAll: false, doctorId: '' }; }
 

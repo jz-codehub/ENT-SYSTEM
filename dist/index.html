@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="./style/dashboard.css?v=v42-shared-notification-design">
     <link rel="stylesheet" href="./style/notifications.css?v=v11-shared-notification-design">
     <link rel="stylesheet" href="./style/messages.css?v=v15-shared-widget-theme">
-    <link rel="stylesheet" href="./style/mobile.css?v=v27-messenger-badge">
+    <link rel="stylesheet" href="./style/mobile.css?v=v37-dashboard-profile-menu">
 </head>
 <body class="ent-dash-page">
     <div class="header">
@@ -57,17 +57,34 @@
                 </ul>
             </div>
             <div class="header-meta">
-                <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
-                <button id="installAppBtn" type="button" aria-label="Install app" title="Install app">⬇️ Install App</button>
-                <div class="header-user-controls">
-                    <div class="theme-switch-wrapper">
-                        <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
-                            <input type="checkbox" id="theme-toggle" />
-                            <span class="slider round"></span>
-                        </label>
+                <div class="ent-dash-profile">
+                    <button class="ent-dash-profile-toggle" id="dashProfileToggle" type="button"
+                            aria-label="Open profile and quick controls" aria-controls="dashProfileMenu"
+                            aria-expanded="false" title="Profile and quick controls">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                             aria-hidden="true">
+                            <circle cx="12" cy="8" r="3.5"></circle>
+                            <path d="M5 21a7 7 0 0 1 14 0"></path>
+                        </svg>
+                    </button>
+                    <div class="ent-dash-profile-menu" id="dashProfileMenu">
+                        <div class="ent-dash-profile-footer">
+                            <div id="connectionStatus" class="connection-status online" title="Checking connection..."></div>
+                            <button id="installAppBtn" type="button" aria-label="Install app" title="Install app">⬇️ Install App</button>
+                        </div>
+                        <div class="header-user-controls">
+                            <div class="theme-switch-wrapper">
+                                <label class="theme-switch" for="theme-toggle" title="Switch light / dark mode">
+                                    <input type="checkbox" id="theme-toggle" />
+                                    <span class="slider round"></span>
+                                </label>
+                                <span class="ent-profile-action-label" aria-hidden="true">Theme</span>
+                            </div>
+                            <div class="ent-notification-center" id="dashNotificationCenter"></div>
+                            <div class="header-user-slot" id="headerUserSlot"></div>
+                        </div>
                     </div>
-                    <div class="ent-notification-center" id="dashNotificationCenter"></div>
-                    <div class="header-user-slot" id="headerUserSlot"></div>
                 </div>
             </div>
         </div>
@@ -570,7 +587,7 @@
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
     <script src="function/index.js?v=v35e"></script>
-    <script src="function/dashboard.js?v=v48-shared-notification-design" defer></script>
+    <script src="function/dashboard.js?v=v49-profile-menu" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">
         <p class="ent-copy-line">&copy; 2026 Johnzynd. All Rights Reserved.</p>

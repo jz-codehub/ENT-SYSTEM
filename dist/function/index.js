@@ -404,6 +404,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     initializeButtonIcons();
 
     const imageInput = document.getElementById("imageInput");
+    const capturePhotoBtn = document.getElementById("capturePhotoBtn");
+    const cameraModal = document.getElementById('cameraModal');
+    const cameraPreview = document.getElementById('cameraPreview');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const cancelCameraBtn = document.getElementById('cancelCameraBtn');
+    const captureCameraBtn = document.getElementById('captureCameraBtn');
+    let cameraStream = null;
+    let cameraRequestId = 0;
     const previewDiv = document.getElementById("preview");
     const printDiv = document.getElementById("printDiv");
     const loadingSpinner = document.getElementById("loadingSpinner");
@@ -942,6 +950,16 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 e.preventDefault();
                 showCustomAlert("Maximum of 6 images reached. Please remove an image to add a new one.", "Limit Reached");
             }
+        });
+        capturePhotoBtn?.addEventListener('click', startCameraCapture);
+        cancelCameraBtn?.addEventListener('click', stopCameraCapture);
+        cameraModal?.addEventListener('click', (event) => {
+            if (event.target === cameraModal) stopCameraCapture();
+        });
+        captureCameraBtn?.addEventListener('click', captureCameraPhoto);
+        window.addEventListener('pagehide', stopCameraCapture);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopCameraCapture();
         });
         
         // AUTO-CAPITALIZE
@@ -1899,9 +1917,10 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
             currentFileForCropping = fileQueue.shift(); // Get the next file
 
-            // Safety Check: Prevent uploading very large images
-            if (currentFileForCropping.size > 2 * 1024 * 1024) { // 2MB limit
-                showCustomAlert(`The image "${currentFileForCropping.name}" is too large (>2MB) and will be skipped.`, "File Too Large");
+            // Match the server's raw-photo limit; accepted images are compressed
+            // after cropping or when the user skips the crop step.
+            if (currentFileForCropping.size > 10 * 1024 * 1024) { // 10MB limit
+                showCustomAlert(`The image "${currentFileForCropping.name}" is too large (>10MB) and will be skipped.`, "File Too Large");
                 processNextFileInQueue(); // Skip to next file
                 return;
             }
@@ -1933,6 +1952,115 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 }
             };
             reader.readAsDataURL(currentFileForCropping);
+        }
+
+        function stopCameraCapture() {
+            cameraRequestId += 1;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(function (track) { track.stop(); });
+                cameraStream = null;
+            }
+            if (cameraPreview) cameraPreview.srcObject = null;
+            if (cameraModal) cameraModal.style.display = 'none';
+            if (captureCameraBtn) captureCameraBtn.disabled = true;
+            if (cameraStatus) cameraStatus.textContent = '';
+        }
+
+        async function startCameraCapture() {
+            if (selectedImages.length >= 6) {
+                showCustomAlert("Maximum of 6 images reached. Please remove an image to add a new one.", "Limit Reached");
+                return;
+            }
+            if (!cameraModal || !cameraPreview || !cameraStatus || !captureCameraBtn
+                || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                showCustomAlert('This browser cannot access the camera. Open the form over HTTPS and check the device camera.', 'Camera Unavailable');
+                return;
+            }
+
+            const requestId = ++cameraRequestId;
+            cameraModal.style.display = 'flex';
+            cameraStatus.textContent = 'Starting camera...';
+            captureCameraBtn.disabled = true;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                if (requestId !== cameraRequestId) {
+                    stream.getTracks().forEach(function (track) { track.stop(); });
+                    return;
+                }
+                cameraStream = stream;
+                cameraPreview.srcObject = cameraStream;
+                await cameraPreview.play();
+                if (requestId !== cameraRequestId) return;
+                cameraStatus.textContent = 'Position the scope, then tap Capture.';
+                captureCameraBtn.disabled = false;
+            } catch (error) {
+                if (requestId !== cameraRequestId) return;
+                stopCameraCapture();
+                const message = error && (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+                    ? 'Camera permission was denied. Allow camera access and open the form over HTTPS.'
+                    : error && error.name === 'NotFoundError'
+                        ? 'No camera was found on this device.'
+                        : 'Could not start the camera: ' + ((error && error.message) || 'Unknown camera error.');
+                showCustomAlert(message, 'Camera Unavailable');
+            }
+        }
+
+        function captureCameraPhoto() {
+            if (!cameraPreview || !cameraPreview.videoWidth || !cameraPreview.videoHeight) {
+                showCustomAlert('The camera is not ready yet. Please wait for the preview.', 'Camera Not Ready');
+                return;
+            }
+
+            const maxDimension = 1600;
+            const scale = Math.min(1, maxDimension / Math.max(cameraPreview.videoWidth, cameraPreview.videoHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(cameraPreview.videoWidth * scale));
+            canvas.height = Math.max(1, Math.round(cameraPreview.videoHeight * scale));
+            const context = canvas.getContext('2d');
+            if (!context) {
+                showCustomAlert('The camera image could not be prepared. Please try again.', 'Capture Failed');
+                return;
+            }
+
+            const requestId = cameraRequestId;
+            captureCameraBtn.disabled = true;
+            cameraStatus.textContent = 'Preparing captured photo...';
+            try {
+                context.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function (blob) {
+                    if (requestId !== cameraRequestId) return;
+                    if (!blob) {
+                        captureCameraBtn.disabled = false;
+                        cameraStatus.textContent = 'Capture failed. Try again.';
+                        showCustomAlert('The camera image could not be encoded. Please try again.', 'Capture Failed');
+                        return;
+                    }
+                    try {
+                        const file = new File([blob], 'camera-capture-' + Date.now() + '.jpg', {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        stopCameraCapture();
+                        fileQueue = [file];
+                        processNextFileInQueue();
+                    } catch (error) {
+                        captureCameraBtn.disabled = false;
+                        cameraStatus.textContent = 'Capture failed. Try again.';
+                        showCustomAlert('Could not prepare the captured photo: ' + error.message, 'Capture Failed');
+                    }
+                }, 'image/jpeg', 0.9);
+            } catch (error) {
+                captureCameraBtn.disabled = false;
+                cameraStatus.textContent = 'Capture failed. Try again.';
+                showCustomAlert('Could not capture the camera image: ' + error.message, 'Capture Failed');
+            }
         }
 
         // Add listeners for cropper buttons

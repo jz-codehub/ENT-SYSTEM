@@ -1341,7 +1341,7 @@
         'SETTING_UPDATED', 'ACCESS_DENIED'
     ];
 
-    async function logActivity(action, detail) {
+    async function logActivity(action, detail, targetType, targetId) {
         const act = String(action || '').toUpperCase();
         if (ALLOWED_ACTIONS.indexOf(act) === -1) {
             console.warn('[EntAuth] refusing unknown activity action:', action);
@@ -1353,7 +1353,12 @@
         const safeDetail = String(detail || '')
             .slice(0, 2000)
             .replace(/"patient_name"\s*:/gi, '"name":');
-        const row = { action: act, detail: safeDetail, target_type: '', target_id: '' };
+        const row = {
+            action: act,
+            detail: safeDetail,
+            target_type: String(targetType || '').slice(0, 100),
+            target_id: String(targetId || '').slice(0, 200)
+        };
         /* Guard: a failed sign-in logs LOGIN_FAILED while the visitor has no
          * session at all. That POST comes back 401, and the old handler
          * reacted by calling logout() - which logs LOGOUT, which 401s again,

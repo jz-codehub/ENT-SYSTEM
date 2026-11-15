@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
     <link rel="stylesheet" href="../style/patient-records.css?v=v36h">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/mobile.css?v=v15-report-form-accessibility">
+    <link rel="stylesheet" href="../style/mobile.css?v=v29-mobile-user-admin-header">
 </head>
 <body>
 
@@ -359,6 +359,7 @@
                 <div class="form-group">
                     <label for="imageInput" class="form-label">Attach Endoscopy Images</label>
                     <input type="file" id="imageInput" multiple accept="image/*">
+                    <button type="button" id="capturePhotoBtn" class="custom-file-label">📷 Capture Photo</button>
                     <button type="button" id="clearImagesBtn" class="btn-clear-images"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m4 4v7m6-7v7"/></svg></span> Clear Images</button>
                     <div id="preview" class="image-preview"></div>
                 </div>
@@ -446,6 +447,18 @@
         </div>
     </div>
 
+    <div id="cameraModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+        <div class="modal-content" style="width:90vw; max-width:640px;">
+            <h2 id="cameraModalTitle">Capture Endoscopy Photo</h2>
+            <video id="cameraPreview" autoplay playsinline muted style="display:block; width:100%; max-height:60vh; object-fit:contain; background:#111; border-radius:8px;"></video>
+            <p id="cameraStatus" aria-live="polite">Allow camera access when prompted.</p>
+            <div class="actions">
+                <button type="button" id="cancelCameraBtn" class="btn-secondary">Cancel</button>
+                <button type="button" id="captureCameraBtn" disabled>Capture</button>
+            </div>
+        </div>
+    </div>
+
     <div id="cropModal" class="modal-overlay" style="display:none;">
         <div class="modal-content" style="max-width: 600px;">
             <h2>Crop Image</h2>
@@ -478,7 +491,7 @@
      re-created the duplicates after a clean delete (38 -> 69 on every refresh). -->
     <script src="../function/draftsBrowser.js?v=v35g" defer></script>
     <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
-    <script src="../function/index.js?v=v36m-video-fallback" defer></script>
+    <script src="../function/index.js?v=v36o-live-camera-capture" defer></script>
     <script src="../function/formExitGuard.js?v=v3" defer></script>
     
 </body>

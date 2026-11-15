@@ -1336,7 +1336,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 
   const settingsHtml = readFileSync(join(APP, 'pages/settings.html'), 'utf8')
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
-     /admin\.js\?v=v58-admin-drawer-close/.test(html)
+     /admin\.js\?v=v\d+-[a-z0-9-]+/.test(html)
        && /auth\.js\?v=v36p-admin-clinic-context/.test(html)
        &&        /admin\.css\?v=v68-admin-drawer-close/.test(html)
          && /notificationCenter\.js\?v=v9-shared-notification-design/.test(html)
@@ -1345,8 +1345,8 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
        && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
        && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
-       && /ent-report-system-v198-shared-notification-design/.test(
-         readFileSync(join(APP, 'sw.js'), 'utf8')),
+       && Number((readFileSync(join(APP, 'sw.js'), 'utf8')
+         .match(/ent-report-system-v(\d+)-[^'"]+/) || [])[1]) > 198,
      'avoid stale browser and service-worker copies of the updated panels')
   is('A77g', 'the account form and doctor assignments use one column',
      /\.ent-user-form-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css)

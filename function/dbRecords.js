@@ -390,9 +390,9 @@ function doctorFilter() {
     return '';
 }
 
-    function logActivity(action, detail) {
+    function logActivity(action, detail, targetType, targetId) {
         if (window.EntAuth && typeof window.EntAuth.logActivity === 'function') {
-            window.EntAuth.logActivity(action, detail).catch(() => {});
+            window.EntAuth.logActivity(action, detail, targetType, targetId).catch(() => {});
         }
     }
 
@@ -2811,7 +2811,7 @@ function doctorFilter() {
             // patient name (DEC-07). Before, this carried the name in
             // plain text, which the audit_no_patient_name CHECK (which only
             // matches the JSON-key form) let straight through.
-            logActivity('OPEN_RECORD', `Record opened (${row.report_type})`);
+            logActivity('OPEN_RECORD', `Record opened (${row.report_type})`, 'report', row.id);
             if (window.PatientRecords && typeof window.PatientRecords.recordOpen === 'function') {
                 // Carry the row's stable identity forward so the next
                 // "Save to Database" updates THIS row - even if the user then

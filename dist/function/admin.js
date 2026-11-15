@@ -79,6 +79,8 @@
     let activityLoaded = false;
     let activityCursorId = 0;     // highest activity_logs.id seen so far
     let activityError = '';
+    let activityPatientNames = Object.create(null);
+    let activityPatientError = '';
     let editingId = null;      // null = creating a new user
     let userModalReturnFocus = null;
     let pendingAnnouncement = null;
@@ -656,6 +658,11 @@
             role: row.role || row.actor_role || (person && person.role) || ''
         });
     }
+    function activityDetail(row) {
+        const detail = String(row.detail || '');
+        if (row.action !== 'OPEN_RECORD' || row.target_type !== 'report' || !row.target_id) return detail;
+        return detail + ' \u00b7 Patient: ' + (row.patient_name || 'unavailable');
+    }
 
     // Merging is by id, never by position. That makes it idempotent: an
     // overlapping or retried fetch hands back rows already held, and they
@@ -686,6 +693,39 @@
         // sorted descending, so the first row is the highest id present.
         if (merged.length) activityCursorId = Number(merged[0].id);
         return merged;
+    }
+
+    async function loadActivityPatientNames() {
+        const reportIds = Array.from(new Set(activity.filter(function (row) {
+            return row && row.action === 'OPEN_RECORD'
+                && row.target_type === 'report'
+                && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(row.target_id || ''))
+                && !Object.prototype.hasOwnProperty.call(activityPatientNames, row.target_id);
+        }).map(function (row) { return String(row.target_id); })));
+        if (!reportIds.length) return false;
+
+        for (let offset = 0; offset < reportIds.length; offset += 100) {
+            const batch = reportIds.slice(offset, offset + 100);
+            const path = 'reports?select=id,patient_name&id=in.('
+                + batch.map(encodeURIComponent).join(',') + ')';
+            const reports = await api(path);
+            const namesById = Object.create(null);
+            (Array.isArray(reports) ? reports : []).forEach(function (report) {
+                if (report && report.id) namesById[String(report.id)] = String(report.patient_name || '');
+            });
+            batch.forEach(function (id) {
+                activityPatientNames[id] = Object.prototype.hasOwnProperty.call(namesById, id)
+                    ? namesById[id] : null;
+            });
+        }
+
+        activity = activity.map(function (row) {
+            if (!row || row.action !== 'OPEN_RECORD' || row.target_type !== 'report') return row;
+            const id = String(row.target_id || '');
+            if (!Object.prototype.hasOwnProperty.call(activityPatientNames, id)) return row;
+            return Object.assign({}, row, { patient_name: activityPatientNames[id] });
+        });
+        return true;
     }
 
     // activity_logs is append-only and its id is GENERATED ALWAYS AS
@@ -723,6 +763,13 @@
             activityError = (error && error.message) || String(error);
             // Still repaint: renderActivity() is what puts this message in
             // the table, so a silent repaint would hide a real failure.
+            repaint = true;
+        }
+        try {
+            if (await loadActivityPatientNames()) repaint = true;
+            activityPatientError = '';
+        } catch (error) {
+            activityPatientError = (error && error.message) || String(error);
             repaint = true;
         }
         if (!repaint) return;
@@ -1097,13 +1144,14 @@
                 // so a long patient/clinic string stops stretching the row
                 // into two lines and the table keeps its rhythm.
                 + '<td data-label="Detail"><span class="ent-act-detail" title="'
-                + esc(a.detail || '') + '">' + esc(a.detail || '') + '</span></td>'
+                + esc(activityDetail(a)) + '">' + esc(activityDetail(a)) + '</span></td>'
                 + '</tr>';
         }).join('');
         if (foot) {
             foot.textContent = fmtNum(rows.length) + ' event(s) inside the filter \u00b7 showing the newest '
                 + shown.length + ' \u00b7 ' + fmtNum(activity.length)
-                + ' loaded from activity_logs' + (activityError ? ' \u00b7 last error: ' + activityError : '');
+                + ' loaded from activity_logs' + (activityError ? ' \u00b7 last error: ' + activityError : '')
+                + (activityPatientError ? ' \u00b7 Patient names could not be loaded: ' + activityPatientError : '');
         }
     }
     function activityClinicLabel(id, role) {
@@ -4776,7 +4824,7 @@ const FLAG_INFO = {
             if (action && a.action !== action) return false;
             if (fromDay && String(a.created_at || '').slice(0, 10) < fromDay) return false;
             if (needle) {
-                const hay = [a.detail, a.username, a.role, a.clinic_id, a.action]
+                const hay = [a.detail, a.patient_name, a.username, a.role, a.clinic_id, a.action]
                     .join(' ').toLowerCase();
                 if (hay.indexOf(needle) === -1) return false;
             }
@@ -4871,7 +4919,7 @@ const FLAG_INFO = {
         const rows = [['When', 'Who', 'Role', 'Clinic', 'Action', 'Detail']]
             .concat(filteredActivity().slice(0, 5000).map(function (a) {
                 return [a.created_at, a.username || a.actor_label, a.role || a.actor_role,
-                    activityClinicLabel(a.clinic_id, a.role || a.actor_role), a.action, a.detail];
+                    activityClinicLabel(a.clinic_id, a.role || a.actor_role), a.action, activityDetail(a)];
             }));
         downloadCsv('activity-log-' + dayKey(new Date()) + '.csv', rows);
     }
