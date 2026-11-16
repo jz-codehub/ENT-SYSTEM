@@ -932,6 +932,7 @@ function doctorFilter() {
         saving = true;
         if (saveButton) saveButton.disabled = true;
         if (mainLabel) mainLabel.textContent = 'Saving...';
+        let databaseWriteCompleted = false;
 
         try {
             const record = window.PatientRecords
@@ -1168,6 +1169,7 @@ function doctorFilter() {
                 });
             }
 
+            databaseWriteCompleted = true;
             markKeySaved(record.key);
             if (racedWinner && racedWinner !== record.key) markKeySaved(racedWinner);
             document.dispatchEvent(new Event('databaseRecordSaved'));
@@ -1227,6 +1229,14 @@ function doctorFilter() {
             // follow-up question. (askFollowUp is left defined but unused.)
         } catch (error) {
             console.error('Save to database failed:', error);
+            if (databaseWriteCompleted) {
+                showAlert(
+                    'The database accepted this report, but the app could not finish showing its confirmation.\n\n' +
+                    'Check DB Records before retrying to avoid creating a duplicate.',
+                    'REPORT SAVED — CONFIRMATION ISSUE'
+                );
+                return;
+            }
             const conflict = /\(409\)|23505|on_conflict|ON CONFLICT/.test(String(error.message || ''));
             // A failed photo upload gets its own message: nothing was written,
             // the report is still on screen, and the local draft is untouched.
@@ -1244,6 +1254,23 @@ function doctorFilter() {
                 );
                 return;
             }
+
+            const status = Number(error && error.status) || 0;
+            const errorText = String((error && error.message) || '');
+            let reason = 'The database rejected the save. Please retry; if it happens again, contact your administrator.';
+            if (status === 401 || status === 403) {
+                reason = 'Your sign-in may have expired or your account may not have permission. Sign in again and retry; contact your administrator if it continues.';
+            } else if (status === 413 || /payload_ceiling|request entity too large|payload too large/i.test(errorText)) {
+                reason = 'This report is too large for the database, often because of attached photos. Remove or reduce photos, then retry.';
+            } else if (!status && /failed to fetch|network|load failed/i.test(errorText)) {
+                reason = 'Could not reach the cloud database. Check your internet connection, then retry.';
+            }
+            const statusDetail = status ? '\n\nDatabase response: HTTP ' + status + '.' : '';
+            showAlert(
+                'NOT SAVED TO DATABASE\n\n' + reason + statusDetail +
+                '\n\nYour entries are still on this form. Keep this page open until the save succeeds.',
+                'DATABASE SAVE FAILED'
+            );
         } finally {
             saving = false;
             if (saveButton) saveButton.disabled = false;

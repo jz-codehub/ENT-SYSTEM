@@ -62,7 +62,14 @@ function makeWindow(sink, opts = {}) {
   const docListeners = {}
   const body = {
     classList: { contains: () => false },
-    appendChild(el) { el.parentNode = body; opened.push(el); live.push(el); return el },
+    appendChild(el) {
+      el.parentNode = body
+      if (!String(el.className || '').includes('db-feedback-overlay')) {
+        opened.push(el)
+        live.push(el)
+      }
+      return el
+    },
     removeChild(el) {
       const i = live.indexOf(el)
       if (i >= 0) live.splice(i, 1)
@@ -81,6 +88,12 @@ function makeWindow(sink, opts = {}) {
       readyState: 'complete',
       body,
       addEventListener: (t, fn) => { (docListeners[t] = docListeners[t] || []).push(fn) },
+      dispatchEvent: event => {
+        if (opts.failAfterWrite && event && event.type === 'databaseRecordSaved') {
+          throw new Error('simulated post-save UI failure')
+        }
+        return true
+      },
       removeEventListener: (t, fn) => {
         const list = docListeners[t] || []
         const i = list.indexOf(fn)
@@ -89,15 +102,35 @@ function makeWindow(sink, opts = {}) {
       getElementById: () => null, querySelector: () => null, querySelectorAll: () => [],
       createElement: () => {
         const listeners = {}
+        const children = new Map()
         return {
           style: {}, className: '', innerHTML: '', textContent: '', value: '',
           parentNode: null, dataset: {}, hidden: false,
           classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
           appendChild(c) { return c },
           setAttribute() {}, getAttribute: () => null,
-          addEventListener(t, fn) { (listeners[t] = listeners[t] || []).push(fn) },
+          addEventListener(t, fn) {
+            (listeners[t] = listeners[t] || []).push(fn)
+            if (t === 'click' && this.className === 'db-feedback-done') Promise.resolve().then(fn)
+          },
           removeEventListener() {},
-          querySelector: () => null, querySelectorAll: () => [],
+          querySelector(selector) {
+            if (!children.has(selector)) {
+              const child = {
+                className: selector === '.db-feedback-done' ? 'db-feedback-done' : '',
+                style: {}, textContent: '', innerHTML: '',
+                classList: { add() {}, remove() {}, contains: () => false },
+                addEventListener(t, fn) {
+                  (listeners[selector + ':' + t] = listeners[selector + ':' + t] || []).push(fn)
+                  if (selector === '.db-feedback-done' && t === 'click') Promise.resolve().then(fn)
+                },
+                setAttribute() {}, focus() {},
+              }
+              children.set(selector, child)
+            }
+            return children.get(selector)
+          },
+          querySelectorAll: () => [],
           matches: () => false, closest: () => null,
           focus() {}, blur() {}, click() {},
           get _listeners() { return listeners },
@@ -107,7 +140,9 @@ function makeWindow(sink, opts = {}) {
     addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => {},
     location: { pathname: '/nasalEndoscopy.html', search: '', href: '', replace: () => {} },
     navigator: { userAgent: 'node-test', onLine: true },
-    console, setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+    console, setTimeout: fn => { Promise.resolve().then(fn); return 0 }, clearTimeout: () => {},
+    requestAnimationFrame: fn => fn(), setInterval: () => 0, clearInterval: () => {},
+    Event: class { constructor(type) { this.type = type } },
     CustomEvent: class { constructor(t, o) { this.detail = o && o.detail } },
     alert: () => {},
     URLSearchParams, URL,
@@ -119,6 +154,11 @@ function makeWindow(sink, opts = {}) {
     getAccessToken: async () => 'JWT',
     apiRequest: async (path, o = {}) => {
       if (o.method === 'POST') {
+        if (opts.saveError && String(path).startsWith('reports?on_conflict=')) {
+          const error = new Error('simulated database rejection')
+          error.status = opts.saveError.status || 500
+          throw error
+        }
         let b = null; try { b = JSON.parse(o.body) } catch { b = null }
         if (b) sink.push({ path, rows: Array.isArray(b) ? b : [b] })
         return []
@@ -334,6 +374,31 @@ const nonFollowUpPrompts = (env) =>
   const hist = JSON.parse(env.win.localStorage.getItem('entPatientRecordHistoryV1') || '[]')
   is('P16', 'and the local history never grows a site key either',
      Array.isArray(hist) && hist.every(e => !e || !Object.prototype.hasOwnProperty.call(e, 'site')))
+}
+
+/* ---- a rejected cloud write is never silent or success-shaped -------- */
+{
+  const env = await saveEnv({ user: PROBE, saveError: { status: 403 } })
+  await env.win.EntDbRecords.saveToDatabase()
+  const message = (env.alerts || []).join('\n')
+  is('E1', 'a failed database write tells the user the report was NOT saved',
+     message.includes('DATABASE SAVE FAILED') && message.includes('NOT SAVED TO DATABASE'))
+  is('E2', 'the user gets the HTTP status and a safe retry/permission action',
+     message.includes('HTTP 403') && message.includes('Sign in again'))
+  is('E3', 'the failure keeps the form contents available for retry',
+     message.includes('still on this form'))
+  is('E4', 'a failed write is not marked as a successful database save',
+     env.win.EntDbRecords.readSavedKeys().size === 0)
+}
+
+{
+  const env = await saveEnv({ user: PROBE, failAfterWrite: true })
+  await env.win.EntDbRecords.saveToDatabase()
+  const message = (env.alerts || []).join('\n')
+  is('E5', 'a post-write UI error never falsely says the report was not saved',
+     env.reportRows().some(row => row.is_draft === false)
+       && message.includes('REPORT SAVED')
+       && !message.includes('NOT SAVED TO DATABASE'))
 }
 
 /* ---- the duplicate prompt is TYPE-AWARE ------------------------------ */

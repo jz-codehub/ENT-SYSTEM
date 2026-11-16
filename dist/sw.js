@@ -964,7 +964,8 @@
 // v200: show opened patient names in the admin log via authorized report lookups, not audit PHI.
 // v201: use live in-form camera preview and release the stream after capture or cancel.
 // v205: compact the dashboard hero and quick actions on mobile.
-const CACHE_NAME = 'ent-report-system-v205-mobile-dashboard-hero';
+// v206: surface failed cloud report saves on all three report forms.
+const CACHE_NAME = 'ent-report-system-v206-save-failure-feedback';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
