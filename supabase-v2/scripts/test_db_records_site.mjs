@@ -383,7 +383,7 @@ const nonFollowUpPrompts = (env) =>
   const env = await saveEnv({ user: PROBE, saveError: {
     status: 403,
     serverCode: '42501',
-    serverMessage: 'new row violates row-level security policy for table "reports"',
+    serverMessage: 'permission denied for function ent_super_secretary_context_matches',
   } })
   await env.win.EntDbRecords.saveToDatabase()
   const message = (env.alerts || []).join('\n')
@@ -393,7 +393,7 @@ const nonFollowUpPrompts = (env) =>
      message.includes('HTTP 403') && message.includes('Sign in again')
        && message.includes('Database error code: 42501')
        && message.includes('clinic assignment')
-       && message.includes('report row-security policy rejected'))
+       && message.includes('EXECUTE is missing for function ent_super_secretary_context_matches'))
   is('E3', 'the failure keeps the form contents available for retry',
      message.includes('still on this form'))
   is('E4', 'a failed write is not marked as a successful database save',

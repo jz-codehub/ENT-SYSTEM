@@ -1285,8 +1285,14 @@ function doctorFilter() {
                     safeDatabaseDetail = '\nDatabase detail: the database rejected the selected clinic or doctor scope.';
                 } else if (serverMessage === 'refused: name a doctor of that clinic when filing a report into it') {
                     safeDatabaseDetail = '\nDatabase detail: the database requires an eligible doctor for the selected clinic.';
-                } else if (/^permission denied for function (ent_[a-z0-9_]+)$/i.test(serverMessage)) {
-                    safeDatabaseDetail = '\nDatabase detail: the report authorization function is missing an execution grant.';
+                } else {
+                    const functionPermission = serverMessage.match(
+                        /^permission denied for function (?:public\.)?(ent_[a-z0-9_]+)$/i
+                    );
+                    if (functionPermission) {
+                        safeDatabaseDetail = '\nDatabase detail: EXECUTE is missing for function ' +
+                            functionPermission[1] + '.';
+                    }
                 }
             }
             showAlert(

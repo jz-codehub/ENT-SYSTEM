@@ -969,7 +969,9 @@
 //       and surface the database error code for report-save permission failures.
 // v208: show a safe, classified PostgreSQL 42501 detail to pinpoint the
 //       report policy, scope, profile, or table privilege that rejected a save.
-const CACHE_NAME = 'ent-report-system-v208-save-denial-detail';
+// v209: include the allowlisted report-policy function identifier when an
+//       EXECUTE grant is missing, without exposing raw database error text.
+const CACHE_NAME = 'ent-report-system-v209-missing-execute-detail';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',
