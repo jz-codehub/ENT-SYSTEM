@@ -188,6 +188,9 @@
                 if (errorBody && typeof errorBody.code === 'string') {
                     err.serverCode = errorBody.code;
                 }
+                if (errorBody && typeof errorBody.message === 'string') {
+                    err.serverMessage = errorBody.message;
+                }
             } catch (parseError) {
                 // Keep the HTTP status when the server does not return JSON.
             }

@@ -254,7 +254,8 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
   restStatus = 200
   restErrorBody = {}
   is('T10b', 'a 403 preserves its database error code for permission diagnosis',
-     !!denied && denied.status === 403 && denied.serverCode === '42501',
+     !!denied && denied.status === 403 && denied.serverCode === '42501'
+       && denied.serverMessage === 'new row violates row-level security policy for table "reports"',
      denied ? `HTTP ${denied.status}, database code ${denied.serverCode || 'missing'}` : 'no error thrown')
 
   // T11 — the photo payload must match what the FUNCTION reads. The design

@@ -1258,6 +1258,7 @@ function doctorFilter() {
             const status = Number(error && error.status) || 0;
             const errorText = String((error && error.message) || '');
             const serverCode = String((error && error.serverCode) || '').trim();
+            const serverMessage = String((error && error.serverMessage) || '').trim().toLowerCase();
             let reason = 'The database rejected the save. Please retry; if it happens again, contact your administrator.';
             if (status === 401) {
                 reason = 'Your sign-in may have expired. Sign in again and retry.';
@@ -1270,8 +1271,26 @@ function doctorFilter() {
             }
             const statusDetail = (status ? '\n\nDatabase response: HTTP ' + status + '.' : '') +
                 (serverCode ? '\nDatabase error code: ' + serverCode + '.' : '');
+            let safeDatabaseDetail = '';
+            if (serverCode === '42501') {
+                if (serverMessage === 'new row violates row-level security policy for table "reports"'
+                    || serverMessage === 'new row violates row-level security policy for table reports') {
+                    safeDatabaseDetail = '\nDatabase detail: the report row-security policy rejected this account or clinic scope.';
+                } else if (serverMessage === 'permission denied for table reports'
+                    || serverMessage === 'permission denied for relation reports') {
+                    safeDatabaseDetail = '\nDatabase detail: the API role lacks write permission on the reports table.';
+                } else if (serverMessage === 'refused: no active staff profile for this session') {
+                    safeDatabaseDetail = '\nDatabase detail: the database could not find an active staff profile for this session.';
+                } else if (serverMessage === 'refused: you may not write a report into another clinic without an explicit grant for that record') {
+                    safeDatabaseDetail = '\nDatabase detail: the database rejected the selected clinic or doctor scope.';
+                } else if (serverMessage === 'refused: name a doctor of that clinic when filing a report into it') {
+                    safeDatabaseDetail = '\nDatabase detail: the database requires an eligible doctor for the selected clinic.';
+                } else if (/^permission denied for function (ent_[a-z0-9_]+)$/i.test(serverMessage)) {
+                    safeDatabaseDetail = '\nDatabase detail: the report authorization function is missing an execution grant.';
+                }
+            }
             showAlert(
-                'NOT SAVED TO DATABASE\n\n' + reason + statusDetail +
+                'NOT SAVED TO DATABASE\n\n' + reason + statusDetail + safeDatabaseDetail +
                 '\n\nYour entries are still on this form. Keep this page open until the save succeeds.',
                 'DATABASE SAVE FAILED'
             );
