@@ -1192,6 +1192,24 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
      jessDoctorEnv.reportButtons.every(button => button.hidden === false)
        && jessDoctorEnv.medicalDocumentFilters.every(option => option.hidden === false))
 
+  const jessDoctorWithCodeOnlyEnv = boot({
+    user: {
+      id: 'doc-jess-code-only', username: 'jess', full_name: 'Doc Jess',
+      role: 'doctor', clinic_id: 'legacy-jess-code-id', clinic_code: 'ent-jess',
+      is_active: true,
+    },
+    team: { kind: 'rows', rows: [] },
+    dashboardSummary: request => request.p_windows.map(window => ({
+      bucket_key: window.bucket_key, reports: 0, patient_count: 0, endo_count: 0,
+      cf4_count: 0, nasal_reports: 0, laryngeal_reports: 0, cf4_reports: 0,
+      other_reports: 0, mine: 0,
+    })),
+  })
+  await flush()
+  ok('T61b', 'a Doc Jess doctor with a recognized clinic code sees both medical-document actions',
+     jessDoctorWithCodeOnlyEnv.reportButtons.every(button => button.hidden === false)
+       && jessDoctorWithCodeOnlyEnv.medicalDocumentFilters.every(option => option.hidden === false))
+
   const jessSecretaryByCodeEnv = boot({
     user: {
       id: 'sec-jess-code', username: 'secretary', full_name: 'Clinic Secretary',

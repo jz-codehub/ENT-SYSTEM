@@ -157,6 +157,7 @@ function makeWindow(sink, opts = {}) {
         if (opts.saveError && String(path).startsWith('reports?on_conflict=')) {
           const error = new Error('simulated database rejection')
           error.status = opts.saveError.status || 500
+          error.serverCode = opts.saveError.serverCode || ''
           throw error
         }
         let b = null; try { b = JSON.parse(o.body) } catch { b = null }
@@ -378,13 +379,15 @@ const nonFollowUpPrompts = (env) =>
 
 /* ---- a rejected cloud write is never silent or success-shaped -------- */
 {
-  const env = await saveEnv({ user: PROBE, saveError: { status: 403 } })
+  const env = await saveEnv({ user: PROBE, saveError: { status: 403, serverCode: '42501' } })
   await env.win.EntDbRecords.saveToDatabase()
   const message = (env.alerts || []).join('\n')
   is('E1', 'a failed database write tells the user the report was NOT saved',
      message.includes('DATABASE SAVE FAILED') && message.includes('NOT SAVED TO DATABASE'))
   is('E2', 'the user gets the HTTP status and a safe retry/permission action',
-     message.includes('HTTP 403') && message.includes('Sign in again'))
+     message.includes('HTTP 403') && message.includes('Sign in again')
+       && message.includes('Database error code: 42501')
+       && message.includes('clinic assignment'))
   is('E3', 'the failure keeps the form contents available for retry',
      message.includes('still on this form'))
   is('E4', 'a failed write is not marked as a successful database save',

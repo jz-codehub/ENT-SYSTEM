@@ -965,7 +965,9 @@
 // v201: use live in-form camera preview and release the stream after capture or cancel.
 // v205: compact the dashboard hero and quick actions on mobile.
 // v206: surface failed cloud report saves on all three report forms.
-const CACHE_NAME = 'ent-report-system-v206-save-failure-feedback';
+// v207: recognize Doc Jess clinic codes when showing dashboard document actions
+//       and surface the database error code for report-save permission failures.
+const CACHE_NAME = 'ent-report-system-v207-save-diagnostics';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

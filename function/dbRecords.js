@@ -1257,15 +1257,19 @@ function doctorFilter() {
 
             const status = Number(error && error.status) || 0;
             const errorText = String((error && error.message) || '');
+            const serverCode = String((error && error.serverCode) || '').trim();
             let reason = 'The database rejected the save. Please retry; if it happens again, contact your administrator.';
-            if (status === 401 || status === 403) {
-                reason = 'Your sign-in may have expired or your account may not have permission. Sign in again and retry; contact your administrator if it continues.';
+            if (status === 401) {
+                reason = 'Your sign-in may have expired. Sign in again and retry.';
+            } else if (status === 403) {
+                reason = 'The database refused this account or clinic access to save. Sign in again once; if it continues, ask your administrator to verify the clinic assignment and report-save permission.';
             } else if (status === 413 || /payload_ceiling|request entity too large|payload too large/i.test(errorText)) {
                 reason = 'This report is too large for the database, often because of attached photos. Remove or reduce photos, then retry.';
             } else if (!status && /failed to fetch|network|load failed/i.test(errorText)) {
                 reason = 'Could not reach the cloud database. Check your internet connection, then retry.';
             }
-            const statusDetail = status ? '\n\nDatabase response: HTTP ' + status + '.' : '';
+            const statusDetail = (status ? '\n\nDatabase response: HTTP ' + status + '.' : '') +
+                (serverCode ? '\nDatabase error code: ' + serverCode + '.' : '');
             showAlert(
                 'NOT SAVED TO DATABASE\n\n' + reason + statusDetail +
                 '\n\nYour entries are still on this form. Keep this page open until the save succeeds.',

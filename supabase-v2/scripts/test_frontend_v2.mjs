@@ -29,6 +29,7 @@ let sent = []
 let signInResult = { data: { user: null }, error: null }
 let sessionRow = null
 let restStatus = 200
+let restErrorBody = {}
 let clinicRows = []
 // When set, the stub Edge Function answers `download` with exactly these
 // rows. The REAL function returns objects — { path, mime, base64, bytes } —
@@ -76,8 +77,12 @@ function makeWindow() {
         win.__clinicContextDoctor = JSON.parse(opts.body || '{}').p_doctor || ''
         return jsonResponse(200, win.__activeClinicId || '')
       }
-      if (String(url).includes('/clinics?')) return jsonResponse(restStatus, clinicRows)
-      return jsonResponse(restStatus, Array.isArray(sessionRow) ? sessionRow : [])
+      const body = restStatus >= 400
+        ? restErrorBody
+        : (String(url).includes('/clinics?')
+          ? clinicRows
+          : (Array.isArray(sessionRow) ? sessionRow : []))
+      return jsonResponse(restStatus, body)
     },
     supabase: {
       createClient: () => ({
@@ -239,9 +244,18 @@ is('T2', 'every API member the pages call exists', missing.length === 0, missing
   let coded = null
   try { await S.apiRequest('reports?select=id') } catch (e) { coded = e }
   restStatus = 200
-  is('T10', 'a 401/403 surfaces as AUTH_REQUIRED so the UI signs out',
+  is('T10', 'a 401 surfaces as AUTH_REQUIRED so the UI signs out',
      !!coded && coded.code === 'AUTH_REQUIRED' && coded.status === 401,
      coded ? `code=${coded.code}` : 'no error thrown')
+  restStatus = 403
+  restErrorBody = { code: '42501', message: 'new row violates row-level security policy for table "reports"' }
+  let denied = null
+  try { await S.apiRequest('reports?select=id') } catch (e) { denied = e }
+  restStatus = 200
+  restErrorBody = {}
+  is('T10b', 'a 403 preserves its database error code for permission diagnosis',
+     !!denied && denied.status === 403 && denied.serverCode === '42501',
+     denied ? `HTTP ${denied.status}, database code ${denied.serverCode || 'missing'}` : 'no error thrown')
 
   // T11 — the photo payload must match what the FUNCTION reads. The design
   // note said `data_base64`; the function reads `item.data || item.base64`

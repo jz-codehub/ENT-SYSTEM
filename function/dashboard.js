@@ -80,7 +80,7 @@
     function canUseMedicalDocuments(user, scope, doctors) {
         if (!user) return false;
         if (user.role !== 'secretary') {
-            return Auth.isDocJessClinic(user.clinic_id, user.clinic_name);
+            return Auth.isDocJessClinic(user.clinic_id, user.clinic_name, user.clinic_code);
         }
         // Auth.guard validates the Super Secretary's working clinic with the server.
         const selectedId = String(scope && scope.doctorId || '').trim();

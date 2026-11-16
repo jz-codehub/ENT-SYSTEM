@@ -183,6 +183,14 @@
             const errorText = await response.text();
             const err = new Error(`Supabase API error (${response.status}): ${errorText}`);
             err.status = response.status;
+            try {
+                const errorBody = JSON.parse(errorText);
+                if (errorBody && typeof errorBody.code === 'string') {
+                    err.serverCode = errorBody.code;
+                }
+            } catch (parseError) {
+                // Keep the HTTP status when the server does not return JSON.
+            }
             // 401/403 means "the server stopped accepting this token".
             // Typed so auth.js can sign the user out instead of showing a
             // network error (the plan's Step 5 requirement).
