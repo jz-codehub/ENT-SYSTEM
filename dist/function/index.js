@@ -1,7 +1,10 @@
+let defaultSurgeonName = '';
+
 document.addEventListener('DOMContentLoaded', async (event) => {
     // NEW: Store cleared data for Undo functionality
     let lastClearedData = null;
     let lastClearedImages = null;
+    let lastClearedImageDetails = null;
     let lastClearedFindings = null;
 
     /* ------------------------------------------------------------------
@@ -214,6 +217,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     }
 
     let selectedImages = [];
+    let selectedImageDetails = [];
 
     // Convert logo assets to data URLs before PDF capture so the configured
     // left/right logos render reliably in both print and PDF output.
@@ -404,6 +408,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     initializeButtonIcons();
 
     const imageInput = document.getElementById("imageInput");
+    const cameraFileInput = document.getElementById('cameraFileInput');
     const capturePhotoBtn = document.getElementById("capturePhotoBtn");
     const cameraModal = document.getElementById('cameraModal');
     const cameraPreview = document.getElementById('cameraPreview');
@@ -429,6 +434,15 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     const cropButton = document.getElementById('cropButton');
     const skipCropButton = document.getElementById('skipCropButton');
     const cancelCropButton = document.getElementById('cancelCropButton');
+    const imageDetailsModal = document.getElementById('imageDetailsModal');
+    const imageDetailsPreview = document.getElementById('imageDetailsPreview');
+    const imageFindingInput = document.getElementById('imageFinding');
+    const imageDescriptionInput = document.getElementById('imageDescription');
+    const cropPendingImageButton = document.getElementById('cropPendingImageButton');
+    const addImageWithDetailsButton = document.getElementById('addImageWithDetailsButton');
+    const skipPendingImageButton = document.getElementById('skipPendingImageButton');
+    let pendingImageData = '';
+    let isAddingPendingImage = false;
 
     // Determine report type for local storage and dynamic printing
     let currentReportType = '';
@@ -578,7 +592,90 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     // ===================================================================================
     // HELPER: GET PHYSICIANS LIST
     // ===================================================================================
+    const DEFAULT_PHYSICIANS = [
+        'JESUS RESURRECCION M. JARDIN, MD., FPSO, HNS',
+        'MONIQUE LUCIA A. JARDIN-QUING, MD, FPSO-HNS',
+        'FLORITA L. TE - LUSPO, MD',
+        'JAYREMAE B. REVILLA – LACANDULA, MD',
+        'VINCENT MARK M. JARDIN, MD., FPSO, HNS'
+    ];
+    // An active or assigned doctor takes precedence; Doc. Jardin falls back to Jesus.
+    const CLINIC_DEFAULT_PHYSICIANS = [
+        {
+            clinicName: 'ENT-Clinic Doc. Jardin',
+            physician: 'JESUS RESURRECCION M. JARDIN, MD., FPSO, HNS'
+        },
+        {
+            clinicName: 'ENT-clinic doc. FLORITA L. TE - LUSPO',
+            physician: 'FLORITA L. TE - LUSPO, MD'
+        },
+        {
+            clinicName: 'ENT-clinic doc. REVILLA – LACANDULA, JAYREMAE B.',
+            physician: 'JAYREMAE B. REVILLA – LACANDULA, MD'
+        },
+        {
+            clinicName: 'ENT-clinic doc. VINCENT MARK M. JARDIN',
+            physician: 'VINCENT MARK M. JARDIN, MD., FPSO, HNS'
+        }
+    ];
+    const PHYSICIAN_DEFAULTS_VERSION_KEY = 'clinicPhysiciansDefaultsVersion';
+
+    function normalizeClinicName(name) {
+        return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function physicianNameParts(name) {
+        return String(name || '')
+            .trim()
+            .replace(/^(?:dr|doc)\.?\s+/i, '')
+            .split(',')[0]
+            .toLowerCase()
+            .match(/[a-z0-9]+/g) || [];
+    }
+
+    function findConfiguredPhysician(physicians, name) {
+        const parts = physicianNameParts(name);
+        const normalized = parts.join('');
+        if (!normalized) return '';
+        return physicians.find(candidate => {
+            const candidateParts = physicianNameParts(candidate);
+            return candidateParts.join('') === normalized
+                || (parts.length > 1 && candidateParts.length > 1
+                    && parts[0] === candidateParts[0]
+                    && parts[parts.length - 1] === candidateParts[candidateParts.length - 1]);
+        }) || '';
+    }
+
+    function getClinicDefaultPhysician(clinicName) {
+        const normalized = normalizeClinicName(clinicName);
+        const clinic = CLINIC_DEFAULT_PHYSICIANS.find(entry =>
+            normalizeClinicName(entry.clinicName) === normalized
+        );
+        return clinic ? clinic.physician : '';
+    }
+
+    function ensureDefaultPhysicianEntries() {
+        const stored = localStorage.getItem('clinicPhysicians');
+        if (localStorage.getItem(PHYSICIAN_DEFAULTS_VERSION_KEY) === 'v1' && stored !== null) return;
+
+        const physicians = stored === null ? [] : JSON.parse(stored);
+        if (!Array.isArray(physicians)) {
+            throw new Error('The saved Physician list is invalid. Review it in Settings before continuing.');
+        }
+
+        DEFAULT_PHYSICIANS.forEach(defaultName => {
+            const alreadyExists = physicians.some(name =>
+                String(name || '').trim().toLowerCase() === defaultName.toLowerCase()
+            );
+            if (!alreadyExists) physicians.push(defaultName);
+        });
+
+        localStorage.setItem('clinicPhysicians', JSON.stringify(physicians));
+        localStorage.setItem(PHYSICIAN_DEFAULTS_VERSION_KEY, 'v1');
+    }
+
     function getPhysicians() {
+        ensureDefaultPhysicianEntries();
         const stored = localStorage.getItem('clinicPhysicians');
         if (stored) {
             let physicians = JSON.parse(stored);
@@ -592,11 +689,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             }
             return physicians;
         }
-        // Default physicians if none stored
-        return [
-            'JESUS RESURRECCION M. JARDIN, MD., FPSO, HNS',
-            'MONIQUE LUCIA A. JARDIN-QUING, MD, FPSO-HNS'
-        ];
+        return DEFAULT_PHYSICIANS.slice();
     }
 
     // ===================================================================================
@@ -951,7 +1044,30 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 showCustomAlert("Maximum of 6 images reached. Please remove an image to add a new one.", "Limit Reached");
             }
         });
-        capturePhotoBtn?.addEventListener('click', startCameraCapture);
+        cameraFileInput?.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            event.target.value = '';
+            if (!file) return;
+            if (selectedImages.length >= 6) {
+                showCustomAlert("Maximum of 6 images reached. Please remove an image to add a new one.", "Limit Reached");
+                return;
+            }
+            fileQueue = [file];
+            processNextFileInQueue();
+        });
+        capturePhotoBtn?.addEventListener('click', () => {
+            const isInstalledPwa = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+            if (isInstalledPwa && cameraFileInput) {
+                if (selectedImages.length >= 6) {
+                    showCustomAlert("Maximum of 6 images reached. Please remove an image to add a new one.", "Limit Reached");
+                    return;
+                }
+                cameraFileInput.click();
+                return;
+            }
+            startCameraCapture();
+        });
         cancelCameraBtn?.addEventListener('click', stopCameraCapture);
         cameraModal?.addEventListener('click', (event) => {
             if (event.target === cameraModal) stopCameraCapture();
@@ -1250,7 +1366,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     if (confirmed) {
                         if (selectedImages.length > 0) {
                             lastClearedImages = [...selectedImages];
+                            lastClearedImageDetails = [...selectedImageDetails];
                             selectedImages = [];
+                            selectedImageDetails = [];
                             refreshPreview();
                         }
                     }
@@ -1260,7 +1378,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             undoBtn.addEventListener('click', () => {
                 if (lastClearedImages) {
                     selectedImages = [...lastClearedImages];
+                    selectedImageDetails = [...(lastClearedImageDetails || selectedImages.map(() => ({ finding: '', description: '' })))];
                     lastClearedImages = null;
+                    lastClearedImageDetails = null;
                     refreshPreview();
                 }
             });
@@ -1773,6 +1893,122 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         const physicianSelect = document.getElementById('physician');
         if (physicianSelect) {
             const physicians = getPhysicians();
+            if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+                const auth = window.EntAuth;
+                if (auth && typeof auth.ready === 'function') {
+                    await auth.ready();
+                    const user = auth.currentUser();
+                    if (user) {
+                        let fullName = '';
+                        const clinicScope = typeof auth.scope === 'function' ? auth.scope() : null;
+                        const workingDoctor = typeof auth.workingDoctor === 'function'
+                            ? auth.workingDoctor()
+                            : null;
+                        let clinicName = String(
+                            (workingDoctor && workingDoctor.clinic)
+                            || (clinicScope && (
+                                clinicScope.activeClinicName
+                                || clinicScope.workingClinicName
+                                || clinicScope.clinicName
+                            ))
+                            || user.clinic_name
+                            || ''
+                        ).trim();
+                        const activeDoctorId = String(
+                            (clinicScope && clinicScope.doctorId)
+                            || (workingDoctor && workingDoctor.id)
+                            || user.assigned_doctor_id
+                            || ''
+                        );
+
+                        if (user.role === 'doctor') {
+                            fullName = String(user.full_name || '').trim();
+                        } else if (user.role === 'secretary') {
+                            if (workingDoctor && workingDoctor.name
+                                && String(workingDoctor.id || '') === activeDoctorId) {
+                                fullName = String(workingDoctor.name).trim();
+                            }
+                            const primaryDoctorId = String(user.assigned_doctor_id || '');
+                            if (!fullName && (!activeDoctorId || activeDoctorId === primaryDoctorId)) {
+                                fullName = String(user.assigned_doctor_name || '').trim();
+                            }
+                            if ((!fullName || !clinicName)
+                                && typeof auth.fetchAssignedDoctors === 'function') {
+                                try {
+                                    const doctors = await auth.fetchAssignedDoctors(true, true);
+                                    const activeDoctor = doctors.find(doctor =>
+                                        String(doctor.doctor_id || '') === activeDoctorId
+                                    ) || (!activeDoctorId && doctors.length === 1 ? doctors[0] : null);
+                                    if (activeDoctor) {
+                                        if (!fullName) fullName = String(activeDoctor.doctor_name || '').trim();
+                                        if (!clinicName) clinicName = String(activeDoctor.clinic_name || '').trim();
+                                    }
+                                } catch (error) {
+                                    console.error('[Report] Could not resolve the assigned clinic doctor:', error);
+                                }
+                            }
+                        } else if (user.role === 'admin') {
+                            if (workingDoctor && workingDoctor.name
+                                && String(workingDoctor.id || '') === activeDoctorId) {
+                                fullName = String(workingDoctor.name).trim();
+                            }
+                            if ((!fullName || !clinicName)
+                                && typeof auth.fetchAdminDoctors === 'function') {
+                                try {
+                                    const doctors = await auth.fetchAdminDoctors(true, true);
+                                    const clinicId = String(
+                                        (clinicScope && (clinicScope.activeClinicId || clinicScope.clinicId))
+                                        || user.clinic_id
+                                        || ''
+                                    );
+                                    const activeDoctorById = doctors.find(doctor =>
+                                        String(doctor.doctor_id || '') === activeDoctorId
+                                    );
+                                    const clinicDoctors = doctors.filter(doctor =>
+                                        clinicId && String(doctor.clinic_id || '') === clinicId
+                                            && doctor.doctor_name
+                                    );
+                                    const activeDoctor = activeDoctorById
+                                        || (clinicDoctors.length === 1 ? clinicDoctors[0] : null);
+                                    if (activeDoctor) {
+                                        if (!fullName) fullName = String(activeDoctor.doctor_name || '').trim();
+                                        if (!clinicName) clinicName = String(activeDoctor.clinic_name || '').trim();
+                                    }
+                                } catch (error) {
+                                    console.error('[Report] Could not resolve the active clinic doctor:', error);
+                                }
+                            }
+                        }
+                        let configuredName = findConfiguredPhysician(physicians, fullName);
+                        if (!configuredName && !clinicName && user.clinic_id
+                            && typeof auth.getClinicIdentity === 'function') {
+                            try {
+                                const clinicIdentity = await auth.getClinicIdentity(user.clinic_id);
+                                clinicName = String(clinicIdentity && clinicIdentity.name || '').trim();
+                            } catch (error) {
+                                console.error('[Report] Could not resolve the signed-in clinic name:', error);
+                            }
+                        }
+                        configuredName = configuredName || getClinicDefaultPhysician(clinicName);
+                        if (fullName) {
+                            defaultSurgeonName = configuredName || fullName;
+                        } else if (configuredName) {
+                            defaultSurgeonName = configuredName;
+                        }
+                    }
+                }
+            }
+
+            if (!defaultSurgeonName) {
+                const clinicSettings = JSON.parse(localStorage.getItem('clinicSettings') || '{}');
+                defaultSurgeonName = getClinicDefaultPhysician(clinicSettings.clinicName);
+            }
+            if (defaultSurgeonName && !physicians.some(name =>
+                String(name || '').trim().toLowerCase() === defaultSurgeonName.toLowerCase()
+            )) {
+                physicians.push(defaultSurgeonName);
+            }
+
             physicianSelect.innerHTML = ''; // Clear existing options
             physicians.forEach((name, index) => {
                 const option = document.createElement('option');
@@ -1781,6 +2017,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 if (index === 0) option.selected = true; // Select first by default
                 physicianSelect.appendChild(option);
             });
+            if (defaultSurgeonName) physicianSelect.value = defaultSurgeonName;
         }
 
         // NEW: Populate Assistant Surgeon dropdown from settings
@@ -1864,7 +2101,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     } else {
                         selectedImages = [];
                     }
+                    selectedImageDetails = selectedImages.map((image, index) => {
+                        const details = Array.isArray(data.imageDetails) ? data.imageDetails[index] : null;
+                        return {
+                            finding: details && typeof details.finding === 'string' ? details.finding : '',
+                            description: details && typeof details.description === 'string' ? details.description : ''
+                        };
+                    });
                     refreshPreview();
+                } else if (key === 'imageDetails') {
+                    // Loaded alongside images above to keep existing image-only drafts compatible.
+                    continue;
                 } else if (key === 'procedureDate') {
                     const element = document.getElementById(key);
                     if (element) {
@@ -1873,6 +2120,21 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 } else {
                     const element = document.getElementById(key);
                     if (element) element.value = data[key] || '';
+                }
+            }
+            if (defaultSurgeonName) {
+                const restoredPhysician = String(data.physician || '').trim();
+                const hasRestoredOption = Array.from(physicianSelect.options).some(option =>
+                    option.value === restoredPhysician
+                );
+                if (!restoredPhysician) {
+                    physicianSelect.value = defaultSurgeonName;
+                } else if (!hasRestoredOption) {
+                    const savedOption = document.createElement('option');
+                    savedOption.value = restoredPhysician;
+                    savedOption.textContent = restoredPhysician;
+                    physicianSelect.appendChild(savedOption);
+                    physicianSelect.value = restoredPhysician;
                 }
             }
         }
@@ -1927,6 +2189,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
             const reader = new FileReader();
             reader.onload = (e) => {
+                if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+                    pendingImageData = e.target.result;
+                    imageDetailsPreview.src = pendingImageData;
+                    imageFindingInput.value = '';
+                    imageFindingInput.setCustomValidity('');
+                    imageDescriptionInput.value = '';
+                    imageDetailsModal.style.display = 'flex';
+                    imageFindingInput.focus();
+                    return;
+                }
+
                 // FALLBACK: If Cropper library isn't loaded (e.g., offline), add image directly.
                 if (typeof Cropper === 'undefined') {
                     console.warn('Cropper.js not loaded. Skipping crop feature.');
@@ -2077,17 +2350,30 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 // hand here, which is why the cropper - the path most
                 // doctors actually use - was the one path that skipped
                 // compression entirely.
-                resizeImage(canvas.toDataURL('image/png')).then((compressed) => {
-                    addBase64ToPreview(compressed);
-                    // Inside the then(), not after it: the queue must not
-                    // advance until this photo has actually been added, or a
-                    // multi-file attach would add them out of order.
-                    processNextFileInQueue(); // Process the next file in the queue
-                });
+                const croppedImage = canvas.toDataURL('image/png');
+                if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+                    pendingImageData = croppedImage;
+                    imageDetailsPreview.src = pendingImageData;
+                    cropModal.style.display = 'none';
+                    imageDetailsModal.style.display = 'flex';
+                } else {
+                    resizeImage(croppedImage).then((compressed) => {
+                        addBase64ToPreview(compressed);
+                        // Inside the then(), not after it: the queue must not
+                        // advance until this photo has actually been added, or a
+                        // multi-file attach would add them out of order.
+                        processNextFileInQueue(); // Process the next file in the queue
+                    });
+                }
             }
         });
 
         skipCropButton?.addEventListener('click', () => {
+            if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+                cropModal.style.display = 'none';
+                imageDetailsModal.style.display = 'flex';
+                return;
+            }
             if (currentFileForCropping) {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
@@ -2101,8 +2387,84 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         });
 
         cancelCropButton?.addEventListener('click', () => {
+            if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+                cropModal.style.display = 'none';
+                imageDetailsModal.style.display = 'flex';
+                return;
+            }
             fileQueue = []; // Clear the queue
             processNextFileInQueue(); // This will just close the modal
+        });
+
+        cropPendingImageButton?.addEventListener('click', () => {
+            if (!pendingImageData) return;
+            if (typeof Cropper === 'undefined') {
+                showCustomAlert('The crop tool is unavailable right now. You can still add the original image.', 'Crop Unavailable');
+                return;
+            }
+            imageDetailsModal.style.display = 'none';
+            cropModal.style.display = 'flex';
+            const initializeCropper = () => {
+                imageToCrop.onload = null;
+                imageToCrop.onerror = null;
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    background: false,
+                    autoCropArea: 0.8,
+                });
+            };
+            if (cropper) {
+                cropper.replace(pendingImageData);
+                return;
+            }
+            imageToCrop.src = pendingImageData;
+            if (imageToCrop.complete && imageToCrop.naturalWidth > 0) {
+                initializeCropper();
+            } else {
+                imageToCrop.onload = initializeCropper;
+                imageToCrop.onerror = () => {
+                    cropModal.style.display = 'none';
+                    imageDetailsModal.style.display = 'flex';
+                    showCustomAlert('Could not load this image for cropping. You can add the original instead.', 'Crop Failed');
+                };
+            }
+        });
+
+        addImageWithDetailsButton?.addEventListener('click', async () => {
+            const finding = imageFindingInput.value.trim();
+            if (!finding) {
+                imageFindingInput.setCustomValidity('Enter a name for this finding.');
+                imageFindingInput.reportValidity();
+                return;
+            }
+            imageFindingInput.setCustomValidity('');
+            if (!pendingImageData || isAddingPendingImage) return;
+
+            isAddingPendingImage = true;
+            addImageWithDetailsButton.disabled = true;
+            try {
+                const resized = await resizeImage(pendingImageData);
+                addBase64ToPreview(resized, {
+                    finding,
+                    description: imageDescriptionInput.value.trim()
+                });
+                pendingImageData = '';
+                imageDetailsModal.style.display = 'none';
+                processNextFileInQueue();
+            } catch (error) {
+                console.error('Could not prepare the endoscopy image:', error);
+                showCustomAlert('Could not prepare this image. Please try again.', 'Image Add Failed');
+            } finally {
+                isAddingPendingImage = false;
+                addImageWithDetailsButton.disabled = false;
+            }
+        });
+
+        skipPendingImageButton?.addEventListener('click', () => {
+            pendingImageData = '';
+            imageDetailsModal.style.display = 'none';
+            processNextFileInQueue();
         });
 
         // ===================================================================================
@@ -2181,6 +2543,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         if (saved) {
             const data = JSON.parse(saved);
             loadDataIntoForm(data);
+            if (defaultSurgeonName) physicianSelect.value = defaultSurgeonName;
         }
         if (navigator.onLine === false) {
             offlineDraftDirty = true;
@@ -3045,6 +3408,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 const addBtn = document.getElementById(addBtnId);
                 const isDoctorNoteTemplates = storageKey === 'cf4DoctorsNoteTemplates';
                 const defaultDoctorNoteTemplate = 'PATIENT UNDERWENT DIAGNOSTIC NASAL ENDOSCOPY AND WAS NOTED WITH EDEMATOUS MIDDLE TURBINATE AND LATERAL NASAL WALL MUCOSA WITH THICK MUCOID SECRETION AND ENLARGED ADENOIDS. THE PROCEDURE WAS TOLERATED WELL. PATIENT SENT HOME WITH THE FOLLOWING HOME MEDICATION: MONTELUKAST + LEVOCETIRIZINE 5/10MG 1 TAB OD @ HS X 2 WKS. NACL IRRIGATING NASAL SOLN. SPRAY 2-3 SPRAYS/NOSTRIL BID X 2 WKS. FLUTICASONE SPRAY 1 SPRAY/NOSTRIL OD X 2 WKS. ADVISE FOR FOLLOW UP AFTER 1 WEEK.';
+                if (storageKey === 'clinicPhysicians' && listEl) ensureDefaultPhysicianEntries();
 
                 function normalizeItems(items) {
                     if (!isDoctorNoteTemplates) {
@@ -3231,10 +3595,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     }
 
             // Initialize Lists
-            setupListManager('physicianList', 'newPhysicianName', 'addPhysicianBtn', 'clinicPhysicians', 'Physician', [
-                'JESUS RESURRECCION M. JARDIN, MD., FPSO, HNS',
-                'MONIQUE LUCIA A. JARDIN-QUING, MD, FPSO-HNS'
-            ]);
+            setupListManager('physicianList', 'newPhysicianName', 'addPhysicianBtn', 'clinicPhysicians', 'Physician', DEFAULT_PHYSICIANS);
             // NEW: Initialize Referring Physicians list manager
             setupListManager('refPhysicianList', 'newRefPhysicianName', 'addRefPhysicianBtn', 'clinicRefPhysicians', 'Referring Physician');
             // NEW: Initialize list managers for Asst. Surgeon and Scrub Nurse
@@ -4207,16 +4568,30 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             }
         }
         data.images = selectedImages;
+        if (currentReportType === 'nasal' || currentReportType === 'laryngeal') {
+            data.imageDetails = selectedImages.map((_, index) => {
+                const details = selectedImageDetails[index] || {};
+                return {
+                    finding: details.finding || '',
+                    description: details.description || ''
+                };
+            });
+        }
         return data;
     }
 
     // ===================================================================================
     // 3. IMAGE HANDLING (Function body remains the same)
     // ===================================================================================
-    function addBase64ToPreview(base64) {
+    function addBase64ToPreview(base64, details = { finding: '', description: '' }) {
         if (selectedImages.length < 6 || lastClearedImages) {
             selectedImages.push(base64);
+            selectedImageDetails.push({
+                finding: details.finding || '',
+                description: details.description || ''
+            });
             lastClearedImages = null; // Invalidate undo on add
+            lastClearedImageDetails = null;
             refreshPreview();
         }
     }
@@ -4230,6 +4605,23 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         const img = document.createElement("img");
         img.src = base64;
 
+        const details = selectedImageDetails[index] || {};
+        if (details.finding || details.description) {
+            const caption = document.createElement('div');
+            caption.className = 'image-preview-caption';
+            if (details.finding) {
+                const finding = document.createElement('strong');
+                finding.textContent = details.finding;
+                caption.appendChild(finding);
+            }
+            if (details.description) {
+                const description = document.createElement('span');
+                description.textContent = details.description;
+                caption.appendChild(description);
+            }
+            container.appendChild(caption);
+        }
+
         const removeBtn = document.createElement("button");
         removeBtn.textContent = "×"; // Use × instead of X for better look
         removeBtn.className = "btn-remove-image";
@@ -4238,6 +4630,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             const idx = parseInt(container.dataset.index);
             lastClearedImages = null; // Invalidate undo on remove
             selectedImages.splice(idx, 1);
+            selectedImageDetails.splice(idx, 1);
             refreshPreview();
         };
 
@@ -4287,8 +4680,11 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 lastClearedImages = null; // Invalidate undo on reorder
                 // Move the item instead of swapping for better UX
                 const itemToMove = selectedImages[draggedIndex];
+                const detailsToMove = selectedImageDetails[draggedIndex];
                 selectedImages.splice(draggedIndex, 1); // Remove from old position
+                selectedImageDetails.splice(draggedIndex, 1);
                 selectedImages.splice(targetIndex, 0, itemToMove); // Insert at new position
+                selectedImageDetails.splice(targetIndex, 0, detailsToMove);
                 refreshPreview();
             }
         });
@@ -4974,6 +5370,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     // Compress the captured frame before saving
                     resizeImage(dataURL).then(resized => {
                         selectedImages.push(resized);
+                        selectedImageDetails.push({ finding: '', description: '' });
                         refreshPreview();
                     });
                     
@@ -5444,8 +5841,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     }
                 }
             }
+            if (defaultSurgeonName) {
+                const physician = document.getElementById('physician');
+                if (physician) physician.value = defaultSurgeonName;
+            }
             // Clear images
             selectedImages = [];
+            selectedImageDetails = [];
             refreshPreview();
         }
         // A blank form is a NEW report (nasal or laryngeal): drop the carried
@@ -5567,9 +5969,20 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         // Remove margin-bottom for the last image to avoid overflow clipping
         const imageElements = imagesToPrint.map((base64, index) => {
             const marginBottom = index === numImages - 1 ? 0 : imageGapPx;
+            const details = selectedImageDetails[index] || {};
+            const caption = details.finding || details.description
+                ? `<div style="width:100%; flex:0 0 auto; max-height:30%; padding:3px 5px; box-sizing:border-box; font-size:8px; line-height:1.2; text-align:left; overflow:hidden; overflow-wrap:anywhere; color:#111; background:#fff; border-top:1px solid #d1d5db;">
+                    ${details.finding ? `<strong>${escapeHtml(details.finding)}</strong>` : ''}
+                    ${details.description ? `<div>${escapeHtml(details.description)}</div>` : ''}
+                </div>`
+                : '';
+            const imageContainerLayout = caption
+                ? 'display: flex; flex-direction: column; justify-content: center; align-items: center;'
+                : 'display: flex; justify-content: center; align-items: center;';
             return `
-            <div class="image-container" style="width: 100%; height: ${individualImageMaxHeightPx}px; margin-bottom: ${marginBottom}px; display: flex; justify-content: center; align-items: center; background-color: var(--image-bg, #f0f0f0); border-radius: 4px; overflow: hidden; page-break-inside: avoid; flex-shrink: 0;">
-                <img src="${base64}" alt="Endoscopy Image" style="width: 100%; height: 100%; object-fit: ${objectFit};">
+            <div class="image-container" style="width: 100%; height: ${individualImageMaxHeightPx}px; margin-bottom: ${marginBottom}px; ${imageContainerLayout} background-color: var(--image-bg, #f0f0f0); border-radius: 4px; overflow: hidden; page-break-inside: avoid; flex-shrink: 0;">
+                <img src="${base64}" alt="Endoscopy Image" style="width: 100%; ${caption ? 'flex: 1 1 auto; min-height: 0;' : 'height: 100%;'} object-fit: ${objectFit};">
+                ${caption}
             </div>
         `;
         }).join('');

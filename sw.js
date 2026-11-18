@@ -971,7 +971,21 @@
 //       report policy, scope, profile, or table privilege that rejected a save.
 // v209: include the allowlisted report-policy function identifier when an
 //       EXECUTE grant is missing, without exposing raw database error text.
-const CACHE_NAME = 'ent-report-system-v209-missing-execute-detail';
+// v210: add optional crop and per-image finding details to nasal/laryngeal uploads.
+// v211: style the nasal/laryngeal Clear Images action.
+// v212: default nasal/laryngeal Surgeon to the signed-in clinic doctor.
+// v213: include the expanded, manually editable Physician defaults.
+// v214: restore the signed-in doctor's Physician default for blank local drafts.
+// v215: default Physician to the active clinic doctor for secretaries too.
+// v216: resolve the active clinic doctor from existing role-scoped directories.
+// v217: map the active clinic name to its configured Physician when no doctor name is present.
+// v218: preserve the clinic Physician default when a restored record has an empty value.
+// v219: ensure stale local Nasal drafts cannot clear the active clinic Physician.
+// v220: also resolve clinic-to-Physician defaults from the saved clinic settings.
+// v221: share the Physician default with form reset and restore helpers.
+// v222: use native capture for installed endoscopy PWAs and count incomplete reports once.
+// v223: keep hidden native camera inputs invisible under the global file-input style.
+const CACHE_NAME = 'ent-report-system-v223-hidden-camera-file';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

@@ -2604,8 +2604,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const reviewDetail = review === null
             ? 'Doctor work status unavailable'
             : review
-                ? 'Secretary-entered patient work still needs a doctor'
-                : 'No patient work is waiting for a doctor';
+                ? 'Incomplete CF4, Nasal and Laryngeal reports need doctor work'
+                : 'No reports are waiting for doctor work'
         host.innerHTML = [
             item('Doctor work', review, reviewDetail, '#dashQueueCard', 'review'),
             item('Offline sync', pending, offlineDetail, pageUrl('offlineWorkspace.html'), 'offline')
@@ -2678,6 +2678,18 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                                    // is still well under how long a secretary
                                    // takes to look up from one task to the next.
 
+    function uniqueQueueRecords(rows) {
+        const seen = new Set();
+        return rows.filter(function (row) {
+            const recordKey = String(row.record_key || '').trim();
+            if (!recordKey) return true;
+            const identity = String(row.report_type || '').toLowerCase() + '|' + recordKey;
+            if (seen.has(identity)) return false;
+            seen.add(identity);
+            return true;
+        });
+    }
+
     async function loadQueueRows() {
         if (!window.EntSupabase || !window.EntSupabase.isConfigured()) {
             throw new Error('The cloud database is not configured on this device.');
@@ -2707,7 +2719,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     + ((error && error.message) || (firstError && firstError.message) || String(error)));
             }
         }
-        // Same second opinion as the counters: a queue is a LIST OF PATIENTS,
+        // Same second opinion as the counters: a queue is a LIST OF REPORTS,
         // so an over-wide response here is more visible and more alarming than
         // a number being slightly too big. Filtered here too, and the notice
         // on the counters will already have said how many were hidden.
@@ -2743,24 +2755,20 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             // A formless draft stub is neither and cannot be doctor work.
             return r.isFinalized || r.saved || r.draftShared;
         });
-        return splitByScope(mapped).kept;
+        return uniqueQueueRecords(splitByScope(mapped).kept);
     }
 
 
-    // Map a creator row -> "Doctor"/"Secretary" (the human-readable role).
-    // The stored role is the source of truth: rows only carry the author's id,
-    // so we resolve staff_profiles once per browser session. A cross-clinic
-    // admin may not see every doctor's staff row, so a miss simply falls back to
-    // the name (still correct attribution, just without the role pill).
+    // Map a creator row -> "Doctor"/"Secretary" for attribution in the
+    // dashboard's recent-patient list.
     function creatorRole(row) {
         const map = staffProfileMap;
         if (!map) return '';
         const id = String((row && row.created_by) || '').trim();
         if (id) {
-            const p = map[id];
-            if (p) {
-                if (p.role === 'secretary') return 'Secretary';
-                if (p.role === 'doctor') return 'Doctor';
+            const profile = map[id];
+            if (profile && (profile.role === 'secretary' || profile.role === 'doctor')) {
+                return profile.role === 'secretary' ? 'Secretary' : 'Doctor';
             }
         }
         return '';
@@ -2809,9 +2817,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             if (isDoctorWorkComplete(row)) return false;
             if (row.doctorWorkPercent === null) return false;
             if (me && me.role === 'secretary') return isMine(row);
-            if (!me || me.role !== 'doctor' || isMine(row)) return false;
-            const role = creatorRole(row);
-            return role ? role === 'Secretary' : true;
+            return !!me && me.role === 'doctor';
         });
         return {
             review: waiting,
@@ -2929,7 +2935,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function queueSections(lists, activeView) {
         if (activeView === 'review') {
             return queueSection('&#9203; Incomplete \u00b7 Waiting for doctor', lists.review,
-                'No secretary-entered records are waiting for doctor work in the latest '
+                'No incomplete reports are waiting for doctor work in the latest '
                     + QUEUE_LIMIT + ' updated records.',
                 'wait');
         }
@@ -2958,7 +2964,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         if (hint) {
             hint.textContent = queueError
                 ? 'Could not load doctor work status from the cloud database'
-                : 'Doctor work completed at 100% and secretary-entered records still waiting for doctor work';
+                : 'Counts each incomplete CF4, Nasal and Laryngeal report once';
         }
 
         const lists = queueLists();
@@ -2983,8 +2989,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const text = byId('dashNewWorkText');
             badge.hidden = n === 0;
             if (num) num.textContent = String(n);
-            if (text) text.textContent = n === 1 ? 'Patient to complete' : 'Patients to complete';
-            badge.title = n + (n === 1 ? ' patient record needs' : ' patient records need')
+            if (text) text.textContent = n === 1 ? 'Report to complete' : 'Reports to complete';
+            badge.title = n + (n === 1 ? ' report needs' : ' reports need')
                 + ' doctor work';
         }
         refreshTicketReplies();
@@ -3001,7 +3007,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             } else {
                 pill.hidden = false;
                 pill.textContent = '\uD83D\uDC40 ' + waiting + ' waiting for doctor work';
-                pill.title = 'Secretary-entered patient records are not yet 100% complete. Tap to see them below.';
+                pill.title = 'Incomplete CF4, Nasal and Laryngeal reports. Each report is counted once. Tap to see them below.';
             }
         }
 

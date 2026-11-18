@@ -6,7 +6,7 @@
     <title>Nasal Endoscopy Report</title>
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
+    <link rel="stylesheet" href="../style/index.css?v=v34d-hidden-camera-file">
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
     <link rel="stylesheet" href="../style/patient-records.css?v=v36h">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
@@ -359,6 +359,7 @@
                 <div class="form-group">
                     <label for="imageInput" class="form-label">Attach Endoscopy Images</label>
                     <input type="file" id="imageInput" multiple accept="image/*">
+                    <input type="file" id="cameraFileInput" accept="image/*" capture="environment" hidden>
                     <button type="button" id="capturePhotoBtn" class="custom-file-label">📷 Capture Photo</button>
                     <button type="button" id="clearImagesBtn" class="btn-clear-images"><span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 15H6L5 6m4 4v7m6-7v7"/></svg></span> Clear Images</button>
                     <div id="preview" class="image-preview"></div>
@@ -466,9 +467,38 @@
                 <img id="imageToCrop" src="" alt="Image to crop" style="max-width: 100%;">
             </div>
             <div class="actions" style="border-top: none; padding-top: 10px;">
-                <button type="button" id="cropButton">Crop & Add</button>
-                <button type="button" id="skipCropButton" class="btn-secondary">Skip & Add Original</button>
+                <button type="button" id="cropButton">Apply Crop</button>
+                <button type="button" id="skipCropButton" class="btn-secondary">Use Original</button>
                 <button type="button" id="cancelCropButton" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageDetailsModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="imageDetailsTitle">
+        <div class="modal-content image-details-modal">
+            <div class="image-details-heading">
+                <span class="image-details-icon" aria-hidden="true">✦</span>
+                <div>
+                    <h2 id="imageDetailsTitle">Image Finding</h2>
+                    <p>Add a finding and description for this endoscopy image.</p>
+                </div>
+            </div>
+            <div class="image-details-layout">
+                <div class="image-details-preview-wrap">
+                    <img id="imageDetailsPreview" src="" alt="Selected endoscopy image">
+                    <span>Image preview · original preserved unless cropped</span>
+                </div>
+                <div class="image-details-fields">
+                    <label for="imageFinding">Name of finding <span aria-hidden="true">*</span></label>
+                    <input type="text" id="imageFinding" maxlength="120" placeholder="e.g., Right nasal cavity" required>
+                    <label for="imageDescription">Description</label>
+                    <textarea id="imageDescription" rows="4" maxlength="500" placeholder="Describe the finding shown in this image"></textarea>
+                    <button type="button" id="cropPendingImageButton" class="image-details-crop">Crop image (optional)</button>
+                </div>
+            </div>
+            <div class="image-details-actions">
+                <button type="button" id="skipPendingImageButton" class="btn-secondary">Skip Image</button>
+                <button type="button" id="addImageWithDetailsButton">Add Image</button>
             </div>
         </div>
     </div>
@@ -491,7 +521,7 @@
      re-created the duplicates after a clean delete (38 -> 69 on every refresh). -->
     <script src="../function/draftsBrowser.js?v=v35g" defer></script>
     <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
-    <script src="../function/index.js?v=v36o-live-camera-capture" defer></script>
+    <script src="../function/index.js?v=v36aa-pwa-camera-work-count" defer></script>
     <script src="../function/formExitGuard.js?v=v3" defer></script>
     
 </body>

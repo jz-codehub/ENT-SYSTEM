@@ -451,8 +451,9 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
 
   ok('T23', 'the queue names the saver', q().includes('Tara Bautista'), q().slice(0, 60))
   ok('T24', 'the queue never prints a raw uuid', !q().includes('94978594-'))
-  ok('T25', 'the doctor\'s own row stays out of "Waiting for doctor" (isMine by id now works)',
-     q().includes('QUEUE PATIENT') && !q().includes('OWN QUEUE PATIENT'))
+  ok('T25', 'all incomplete reports include the doctor\'s own report',
+     q().includes('QUEUE PATIENT') && q().includes('OWN QUEUE PATIENT')
+       && env.nodes.dashQueuePill.textContent.includes('2 waiting for doctor work'))
   ok('T25b', 'a formless draft row is not offered as work waiting for anybody',
      !q().includes('GHOST, ROW'), 'nothing in that row could ever be opened')
 }

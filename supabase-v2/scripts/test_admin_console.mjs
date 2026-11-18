@@ -1342,7 +1342,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
          && /notificationCenter\.js\?v=v9-shared-notification-design/.test(html)
          && /notifications\.css\?v=v11-shared-notification-design/.test(html)
        && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
-       && /function\/index\.js\?v=v36-settings-workspace/.test(settingsHtml)
+       && /function\/index\.js\?v=v36z-physician-scope-fix/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
        && /class="header-user-slot" id="headerUserSlot"/.test(settingsHtml)
        && Number((readFileSync(join(APP, 'sw.js'), 'utf8')
