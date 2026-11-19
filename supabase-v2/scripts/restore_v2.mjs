@@ -29,10 +29,12 @@
          working. If a login ever fails, use "Forgot password" — the emails
          are preserved. PHASE 1 needs NO credentials: it only writes SQL.)
 
-     PHASE 2 — data (recreate clinics, staff, reports, photos)
+     PHASE 2 — data (recreate clinics, staff, signatures, reports, photos)
         node supabase-v2/scripts/restore_v2.mjs supabase-v2/backup/v2-<stamp> --data --confirm-write --target-project=<new-project-ref>
-        Restores clinics -> staff_profiles -> reports -> report_photos in
-        FK order, by uuid, idempotently (safe to re-run).
+        Restores clinics -> staff_profiles -> doctor_signatures -> reports
+        -> report_versions -> report_photos in FK order, by uuid, idempotently
+        (safe to re-run). Older full backups without signatures or report
+        history remain supported.
 
      VALIDATE — verify files and hashes without contacting Supabase
         node supabase-v2/scripts/restore_v2.mjs supabase-v2/backup/v2-<stamp> --check
@@ -97,6 +99,7 @@ if (!manifest.storage || manifest.storage.bucket !== 'patient-photos'
 const TABLES = [
   ['clinics', 'id'],
   ['staff_profiles', 'id'],
+  ['doctor_signatures', 'doctor_id'],
   ['reports', 'id'],
   ['report_versions', 'id'],
   ['report_photos', 'id'],
@@ -110,8 +113,9 @@ const TABLES = [
   ['report_access_requests', 'id'],
   ['secretary_assignments', 'secretary_id,doctor_id']
 ]
+const OPTIONAL_FULL_TABLES = new Set(['report_versions', 'doctor_signatures'])
 for (const [table] of TABLES) {
-  if (table === 'report_versions' && !manifest.tables?.[table]) continue
+  if (OPTIONAL_FULL_TABLES.has(table) && !manifest.tables?.[table]) continue
   if (!manifest.tables || !manifest.tables[table]
     || !Number.isInteger(manifest.tables[table].rows)
     || !/^[a-f0-9]{64}$/.test(manifest.tables[table].sha256 || '')) {
@@ -185,7 +189,7 @@ const checkPhotoArchive = photoRows => {
 if (phase === '--check') {
   try {
     for (const [table] of TABLES) {
-      if (table === 'report_versions' && !manifest.tables?.[table]) continue
+      if (OPTIONAL_FULL_TABLES.has(table) && !manifest.tables?.[table]) continue
       const rows = readJson(`${table}.json`, manifest.tables[table].sha256)
       if (rows.length !== manifest.tables[table].rows) {
         throw new Error(`${table}: manifest expected ${manifest.tables[table].rows} rows, file contains ${rows.length}.`)
@@ -344,7 +348,7 @@ async function restorePhotoObjects(photoRows) {
 const restoredCounts = {}
 try {
   for (const [table, conflictColumns] of TABLES) {
-    if (table === 'report_versions' && !manifest.tables?.[table]) continue
+    if (OPTIONAL_FULL_TABLES.has(table) && !manifest.tables?.[table]) continue
     const rows = readJson(`${table}.json`, manifest.tables[table].sha256)
     const expected = manifest.tables[table].rows
     if (rows.length !== expected) {

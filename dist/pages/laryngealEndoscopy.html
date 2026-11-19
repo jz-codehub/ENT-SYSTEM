@@ -6,9 +6,10 @@
     <title>Laryngeal Endoscopy Report</title>
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
-    <link rel="stylesheet" href="../style/index.css?v=v34d-hidden-camera-file">
+    <link rel="stylesheet" href="../style/index.css?v=v39-signature-confirm-front">
     <link rel="stylesheet" href="../css/lib/cropper.min.css">
-    <link rel="stylesheet" href="../style/patient-records.css?v=v36j-report-version-history">
+    <link rel="stylesheet" href="../style/patient-records.css?v=v37-primary-drafts-modal">
+    <link rel="stylesheet" href="../style/doctor-signature.css?v=v5-signature-action-layout">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
     <link rel="stylesheet" href="../style/mobile.css?v=v29-mobile-user-admin-header">
 </head>
@@ -345,6 +346,15 @@
                         <label for="physician" class="form-label">Surgeon:</label>
                         <select id="physician" name="physician" required>
                         </select>
+                        <div class="doctor-signature-controls">
+                            <button type="button" id="manageDoctorSignature" class="doctor-signature-manage-button" hidden>Set my signature</button>
+                            <small id="doctorSignatureStatus" class="doctor-signature-status" aria-live="polite"></small>
+                        </div>
+                        <div id="doctorSignaturePreview" class="doctor-signature-preview" aria-live="polite">
+                            <strong class="doctor-signature-preview-label">Surgeon signature preview</strong>
+                            <img id="doctorSignaturePreviewImage" alt="" hidden>
+                            <small id="doctorSignaturePreviewStatus" class="doctor-signature-status">No signature preview loaded.</small>
+                        </div>
                     </div>
                     <!-- NEW: Assistant Surgeon Field -->
                     <div class="form-group">
@@ -378,6 +388,28 @@
         </div>
         <div id="printDiv" style="display:none;"></div>
     </main>
+
+    <div id="signatureModal" class="modal-overlay doctor-signature-modal" style="display:none;"
+        role="dialog" aria-modal="true" aria-labelledby="doctorSignatureModalTitle">
+        <div class="modal-content doctor-signature-modal-content">
+            <h2 id="doctorSignatureModalTitle">My Digital Signature</h2>
+            <p class="doctor-signature-help">Draw with a mouse, stylus, or finger. This signature belongs to your doctor account; your assigned secretary can preview it.</p>
+            <div class="signature-pad-container">
+                <canvas id="signature-pad" aria-label="Draw your personal signature"></canvas>
+            </div>
+            <p id="doctorSignatureModalStatus" class="doctor-signature-status" aria-live="polite"></p>
+            <div class="doctor-signature-actions">
+                <div class="doctor-signature-tool-actions">
+                    <button type="button" id="clearSignatureBtn" class="btn-secondary">Clear Drawing</button>
+                    <button type="button" id="deleteDoctorSignatureBtn" class="btn-signature-danger" hidden>Remove Saved Signature</button>
+                </div>
+                <div class="doctor-signature-primary-actions">
+                    <button type="button" id="cancelSignatureBtn" class="btn-secondary">Cancel</button>
+                    <button type="button" id="saveSignatureBtn" disabled>Save Signature</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="cameraModal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
         <div class="modal-content" style="width:90vw; max-width:640px;">
@@ -497,13 +529,14 @@
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/auth.js?v=v36p-admin-clinic-context" defer></script>
     <script src="../function/clinicSuggestions.js?v=v1" defer></script>
+    <script src="../function/doctorSignature.js?v=v5-remove-signature-confirm" defer></script>
     <script src="../function/syncEngine.js?v=v35d" defer></script>
     <script src="../function/offlineStore.js?v=v35b" defer></script>
     <script src="../function/patientRecords.js?v=v33ak" defer></script>
     <script src="../function/dbRecords.js?v=v39-report-version-history" defer></script>
     <script src="../function/draftsBrowser.js?v=v35g" defer></script>
     <!-- index.js?v=v35d carries offline form snapshots into the pending-sync queue. -->
-    <script src="../function/index.js?v=v36af-clinic-suggestions" defer></script>
+    <script src="../function/index.js?v=v37-signature-confirm-bridge" defer></script>
     <script src="../function/formExitGuard.js?v=v3" defer></script>
     
 </body>

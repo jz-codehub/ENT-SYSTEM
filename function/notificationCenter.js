@@ -70,8 +70,19 @@
         var time = formatCreatedAt(row.created_at);
         var readClass = row.read_at ? 'is-read' : 'is-unread';
         var readLabel = row.read_at ? 'Read' : 'Unread';
-        var content = '<span class="ent-notification-kind">' + esc(kindLabel(row.kind)) + '</span>'
+        var patientName = row.kind === 'doctor_work_complete'
+            ? String(row.patient_name || '').trim()
+            : '';
+        var completionIcon = row.kind === 'doctor_work_complete'
+            ? '<span class="ent-notification-complete-check" role="img" aria-label="Completed" title="Completed">'
+                + '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">'
+                + '<path d="m3.2 8.2 3.1 3.1 6.5-6.6"></path></svg></span>'
+            : '';
+        var content = '<span class="ent-notification-kind">' + completionIcon + esc(kindLabel(row.kind)) + '</span>'
             + '<strong>' + esc(row.title) + '</strong>'
+            + (patientName
+                ? '<span class="ent-notification-patient">Patient: <strong>' + esc(patientName) + '</strong></span>'
+                : '')
             + '<span class="ent-notification-body">' + esc(row.body) + '</span>'
             + '<span class="ent-notification-meta">'
             + (time ? '<time datetime="' + esc(row.created_at) + '">' + esc(time) + '</time>' : '')
@@ -121,6 +132,36 @@
         }
     }
 
+    async function addCompletionPatientNames(notifications) {
+        var reportIds = Array.from(new Set(notifications
+            .filter(function (row) {
+                return row && row.kind === 'doctor_work_complete'
+                    && /^[0-9a-f-]{36}$/i.test(String(row.source_id || ''));
+            })
+            .map(function (row) { return String(row.source_id); })));
+        if (!reportIds.length) return notifications;
+
+        // Read names from source reports under report RLS; keep patient data out of notification rows.
+        var query = new URLSearchParams();
+        query.set('select', 'id,patient_name');
+        query.set('id', 'in.(' + reportIds.join(',') + ')');
+        try {
+            var reports = await api('/reports?' + query.toString());
+            if (!Array.isArray(reports)) throw new Error('The patient-name response was not a list.');
+            var namesById = Object.create(null);
+            reports.forEach(function (report) {
+                if (report && report.id) namesById[String(report.id)] = String(report.patient_name || '').trim();
+            });
+            return notifications.map(function (row) {
+                if (!row || row.kind !== 'doctor_work_complete') return row;
+                return Object.assign({}, row, { patient_name: namesById[String(row.source_id || '')] || '' });
+            });
+        } catch (error) {
+            console.error('[Notifications] Could not load patient names for completed Doctor work.', error);
+            return notifications;
+        }
+    }
+
     async function load() {
         if (!userId) return;
         if (!navigator.onLine) {
@@ -130,12 +171,12 @@
         }
         loadState = 'loading';
         var unreadQuery = new URLSearchParams();
-        unreadQuery.set('select', 'id,kind,title,body,target_url,created_at,read_at');
+        unreadQuery.set('select', 'id,kind,title,body,target_url,source_id,created_at,read_at');
         unreadQuery.set('read_at', 'is.null');
         unreadQuery.set('order', 'created_at.desc');
         unreadQuery.set('limit', '30');
         var recentQuery = new URLSearchParams();
-        recentQuery.set('select', 'id,kind,title,body,target_url,created_at,read_at');
+        recentQuery.set('select', 'id,kind,title,body,target_url,source_id,created_at,read_at');
         recentQuery.set('order', 'created_at.desc');
         recentQuery.set('limit', '10');
         try {
@@ -153,7 +194,7 @@
                 .forEach(function (row) {
                     if (!merged.some(function (existing) { return existing.id === row.id; })) merged.push(row);
                 });
-            rows = merged;
+            rows = await addCompletionPatientNames(merged);
             unreadCount = Math.max(0, Number(result[2]) || 0);
             loadState = 'ready';
             render();

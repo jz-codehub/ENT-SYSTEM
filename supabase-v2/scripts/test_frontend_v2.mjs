@@ -128,6 +128,131 @@ is('T1', 'supabaseClient + photoStore + auth load as a module graph',
 
 const S = win.EntSupabase, A = win.EntAuth
 
+const reportSource = readFileSync(join(APP, 'function', 'index.js'), 'utf8')
+const procedureTemplateSource = reportSource.match(/function getProcedureTemplate\(type, scope = ''\) \{[\s\S]*?\n    \}/)
+const clearFormSource = reportSource.match(/function clearFormWithoutConfirmation\(saveBackup = false\) \{[\s\S]*?\n    \}/)
+function clearsToProcedureDefault(reportType) {
+  if (!procedureTemplateSource || !clearFormSource) return false
+  const endoscopyType = { type: 'textarea', tagName: 'TEXTAREA', value: 'old scope' }
+  const procedureDescription = {
+    type: 'textarea',
+    tagName: 'TEXTAREA',
+    value: 'old description',
+    events: [],
+    dispatchEvent(event) { this.events.push(event.type) }
+  }
+  const elements = {
+    procedureDate: { type: 'date', tagName: 'INPUT', value: 'old date' },
+    endoscopyType,
+    procedureDescription
+  }
+  const sandbox = {
+    reportForm: { elements: Object.values(elements) },
+    currentReportType: reportType,
+    defaultSurgeonName: '',
+    lastClearedData: null,
+    getFormData: () => ({ procedureDescription: 'old description' }),
+    getTodayDate: () => '2026-01-01',
+    localStorage: { getItem: () => null },
+    selectedImages: ['old image'],
+    selectedImageDetails: [{ finding: 'old finding' }],
+    refreshPreview() {},
+    Event: class { constructor(type) { this.type = type } },
+    document: { getElementById: id => elements[id] || null },
+    window: { PatientRecords: { startNewReport() {} } }
+  }
+  const reset = vm.runInNewContext(
+    `(() => { ${procedureTemplateSource[0]} ${clearFormSource[0]}; return clearFormWithoutConfirmation; })()`,
+    sandbox
+  )
+  reset(true)
+  return procedureDescription.value.trim().length > 0
+    && procedureDescription.value !== 'old description'
+    && procedureDescription.events.includes('input')
+    && sandbox.selectedImages.length === 0
+    && sandbox.selectedImageDetails.length === 0
+    && endoscopyType.value === ''
+    && procedureDescription.value.includes('[select endoscopy]')
+}
+is('PD1', 'Clear/New clears nasal endoscopy type and restores the description default',
+   clearsToProcedureDefault('nasal'))
+is('PD2', 'Clear/New clears laryngeal endoscopy type and restores the description default',
+   clearsToProcedureDefault('laryngeal'))
+
+const confirmSource = reportSource.match(/function showCustomConfirm\(message, callback, title = 'Confirmation', options = \{\}\) \{[\s\S]*?\n    \}/)
+const confirmClasses = new Set()
+const modal = { style: {} }
+const confirmTitle = { textContent: '' }
+const confirmText = { textContent: '' }
+const confirmButton = {
+  style: {},
+  textContent: '',
+  onclick: null,
+  classList: {
+    add: value => confirmClasses.add(value),
+    remove: value => confirmClasses.delete(value)
+  }
+}
+const cancelButton = { style: {}, onclick: null }
+function newFormConfirmationIsHighlighted() {
+  if (!confirmSource) return false
+  const sandbox = {
+    messageModal: modal,
+    msgModalTitle: confirmTitle,
+    msgModalText: confirmText,
+    msgModalOkBtn: confirmButton,
+    msgModalCancelBtn: cancelButton
+  }
+  const showConfirm = vm.runInNewContext(
+    `(() => { ${confirmSource[0]}; return showCustomConfirm; })()`,
+    sandbox
+  )
+  let confirmed = null
+  showConfirm('Start a new blank form?', value => { confirmed = value }, 'New Form',
+    { label: 'New Form', highlightNewForm: true })
+  const newFormIsProminent = modal.style.display === 'flex'
+    && confirmTitle.textContent === 'New Form'
+    && confirmButton.textContent === 'New Form'
+    && confirmClasses.has('new-form-confirm-button')
+  confirmButton.onclick()
+  showConfirm('Another confirmation?', () => {}, 'Confirmation')
+  return newFormIsProminent
+    && confirmed === true
+    && !confirmClasses.has('new-form-confirm-button')
+    && confirmButton.textContent === 'Yes'
+}
+const newFormHandlerSource = reportSource.match(/getElementById\('newFormBtn'\)\?\.addEventListener[\s\S]*?\n        \}\);/)
+const reportStyles = readFileSync(join(APP, 'style', 'index.css'), 'utf8')
+const nasalFormHtml = readFileSync(join(APP, 'pages', 'nasalEndoscopy.html'), 'utf8')
+const laryngealFormHtml = readFileSync(join(APP, 'pages', 'laryngealEndoscopy.html'), 'utf8')
+is('NF1', 'New Form button and modal action use the teal highlight',
+   newFormConfirmationIsHighlighted()
+     && !!newFormHandlerSource
+     && /label: 'New Form', highlightNewForm: true/.test(newFormHandlerSource[0])
+     && /#msgModalOkBtn\.new-form-confirm-button\s*\{\s*background: linear-gradient\(135deg, #0d9488, #0f766e\)/.test(reportStyles)
+     && /\.group-output #newFormBtn\s*\{\s*background: linear-gradient\(135deg, #0d9488, #0f766e\) !important;\s*color: #fff !important;/.test(reportStyles)
+     && /index\.css\?v=v39-signature-confirm-front/.test(nasalFormHtml)
+     && /index\.css\?v=v39-signature-confirm-front/.test(laryngealFormHtml))
+const dashboardHtml = readFileSync(join(APP, 'index.html'), 'utf8')
+is('PWA1', 'iOS install instructions use clean steps in the shared modal',
+   /<div id="installModal" class="modal-overlay"/.test(dashboardHtml)
+     && /id="installModal"[\s\S]*?<h2[^>]*>Install App<\/h2>[\s\S]*?<div id="installModalText" class="install-modal-description">/.test(dashboardHtml)
+     && /modalText\.innerHTML = `[\s\S]*?class="install-ios-steps"[\s\S]*?Add to Home Screen/.test(reportSource)
+     && /#installModal \.install-ios-steps li\s*\{[\s\S]*?display: flex;[\s\S]*?border-radius: 10px;/.test(reportStyles)
+     && /#installModal \.install-ios-step-number\s*\{[\s\S]*?background: var\(--primary-color\);/.test(reportStyles)
+     && /index\.css\?v=v35-ios-install-steps/.test(dashboardHtml)
+     && /index\.js\?v=v38-ios-install-steps/.test(dashboardHtml))
+const draftsStyles = readFileSync(join(APP, 'style', 'patient-records.css'), 'utf8')
+const draftsModalPages = ['cf4Form.html', 'nasalEndoscopy.html', 'laryngealEndoscopy.html']
+  .map(name => readFileSync(join(APP, 'pages', name), 'utf8'))
+const draftsHeaderRule = draftsStyles.match(/#localDraftsModal \.ent-drafts-header,\s*#offlineRecordsModal \.ent-drafts-header\s*\{[\s\S]*?\n\}/)
+is('DR1', 'Offline Records and My Drafts share the primary-color modal header',
+   !!draftsHeaderRule
+     && draftsHeaderRule[0].includes('var(--primary-color, #0ea5e9)')
+     && draftsHeaderRule[0].includes('var(--primary-hover-color, #0284c7)')
+     && !/#offlineRecordsModal\s+\.ent-drafts-header\s*\{\s*background:/.test(draftsStyles)
+     && draftsModalPages.every(page => page.includes('patient-records.css?v=v37-primary-drafts-modal')))
+
 const need = {
   EntSupabase: ['apiRequest', 'isConfigured', 'getConfig', 'getClient', 'getAccessToken', 'onAuthChange'],
   EntAuth: ['login', 'logout', 'setPassword', 'guard', 'boot', 'ready', 'refreshProfile',

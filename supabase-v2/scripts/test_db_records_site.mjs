@@ -385,6 +385,10 @@ const nonFollowUpPrompts = (env) =>
      !!saveEvent && saveEvent[2] === 'report'
        && saveEvent[3] === '00000000-0000-0000-0000-000000000055'
        && !String(saveEvent[1]).includes('ZZSITE'))
+  const saveDiagnostic = JSON.parse(env.win.localStorage.getItem('entLastDbSaveDiagnosticV1') || 'null')
+  is('P18', 'a successful real database save is available to admin diagnostics',
+     !!saveDiagnostic && saveDiagnostic.status === 'success'
+       && !('patientName' in saveDiagnostic) && !('formData' in saveDiagnostic))
 }
 
 /* ---- a rejected cloud write is never silent or success-shaped -------- */
@@ -409,6 +413,13 @@ const nonFollowUpPrompts = (env) =>
      env.win.EntDbRecords.readSavedKeys().size === 0)
   is('E4b', 'a failed write does not create a SAVE_RECORD activity event',
      env.activityEvents.every(event => event[0] !== 'SAVE_RECORD'))
+  const saveDiagnostic = JSON.parse(env.win.localStorage.getItem('entLastDbSaveDiagnosticV1') || 'null')
+  is('E4c', 'a rejected real database save stores a safe diagnostic code',
+     !!saveDiagnostic && saveDiagnostic.status === 'failed'
+       && saveDiagnostic.code === 'PERMISSION_DENIED'
+       && saveDiagnostic.httpStatus === 403
+       && saveDiagnostic.serverCode === '42501'
+       && !('patientName' in saveDiagnostic) && !('formData' in saveDiagnostic))
 }
 
 {
@@ -419,6 +430,10 @@ const nonFollowUpPrompts = (env) =>
      env.reportRows().some(row => row.is_draft === false)
        && message.includes('REPORT SAVED')
        && !message.includes('NOT SAVED TO DATABASE'))
+  const saveDiagnostic = JSON.parse(env.win.localStorage.getItem('entLastDbSaveDiagnosticV1') || 'null')
+  is('E5b', 'a post-save confirmation error is still diagnosed as a successful database write',
+     !!saveDiagnostic && saveDiagnostic.status === 'success'
+       && saveDiagnostic.confirmationIssue === true)
 }
 
 /* ---- the duplicate prompt is TYPE-AWARE ------------------------------ */

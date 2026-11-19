@@ -4,14 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Console - ENT Endoscopy System</title>
+    <script>
+        window.__entAdminRuntimeDiagnostics = { count: 0, types: Object.create(null) };
+        window.addEventListener('error', function (event) {
+            const state = window.__entAdminRuntimeDiagnostics;
+            state.count++;
+            const type = event && event.error && event.error.name
+                ? String(event.error.name)
+                : (event && event.message ? 'Script or resource error' : 'Unknown runtime error');
+            state.types[type] = (state.types[type] || 0) + 1;
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+            const state = window.__entAdminRuntimeDiagnostics;
+            state.count++;
+            const reason = event && event.reason;
+            const type = reason && reason.name ? String(reason.name) : 'Unhandled promise rejection';
+            state.types[type] = (state.types[type] || 0) + 1;
+        });
+    </script>
     <link rel="icon" href="../image/ent-logo.webp">
     <link rel="manifest" href="../manifest.json">
     <link rel="stylesheet" href="../style/index.css?v=v34a-option-design">
     <link rel="stylesheet" href="../style/auth.css?v=v33an-clinic-picker">
-    <link rel="stylesheet" href="../style/notifications.css?v=v11-shared-notification-design">
+    <link rel="stylesheet" href="../style/notifications.css?v=v13-doctor-work-patient-name">
     <link rel="stylesheet" href="../style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="../style/mobile.css?v=v29-mobile-user-admin-header">
-    <link rel="stylesheet" href="../style/admin.css?v=v68-admin-drawer-close">
+    <link rel="stylesheet" href="../style/admin.css?v=v69-admin-diagnostics">
 </head>
 <body class="ent-admin-page">
     <!-- Header: the actions row is a normal flex child now, so the sign-out
@@ -1105,6 +1123,23 @@
                     </a>
                 </section>
             </div>
+
+            <section class="ent-admin-subcard ent-settings-card ent-system-diagnostics" aria-labelledby="adminDiagnosticsHeading">
+                <header class="ent-diagnostics-header">
+                    <div>
+                        <h3 id="adminDiagnosticsHeading"><span class="ent-settings-ic" aria-hidden="true">&#128295;</span> System diagnostics</h3>
+                        <p class="ent-hint">
+                            Check database access, report-save readiness, app files, offline support, browser storage and runtime errors.
+                            Database checks are read-only; the latest real report-save result is checked without creating test patient data.
+                        </p>
+                    </div>
+                    <button type="button" class="ent-btn primary" id="runAdminDiagnosticsBtn">Run diagnostics</button>
+                </header>
+                <p class="ent-diagnostics-summary" id="adminDiagnosticsSummary" role="status" aria-live="polite">
+                    Run a check to see the current system status.
+                </p>
+                <div class="ent-diagnostics-results" id="adminDiagnosticsResults" aria-live="polite"></div>
+            </section>
         </section>
         </div><!-- /.ent-admin-body -->
     </main>
@@ -1280,9 +1315,9 @@
     <script src="../function/supabaseClient.js" defer></script>
     <script src="../function/photoStore.js?v=v31ai" defer></script>
     <script src="../function/auth.js?v=v36p-admin-clinic-context" defer></script>
-    <script src="../function/notificationCenter.js?v=v9-shared-notification-design" defer></script>
+    <script src="../function/notificationCenter.js?v=v11-doctor-work-patient-name" defer></script>
     <script src="../function/messagesPage.js?v=v15-close-icon" defer></script>
     <script src="../function/offlineStore.js"></script>
-    <script src="../function/admin.js?v=v60-save-activity-record-link" defer></script>
+    <script src="../function/admin.js?v=v61-admin-diagnostics" defer></script>
 </body>
 </html>

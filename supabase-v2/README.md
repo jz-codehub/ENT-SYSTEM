@@ -28,9 +28,10 @@ deleted rows, and auth accounts are excluded. The reminder state is per
 browser/device.
 
 The manual `backup_v2.mjs --full` archive includes 90-day report-version
-snapshots when migration 0056 is installed; metadata-only backups omit them.
-These snapshots contain clinical report data, so keep the full backup private.
-`restore_v2.mjs` accepts older full backups that predate the history table.
+snapshots and per-doctor signature images when migrations 0056 and 0057 are
+installed; metadata-only backups omit both. These include clinical report
+data and personal signatures, so keep full backups private. `restore_v2.mjs`
+accepts older full backups that predate either table.
 
 ## What changes, in one line each
 
@@ -78,6 +79,7 @@ These snapshots contain clinical report data, so keep the full backup private.
 | `migrations/0054_clinic_clinical_suggestions.sql` | Backfills and maintains allowlisted, clinic-scoped clinical suggestions behind a server-validated RPC |
 | `migrations/0055_clinic_doctor_work_counts.sql` | Adds the active-clinic doctor-work index and a single final-saved-only RPC for matching totals and patient/date status rows |
 | `migrations/0056_report_version_history.sql` | Adds RLS-scoped, data-only report snapshots with restore support and a daily 90-day pg_cron purge; current photo attachments are preserved |
+| `migrations/0057_doctor_signatures.sql` | Stores each active doctor's PNG signature; the doctor manages it and assigned secretaries can preview it |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing

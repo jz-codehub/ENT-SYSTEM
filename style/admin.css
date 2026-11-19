@@ -8250,6 +8250,107 @@ body.dark-mode #panel-tickets > .ent-hint {
 .ent-settings-card.is-roles .ent-settings-roles { padding: 0; }
 .ent-settings-card.is-link .ent-btn { margin-top: 2px; }
 
+.ent-system-diagnostics { min-width: 0; }
+
+.ent-diagnostics-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.ent-diagnostics-header > div { min-width: 0; }
+
+.ent-diagnostics-header .ent-btn {
+    flex: 0 0 auto;
+    min-height: 36px;
+}
+
+.ent-diagnostics-summary {
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: .68rem;
+    font-weight: 720;
+}
+
+.ent-diagnostics-summary.is-ok {
+    border-color: rgba(39, 174, 96, .3);
+    background: rgba(39, 174, 96, .08);
+    color: #21804a;
+}
+
+.ent-diagnostics-summary.is-warning {
+    border-color: rgba(243, 156, 18, .35);
+    background: rgba(243, 156, 18, .09);
+    color: #9a6200;
+}
+
+.ent-diagnostics-summary.is-error {
+    border-color: rgba(231, 76, 60, .35);
+    background: rgba(231, 76, 60, .08);
+    color: #b83226;
+}
+
+.ent-diagnostics-summary.is-running { color: var(--secondary-text-color); }
+
+.ent-diagnostics-results {
+    display: grid;
+    gap: 7px;
+}
+
+.ent-diagnostic-row {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--panel-bg-color);
+}
+
+.ent-diagnostic-status {
+    padding: 4px 5px;
+    border-radius: 6px;
+    background: var(--primary-light);
+    color: var(--primary-hover-color);
+    font-size: .54rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.ent-diagnostic-row.is-error .ent-diagnostic-status {
+    background: rgba(231, 76, 60, .1);
+    color: #b83226;
+}
+
+.ent-diagnostic-row.is-warning .ent-diagnostic-status {
+    background: rgba(243, 156, 18, .12);
+    color: #9a6200;
+}
+
+.ent-diagnostic-row.is-ok .ent-diagnostic-status {
+    background: rgba(39, 174, 96, .1);
+    color: #21804a;
+}
+
+.ent-diagnostic-name {
+    color: var(--text-color);
+    font-size: .66rem;
+}
+
+.ent-diagnostic-detail {
+    margin: 2px 0 0;
+    color: var(--secondary-text-color);
+    font-size: .61rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 980px) {
     .ent-db-details-grid { grid-template-columns: 1fr; }
     .ent-trash-row { grid-template-columns: 1fr; gap: 10px; }
@@ -8279,6 +8380,8 @@ body.dark-mode #panel-tickets > .ent-hint {
     }
     .ent-settings-grid { grid-template-columns: 1fr; gap: 9px; }
     .ent-settings-card.is-flags { grid-row: auto; }
+    .ent-diagnostics-header { flex-direction: column; }
+    .ent-diagnostics-header .ent-btn { width: 100%; }
     .ent-trash-row { padding: 13px; }
     .ent-trash-side { align-items: flex-start; }
     .ent-trash-hero-actions > .ent-btn { flex: 0 0 auto; }
@@ -8318,6 +8421,21 @@ body.dark-mode .ent-settings-ic {
     border-color: var(--border-color);
     background: var(--primary-light);
     color: var(--primary-color);
+}
+
+body.dark-mode .ent-diagnostics-summary.is-ok,
+body.dark-mode .ent-diagnostic-row.is-ok .ent-diagnostic-status {
+    color: #8de0ad;
+}
+
+body.dark-mode .ent-diagnostics-summary.is-warning,
+body.dark-mode .ent-diagnostic-row.is-warning .ent-diagnostic-status {
+    color: #ffd277;
+}
+
+body.dark-mode .ent-diagnostics-summary.is-error,
+body.dark-mode .ent-diagnostic-row.is-error .ent-diagnostic-status {
+    color: #ffaaa1;
 }
 
 body.dark-mode .ent-trash-count {

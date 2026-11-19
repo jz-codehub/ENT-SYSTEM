@@ -16,7 +16,7 @@
 
    Usage:
      node supabase-v2/scripts/backup_v2.mjs             (metadata-only reports)
-     node supabase-v2/scripts/backup_v2.mjs --full      (payloads + stored photos)
+     node supabase-v2/scripts/backup_v2.mjs --full      (payloads + photos + signatures/history)
    Writes sensitive output to supabase-v2/backup/v2-<timestamp>/.
    ===================================================================== */
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -54,9 +54,17 @@ const TABLES = [
   { name: 'report_access_requests', order: 'id' },
   { name: 'secretary_assignments', order: 'secretary_id,doctor_id' }
 ]
-// Clinical snapshots are included only in a full backup; metadata-only
-// backups must not export report payloads through a secondary table.
-if (FULL) TABLES.splice(3, 0, { name: 'report_versions', order: 'id' })
+// Clinical snapshots and personal doctor signatures are included only in a
+// full backup; metadata-only backups must not export either sensitive table.
+const OPTIONAL_FULL_TABLES = new Set(['report_versions', 'doctor_signatures'])
+if (FULL) {
+  TABLES.splice(
+    3,
+    0,
+    { name: 'report_versions', order: 'id' },
+    { name: 'doctor_signatures', order: 'doctor_id' }
+  )
+}
 const PAGE_SIZE = 1000
 const MAX_ROWS_PER_TABLE = 1000000
 const sha256 = value => createHash('sha256').update(value).digest('hex')
@@ -148,15 +156,16 @@ let failed = false
 for (const table of TABLES) {
   const { rows: data, error } = await rows(table)
   if (error) {
-    if (table.name === 'report_versions' && /^HTTP 404\b/.test(error)) {
+    if (FULL && OPTIONAL_FULL_TABLES.has(table.name) && /^HTTP 404\b/.test(error)) {
       const content = '[]'
       writeFileSync(join(OUT, `${table.name}.json`), content)
+      const migration = table.name === 'report_versions' ? '0056' : '0057'
       manifest.tables[table.name] = {
         rows: 0,
         sha256: sha256(content),
-        note: '0056 report history is not installed; no versions were present in this backup.'
+        note: `${migration} is not installed; no ${table.name} rows were present in this backup.`
       }
-      console.warn('  skip  report_versions          0056 is not installed; no report history table exists.')
+      console.warn(`  skip  ${table.name.padEnd(24)} ${migration} is not installed; no table exists.`)
       continue
     }
     failed = true

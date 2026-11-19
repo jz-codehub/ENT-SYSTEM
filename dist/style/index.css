@@ -212,6 +212,47 @@ input:checked + .slider:before {
     transform: translateY(-1px);
 }
 
+#installModal .install-modal-description {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+#installModal .install-ios-intro {
+    margin: 0 0 12px;
+}
+
+#installModal .install-ios-steps {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+#installModal .install-ios-steps li {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--input-bg-color);
+    line-height: 1.45;
+}
+
+#installModal .install-ios-step-number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 25px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: #fff;
+    font-weight: 700;
+}
+
 /* =========================================
    INDEX PAGE - Hero & Cards
    ========================================= */
@@ -606,11 +647,11 @@ body.dark-mode .header-btn-group .btn-group-divider {
     background: linear-gradient(135deg, #8e44ad, #7d3c98);
     box-shadow: 0 3px 8px rgba(142, 68, 173, 0.4);
 }
-
-/* "New Form" starts a fresh blank form of the same type (amber = start action) */
+/* "New Form" starts a fresh blank form of the same type */
 .group-output #newFormBtn {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+    color: #fff !important;
+    box-shadow: 0 3px 8px rgba(13, 148, 136, 0.4);
 }
 
 /* TOOLS group - danger button */
@@ -956,6 +997,23 @@ input[type="file"]:disabled::file-selector-button {
     border: 1px solid var(--border-color);
 }
 
+#msgModalOkBtn.new-form-confirm-button {
+    background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+    color: #fff;
+    border: 2px solid #0f766e;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2), 0 4px 12px rgba(15, 118, 110, 0.28);
+}
+
+#msgModalOkBtn.new-form-confirm-button:focus-visible {
+    outline: 3px solid #0f766e;
+    outline-offset: 3px;
+}
+
+#messageModal.confirmation-modal-front {
+    z-index: 20000 !important;
+}
+
 /* Loading Spinner */
 .spinner {
     border: 8px solid #f3f3f3;
@@ -1179,45 +1237,58 @@ input[type="radio"] {
     }
     #printDiv {
         display: block !important;
+        width: 100% !important;
+        max-width: none !important;
         margin: 0;
+        box-sizing: border-box !important;
     }
-    /* Original print rules: fixed-height two-column row with a 220px image
-       column on the right. These must not be overridden, otherwise the layout
-       collapses to a single column. */
     .print-layout-container {
         display: flex !important;
-        gap: 15px !important;
+        align-items: stretch !important;
+        gap: 0 !important;
         padding: 0 15px !important;
         margin-bottom: 10px !important;
-        overflow: hidden !important;
+        overflow: visible !important;
+        break-inside: auto;
+    }
+    .print-layout-container.has-images {
+        gap: 15px !important;
     }
     .print-content-panel {
-        overflow: hidden !important;
+        min-width: 0 !important;
+        overflow: visible !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
+        justify-content: flex-start !important;
+    }
+    .print-content-panel p,
+    .print-content-panel div,
+    .print-content-panel span,
+    .print-content-panel li {
+        overflow-wrap: anywhere !important;
     }
     .print-image-panel {
         flex: none !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
     .image-column {
         display: flex !important;
         flex-direction: column !important;
-        overflow: hidden !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
     .image-container {
         width: 100% !important;
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
         flex-shrink: 0 !important;
     }
     .image-container img {
         width: 100% !important;
-        height: 100% !important;
     }
     .print-header-container {
         display: grid !important;
@@ -1258,9 +1329,14 @@ input[type="radio"] {
         overflow-wrap: anywhere !important;
         word-break: normal !important;
     }
+    .hospital-name-span {
+        white-space: nowrap !important;
+        overflow-wrap: normal !important;
+        word-break: keep-all !important;
+    }
     @page {
-        size: A4;
-        margin: 0;
+        size: A4 portrait;
+        margin: 6mm;
     }
     .image-print-container {
         margin-top: 0;

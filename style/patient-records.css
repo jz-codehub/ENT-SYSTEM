@@ -1701,7 +1701,7 @@ body.dark-mode .ent-db-history-btn:hover {
     gap: 12px;
     padding: 16px 18px;
     border-bottom: 1px solid var(--border-color, #e5e7eb);
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(217, 119, 6, 0.08));
+    background: linear-gradient(135deg, var(--primary-color, #0ea5e9), var(--primary-hover-color, #0284c7));
 }
 
 .ent-drafts-heading h2 {
@@ -2279,13 +2279,8 @@ body.dark-mode .ent-db-history-btn:hover {
     padding: 23px 26px;
     border: 0;
     background:
-        radial-gradient(circle at 90% 10%, rgba(125, 211, 252, 0.22), transparent 32%),
-        linear-gradient(125deg, #0c3552 0%, #075985 58%, #0284c7 100%);
-}
-#offlineRecordsModal .ent-drafts-header {
-    background:
-        radial-gradient(circle at 90% 10%, rgba(167, 243, 208, 0.2), transparent 32%),
-        linear-gradient(125deg, #123b4b 0%, #0f766e 58%, #0891b2 100%);
+        radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.2), transparent 32%),
+        linear-gradient(125deg, var(--primary-hover-color, #0284c7) 0%, var(--primary-color, #0ea5e9) 58%, var(--primary-hover-color, #0284c7) 100%);
 }
 #localDraftsModal .ent-drafts-heading h2,
 #offlineRecordsModal .ent-drafts-heading h2,

@@ -6,10 +6,10 @@
     <title>ENT Endoscopy Dashboard</title>
     <link rel="icon" href="image/ent-logo.webp">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="./style/index.css?v=v34a-option-design">
+    <link rel="stylesheet" href="./style/index.css?v=v35-ios-install-steps">
     <link rel="stylesheet" href="./style/auth.css?v=v33an-clinic-picker">
     <link rel="stylesheet" href="./style/dashboard.css?v=v43-clinic-work-totals">
-    <link rel="stylesheet" href="./style/notifications.css?v=v11-shared-notification-design">
+    <link rel="stylesheet" href="./style/notifications.css?v=v13-doctor-work-patient-name">
     <link rel="stylesheet" href="./style/messages.css?v=v15-shared-widget-theme">
     <link rel="stylesheet" href="./style/mobile.css?v=v37-dashboard-profile-menu">
 </head>
@@ -531,7 +531,7 @@
                 <img src="image/ent-logo.webp" alt="App Icon" style="width: 80px; height: 80px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
             </div>
             <h2 style="margin-top: 0; color: var(--primary-color);">Install App</h2>
-            <p style="margin-bottom: 20px; color: var(--text-color);">Install the ENT Endoscopy System on your device for quick access and offline use.</p>
+            <div id="installModalText" class="install-modal-description">Install the ENT Endoscopy System on your device for quick access and offline use.</div>
             <div class="actions" style="border-top: none; padding-top: 10px; justify-content: center;">
                 <button id="confirmInstallBtn">Install Now</button>
                 <button id="cancelInstallBtn" class="btn-secondary">Maybe Later</button>
@@ -586,7 +586,7 @@
     <script src="function/offlineStore.js"></script>
 <script src="function/photoStore.js?v=v31ai" defer></script>
 <script src="function/auth.js?v=v36p-admin-clinic-context" defer></script>
-    <script src="function/notificationCenter.js?v=v9-shared-notification-design" defer></script>
+    <script src="function/notificationCenter.js?v=v11-doctor-work-patient-name" defer></script>
     <script src="function/messagesPage.js?v=v15-close-icon" defer></script>
     <!-- v36a: offline preparation status pill (Preparing offline access /
          Offline-ready / Retry). Lives on the dashboard and the login page,
@@ -599,7 +599,7 @@
      doctor's patients being copied onto a new doctor's shelf. -->
 <script src="function/syncEngine.js?v=v35c" defer></script>
     <script src="function/patientRecords.js?v=v33ak" defer></script>
-    <script src="function/index.js?v=v36z-physician-scope-fix"></script>
+    <script src="function/index.js?v=v38-ios-install-steps"></script>
     <script src="function/dashboard.js?v=v54-clinic-doctor-work-status" defer></script>
     <script src="function/ticketForm.js?v=v33al" defer></script>
     <footer class="ent-copy no-print">

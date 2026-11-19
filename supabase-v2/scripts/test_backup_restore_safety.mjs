@@ -15,15 +15,25 @@ const ROOT = mkdtempSync(join(tmpdir(), 'ent-backup-restore-test-'))
 const FIXTURE = join(ROOT, 'backup')
 const sha256 = value => createHash('sha256').update(value).digest('hex')
 const tables = [
-  'clinics', 'staff_profiles', 'reports', 'report_versions', 'report_photos', 'activity_logs',
+  'clinics', 'staff_profiles', 'doctor_signatures', 'reports', 'report_versions', 'report_photos', 'activity_logs',
   'user_presence', 'system_flags', 'clinic_settings', 'tickets',
   'ticket_messages', 'report_access_grants', 'report_access_requests',
   'secretary_assignments'
 ]
 const backupSource = readFileSync(BACKUP, 'utf8')
 const restoreSource = readFileSync(RESTORE, 'utf8')
-assert.match(backupSource, /if \(FULL\) TABLES\.splice\(3, 0, \{ name: 'report_versions', order: 'id' \}\)/)
-assert.match(backupSource, /table\.name === 'report_versions' && \/\^HTTP 404/)
+assert.match(
+  backupSource,
+  /if \(FULL\) \{\s*TABLES\.splice\([\s\S]*?name: 'report_versions', order: 'id'[\s\S]*?name: 'doctor_signatures', order: 'doctor_id'/
+)
+assert.match(backupSource, /OPTIONAL_FULL_TABLES\.has\(table\.name\) && \/\^HTTP 404/)
+assert.ok(
+  restoreSource.indexOf("['doctor_signatures', 'doctor_id']")
+    > restoreSource.indexOf("['staff_profiles', 'id']")
+  && restoreSource.indexOf("['doctor_signatures', 'doctor_id']")
+    < restoreSource.indexOf("['reports', 'id']"),
+  'doctor signatures must restore after staff profiles'
+)
 assert.ok(
   restoreSource.indexOf("['report_versions', 'id']")
     > restoreSource.indexOf("['reports', 'id']")
@@ -31,6 +41,7 @@ assert.ok(
     < restoreSource.indexOf("['report_photos', 'id']"),
   'report versions must restore after reports and before report photos'
 )
+assert.match(restoreSource, /OPTIONAL_FULL_TABLES\.has\(table\) && !manifest\.tables\?\.\[table\]/)
 
 function writeJson(file, value) {
   const content = JSON.stringify(value)
@@ -84,13 +95,18 @@ try {
   assert.match(result.stdout, /No Supabase connection was made/)
 
   const reportVersionsEntry = manifest.tables.report_versions
+  const doctorSignaturesEntry = manifest.tables.doctor_signatures
   delete manifest.tables.report_versions
+  delete manifest.tables.doctor_signatures
   rmSync(join(FIXTURE, 'report_versions.json'))
+  rmSync(join(FIXTURE, 'doctor_signatures.json'))
   writeFileSync(join(FIXTURE, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))
   result = runRestore('--check')
   assert.equal(result.status, 0, result.stderr)
   manifest.tables.report_versions = reportVersionsEntry
+  manifest.tables.doctor_signatures = doctorSignaturesEntry
   writeJson('report_versions.json', [])
+  writeJson('doctor_signatures.json', [])
   writeFileSync(join(FIXTURE, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))
 
   manifest.complete = false

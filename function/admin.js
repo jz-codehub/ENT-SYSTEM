@@ -93,6 +93,9 @@
     let extraAssignmentsLoading = false;
     let extraAssignmentsError = '';
     let liveTimer = null;
+    const runtimeDiagnostics = window.__entAdminRuntimeDiagnostics
+        || { count: 0, types: Object.create(null) };
+    const LAST_DB_SAVE_DIAGNOSTIC_KEY = 'entLastDbSaveDiagnosticV1';
 
     /* ------------------------------- utils --------------------------- */
     function byId(id) { return document.getElementById(id); }
@@ -2989,6 +2992,309 @@ const FLAG_INFO = {
         renderSettingsFacts();
     }
 
+    function diagnosticResult(rows, status, name, detail) {
+        rows.push({ status: status, name: name, detail: detail });
+    }
+
+    function renderAdminDiagnostics(rows) {
+        const summary = byId('adminDiagnosticsSummary');
+        const results = byId('adminDiagnosticsResults');
+        const button = byId('runAdminDiagnosticsBtn');
+        if (!summary || !results) return;
+
+        const errors = rows.filter(function (row) { return row.status === 'error'; }).length;
+        const warnings = rows.filter(function (row) { return row.status === 'warning'; }).length;
+        const passed = rows.filter(function (row) { return row.status === 'ok'; }).length;
+        summary.className = 'ent-diagnostics-summary'
+            + (errors ? ' is-error' : warnings ? ' is-warning' : ' is-ok');
+        summary.textContent = errors
+            ? errors + ' problem(s), ' + warnings + ' warning(s), ' + passed + ' passed. Review the failed checks below.'
+            : warnings
+                ? 'No confirmed failures; ' + warnings + ' warning(s), ' + passed + ' passed. Review the notes below.'
+                : 'All active checks passed (' + passed + ').';
+        results.textContent = '';
+
+        rows.forEach(function (item) {
+            const row = document.createElement('div');
+            row.className = 'ent-diagnostic-row is-' + item.status;
+            const status = document.createElement('span');
+            status.className = 'ent-diagnostic-status';
+            status.textContent = item.status === 'ok' ? 'PASS'
+                : item.status === 'error' ? 'FAIL'
+                    : item.status === 'warning' ? 'CHECK' : 'INFO';
+            const copy = document.createElement('div');
+            const name = document.createElement('b');
+            name.className = 'ent-diagnostic-name';
+            name.textContent = item.name;
+            const detail = document.createElement('p');
+            detail.className = 'ent-diagnostic-detail';
+            detail.textContent = item.detail;
+            copy.appendChild(name);
+            copy.appendChild(detail);
+            row.appendChild(status);
+            row.appendChild(copy);
+            results.appendChild(row);
+        });
+        if (button) button.textContent = 'Run diagnostics again';
+    }
+
+    function diagnosticErrorDetail(error) {
+        const status = Number(error && error.status) || 0;
+        const code = String(error && (error.serverCode || error.code) || '')
+            .replace(/[^A-Z0-9_-]/gi, '').slice(0, 32);
+        if (status === 401) return 'Sign-in expired or missing (HTTP 401). Sign in again, then rerun the check.';
+        if (status === 403) return 'The signed-in account is not permitted to read this resource (HTTP 403). Check its active clinic and access role.';
+        if (status === 404) return 'The endpoint or database object was not found (HTTP 404). Verify that the current migrations are deployed.';
+        if (status) return 'Database returned HTTP ' + status + (code ? ' (' + code + ')' : '') + '. Check Supabase logs and deployed migrations.';
+        if (error && error.name === 'TimeoutError') return 'The database did not respond before the diagnostic timeout.';
+        return 'Could not reach the database. Check internet access, DNS, and the Supabase project status.';
+    }
+
+    function diagnosticTimeout(promise, milliseconds) {
+        let timer = 0;
+        return Promise.race([
+            promise,
+            new Promise(function (_, reject) {
+                timer = window.setTimeout(function () {
+                    const error = new Error('Diagnostic timed out.');
+                    error.name = 'TimeoutError';
+                    reject(error);
+                }, milliseconds);
+            })
+        ]).finally(function () {
+            if (timer) window.clearTimeout(timer);
+        });
+    }
+
+    async function runAdminDiagnostics() {
+        const button = byId('runAdminDiagnosticsBtn');
+        const summary = byId('adminDiagnosticsSummary');
+        const results = byId('adminDiagnosticsResults');
+        if (!summary || !results) return;
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Checking system...';
+        }
+        summary.className = 'ent-diagnostics-summary is-running';
+        summary.textContent = 'Running safe, read-only checks...';
+        results.textContent = '';
+
+        const rows = [];
+        try {
+            const online = navigator.onLine !== false;
+            diagnosticResult(rows, online ? 'ok' : 'warning', 'Internet connection',
+                online ? 'The browser reports an active network connection.' : 'The browser is offline; cloud checks are unavailable.');
+            const secure = window.isSecureContext || window.location.protocol === 'https:'
+                || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            diagnosticResult(rows, secure ? 'ok' : 'warning', 'Secure app origin',
+                secure ? 'The app is using HTTPS or a trusted local origin.' : 'This origin may block authentication or service-worker features.');
+
+            const supabase = window.EntSupabase;
+            const configured = !!(supabase && typeof supabase.isConfigured === 'function' && supabase.isConfigured());
+            diagnosticResult(rows, configured ? 'ok' : 'error', 'Supabase configuration',
+                configured ? 'The Supabase URL and public client key are configured.' : 'Supabase client configuration is missing or invalid.');
+
+            const currentUser = typeof Auth.currentUser === 'function' ? Auth.currentUser() : null;
+            let accessToken = '';
+            if (configured && supabase && typeof supabase.getAccessToken === 'function') {
+                try {
+                    accessToken = await diagnosticTimeout(supabase.getAccessToken(), 8000) || '';
+                } catch (error) {
+                    diagnosticResult(rows, 'error', 'Authentication token', 'Could not read the current sign-in token. Sign out and sign in again.');
+                }
+            }
+            if (!currentUser || !accessToken) {
+                diagnosticResult(rows, 'error', 'Admin session',
+                    'An active signed-in session is required for database access. Sign in again, then rerun diagnostics.');
+            } else {
+                diagnosticResult(rows, currentUser.role === 'admin' ? 'ok' : 'error', 'Admin session',
+                    currentUser.role === 'admin' ? 'An authenticated admin session is active.' : 'The active account is not an administrator.');
+            }
+
+            if (configured && accessToken && online) {
+                const probes = [
+                    { name: 'Database: staff profile access', endpoint: 'staff_profiles?select=id&limit=0' },
+                    { name: 'Database: reports table access', endpoint: 'reports?select=record_key,report_type,is_draft&limit=0' },
+                    { name: 'Database: admin settings access', endpoint: 'system_flags?select=flag_key&limit=0' }
+                ];
+                const probeResults = await Promise.all(probes.map(async function (probe) {
+                    try {
+                        const response = await diagnosticTimeout(api(probe.endpoint), 10000);
+                        if (!Array.isArray(response)) throw new Error('Unexpected database response.');
+                        return { probe: probe, ok: true };
+                    } catch (error) {
+                        return { probe: probe, error: error };
+                    }
+                }));
+                probeResults.forEach(function (result) {
+                    diagnosticResult(rows, result.ok ? 'ok' : 'error', result.probe.name,
+                        result.ok ? 'Read-only API query succeeded; no patient rows were requested.'
+                            : diagnosticErrorDetail(result.error));
+                });
+            } else {
+                diagnosticResult(rows, 'info', 'Database read checks',
+                    'Skipped because Supabase is not configured, the session is unavailable, or the browser is offline.');
+            }
+
+            if (online) {
+                const assets = [
+                    'function/dbRecords.js',
+                    'function/patientRecords.js',
+                    'function/photoStore.js',
+                    'function/supabaseClient.js'
+                ];
+                const assetResults = await Promise.all(assets.map(async function (path) {
+                    try {
+                        const url = new URL('../' + path, window.location.href).href;
+                        const response = await diagnosticTimeout(fetch(url, { method: 'HEAD', cache: 'no-store' }), 8000);
+                        return { path: path, ok: response.ok, status: response.status };
+                    } catch (error) {
+                        return { path: path, ok: false, status: Number(error && error.status) || 0 };
+                    }
+                }));
+                const formResults = await Promise.all([
+                    { path: 'pages/cf4Form.html', label: 'CF4' },
+                    { path: 'pages/nasalEndoscopy.html', label: 'Nasal Endoscopy' },
+                    { path: 'pages/laryngealEndoscopy.html', label: 'Laryngeal Endoscopy' }
+                ].map(async function (page) {
+                    try {
+                        const url = new URL('../' + page.path, window.location.href).href;
+                        const response = await diagnosticTimeout(fetch(url, { cache: 'no-store' }), 8000);
+                        if (!response.ok) return { page: page, ok: false, reason: 'HTTP ' + response.status };
+                        const markup = await diagnosticTimeout(response.text(), 8000);
+                        const wired = /id="saveToDbBtn"/.test(markup) && /function\/dbRecords\.js/.test(markup);
+                        return { page: page, ok: wired, reason: wired ? '' : 'Save button or database-save script is missing.' };
+                    } catch (error) {
+                        return { page: page, ok: false, reason: error && error.name === 'TimeoutError' ? 'Request timed out.' : 'Page could not be fetched.' };
+                    }
+                }));
+                const missingAssets = assetResults.filter(function (result) { return !result.ok; });
+                const brokenForms = formResults.filter(function (result) { return !result.ok; });
+                const unavailable = missingAssets.map(function (item) {
+                    return item.path + (item.status ? ' (HTTP ' + item.status + ')' : '');
+                }).concat(brokenForms.map(function (item) {
+                    return item.page.label + ' form: ' + item.reason;
+                }));
+                diagnosticResult(rows, unavailable.length ? 'error' : 'ok', 'Report save files and wiring',
+                    unavailable.length
+                        ? 'Unavailable or not wired: ' + unavailable.join('; ')
+                        : 'Save module files are present and all three report forms contain the database-save button and script.');
+            } else {
+                diagnosticResult(rows, 'info', 'Report save files and wiring',
+                    'Server-file checks were skipped while offline; the current offline cache is checked separately.');
+            }
+            const saveHelpersReady = !!(supabase && typeof supabase.apiRequest === 'function'
+                && window.EntAuth && typeof window.EntAuth.currentUser === 'function');
+            diagnosticResult(rows, saveHelpersReady ? 'ok' : 'error', 'Save pipeline dependencies',
+                saveHelpersReady ? 'The authenticated API and account helpers are available to the report-save flow.'
+                    : 'A required authenticated API helper is not available on this page.');
+
+            let lastSave = null;
+            try {
+                const raw = window.localStorage.getItem(LAST_DB_SAVE_DIAGNOSTIC_KEY);
+                if (raw) lastSave = JSON.parse(raw);
+            } catch (error) {
+                diagnosticResult(rows, 'warning', 'Last database save result', 'Could not read the local save-status note from browser storage.');
+            }
+            if (lastSave && lastSave.status === 'success') {
+                const when = new Date(lastSave.updatedAt);
+                const time = Number.isNaN(when.getTime()) ? 'time unavailable' : when.toLocaleString();
+                diagnosticResult(rows, lastSave.confirmationIssue ? 'warning' : 'ok', 'Last real database save',
+                    lastSave.confirmationIssue
+                        ? 'The database accepted the report at ' + time + ', but the success confirmation had a problem.'
+                        : 'The most recent actual report save succeeded at ' + time + '.');
+            } else if (lastSave && lastSave.status === 'failed') {
+                const code = String(lastSave.code || 'DATABASE_ERROR');
+                const http = Number(lastSave.httpStatus) || 0;
+                const serverCode = String(lastSave.serverCode || '').replace(/[^A-Z0-9_-]/gi, '').slice(0, 32);
+                const fix = {
+                    AUTH_REQUIRED: 'Sign in again before saving.',
+                    PERMISSION_DENIED: 'Verify the active clinic and report-save permissions.',
+                    PAYLOAD_TOO_LARGE: 'Reduce the attached photos, then retry.',
+                    PHOTO_UPLOAD_FAILED: 'Check the connection and photo-storage upload status.',
+                    NETWORK_ERROR: 'Check internet access and Supabase availability.',
+                    DUPLICATE_CONFLICT: 'Check DB Records before retrying.',
+                    DATABASE_ERROR: 'Review the database response code and Supabase logs.'
+                }[code] || 'Review the database response and Supabase logs.';
+                diagnosticResult(rows, 'error', 'Last real database save failed',
+                    code + (http ? ' (HTTP ' + http + ')' : '')
+                        + (serverCode ? ' [' + serverCode + ']' : '') + '. ' + fix);
+            } else if (lastSave && lastSave.status === 'pending') {
+                const when = new Date(lastSave.updatedAt).getTime();
+                const stale = Number.isFinite(when) && Date.now() - when > 120000;
+                diagnosticResult(rows, stale ? 'warning' : 'info', stale ? 'Database save may have been interrupted' : 'Database save in progress',
+                    stale ? 'The last save did not record a finish. Check DB Records before retrying to avoid a duplicate.'
+                        : 'A report save was started but has not recorded a result yet.');
+            } else {
+                diagnosticResult(rows, 'info', 'Last real database save',
+                    'No report-save attempt has been recorded by this browser yet. A real save result will appear here; diagnostics will not create test patient data.');
+            }
+
+            const storageKey = '__ent_admin_diagnostics_probe__';
+            try {
+                window.localStorage.setItem(storageKey, 'ok');
+                window.localStorage.removeItem(storageKey);
+                diagnosticResult(rows, 'ok', 'Browser local storage', 'A temporary test value was written and removed successfully.');
+            } catch (error) {
+                diagnosticResult(rows, 'error', 'Browser local storage', 'Browser storage is blocked or full; local diagnostics and cached sign-in may fail.');
+            }
+            diagnosticResult(rows, window.indexedDB ? 'ok' : 'error', 'Offline draft storage',
+                window.indexedDB ? 'IndexedDB is available for offline drafts.' : 'IndexedDB is unavailable; offline draft saving may fail.');
+
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await diagnosticTimeout(navigator.serviceWorker.getRegistration(), 8000);
+                    diagnosticResult(rows, registration ? 'ok' : 'warning', 'Service worker',
+                        registration ? 'Registered' + (registration.active ? ' and active.' : ', but not active yet.')
+                            : 'No service worker is registered; offline/PWA support may be unavailable.');
+                } catch (error) {
+                    diagnosticResult(rows, 'warning', 'Service worker', 'Could not inspect service-worker registration on this origin.');
+                }
+            } else {
+                diagnosticResult(rows, 'warning', 'Service worker', 'This browser does not support service workers.');
+            }
+            if ('caches' in window) {
+                try {
+                    const keys = await diagnosticTimeout(caches.keys(), 8000);
+                    diagnosticResult(rows, keys.length ? 'ok' : 'warning', 'Offline cache',
+                        keys.length ? keys.length + ' offline cache group(s) are present.' : 'No offline cache groups were found.');
+                } catch (error) {
+                    diagnosticResult(rows, 'warning', 'Offline cache', 'The browser could not list offline cache groups.');
+                }
+            } else {
+                diagnosticResult(rows, 'warning', 'Offline cache', 'The Cache API is unavailable in this browser.');
+            }
+
+            if (navigator.storage && typeof navigator.storage.estimate === 'function') {
+                try {
+                    const estimate = await diagnosticTimeout(navigator.storage.estimate(), 5000);
+                    if (estimate && estimate.quota) {
+                        const usedMB = (Number(estimate.usage) || 0) / (1024 * 1024);
+                        const quotaMB = estimate.quota / (1024 * 1024);
+                        const percent = Math.min(100, Math.round(usedMB / quotaMB * 100));
+                        diagnosticResult(rows, percent >= 90 ? 'warning' : 'ok', 'Browser storage quota',
+                            usedMB.toFixed(1) + ' MB used of about ' + quotaMB.toFixed(0) + ' MB (' + percent + '%).');
+                    }
+                } catch (error) {
+                    diagnosticResult(rows, 'info', 'Browser storage quota', 'This browser does not expose a storage quota estimate.');
+                }
+            }
+
+            const runtimeTypes = Object.keys(runtimeDiagnostics.types || {});
+            diagnosticResult(rows, runtimeDiagnostics.count ? 'warning' : 'ok', 'Runtime errors on this admin page',
+                runtimeDiagnostics.count
+                    ? runtimeDiagnostics.count + ' script error(s) or unhandled promise rejection(s) captured since this page loaded. Types: ' + runtimeTypes.join(', ') + '.'
+                    : 'No script errors or unhandled promise rejections have been captured since this page loaded.');
+        } catch (error) {
+            console.error('[Admin diagnostics] Check run failed:', error);
+            diagnosticResult(rows, 'error', 'Diagnostic run interrupted',
+                'A check could not complete. Rerun diagnostics; if it repeats, inspect the browser console.');
+        } finally {
+            renderAdminDiagnostics(rows);
+            if (button) button.disabled = false;
+        }
+    }
+
     async function saveClinicName() {
         if (!session || !session.user) return;
         const name = byId('clinicNameInput').value.trim();
@@ -3219,6 +3525,8 @@ const FLAG_INFO = {
         byId('refreshSettingsBtn').addEventListener('click', function () {
             loadSettings().catch(function (e) { settingsSay(String((e && e.message) || e).slice(0, 160), true); });
         });
+        const runDiagnosticsButton = byId('runAdminDiagnosticsBtn');
+        if (runDiagnosticsButton) runDiagnosticsButton.addEventListener('click', runAdminDiagnostics);
         byId('adminMfaSetupBtn').addEventListener('click', startAdminMfa);
         byId('saveClinicNameBtn').addEventListener('click', saveClinicName);
         byId('clinicNameInput').addEventListener('keydown', function (e) {

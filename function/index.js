@@ -193,20 +193,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator.standalone === true);
 
     if (isIos && !isStandalone && installModal) {
-        // Customize modal content specifically for iOS users
-        const modalTitle = installModal.querySelector('h2');
-        const modalText = installModal.querySelector('p');
+        // Keep the shared install modal design; only swap in iOS instructions.
+        const modalText = installModal.querySelector('#installModalText');
         
-        if (modalTitle) modalTitle.textContent = "Install on iPhone/iPad";
         if (modalText) {
             modalText.innerHTML = `
-                To install this app on your home screen:<br><br>
-                1. Tap the <strong>Share</strong> button <span style="font-size: 1.3em; vertical-align: middle;">📤</span><br>
-                2. Scroll down and tap <strong>"Add to Home Screen"</strong> <span style="font-size: 1.3em; vertical-align: middle;">➕</span>
+                <p class="install-ios-intro">To add the app to your Home Screen:</p>
+                <ol class="install-ios-steps">
+                    <li><span class="install-ios-step-number">1</span><span>Tap the <strong>Share</strong> icon in Safari.</span></li>
+                    <li><span class="install-ios-step-number">2</span><span>Scroll down and tap <strong>Add to Home Screen</strong>.</span></li>
+                </ol>
             `;
-            modalText.style.textAlign = 'left';
-            modalText.style.lineHeight = '1.6';
-            modalText.style.padding = '0 10px';
         }
         
         // Hide the "Install Now" button since iOS doesn't support programmatic install
@@ -300,8 +297,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         return Math.ceil(rect.width);
     }
 
-    function adjustFontSizeToFit(element, container) {
+    function adjustFontSizeToFit(element, container, singleLine = false) {
         if (!element || !container) return;
+
+        if (singleLine) {
+            element.style.whiteSpace = 'nowrap';
+            element.style.overflowWrap = 'normal';
+            element.style.wordBreak = 'normal';
+        }
 
         let style = window.getComputedStyle(element);
         let currentFontSize = parseFloat(style.fontSize);
@@ -321,10 +324,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         }
 
         // 2. If still doesn't fit, reduce font size
-        while (measureTextWidth(element) > available && currentFontSize > 8) {
+        const minimumFontSize = singleLine ? 6 : 8;
+        while (measureTextWidth(element) > available && currentFontSize > minimumFontSize) {
             currentFontSize -= 0.5; // Decrease font size by a small amount
             element.style.fontSize = `${currentFontSize}px`;
         }
+
+        if (singleLine) return;
 
         /* 3. Still too wide at the floor (an unusually long hospital name
            on a narrow custom paper size). Wrapping is the last resort
@@ -480,6 +486,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         msgModalText.textContent = message;
         msgModalCancelBtn.style.display = 'none';
         msgModalOkBtn.textContent = 'OK';
+        msgModalOkBtn.classList.remove('new-form-confirm-button');
         
         // Use onclick to overwrite previous handlers (fixes stale reference issue)
         msgModalOkBtn.onclick = () => {
@@ -489,23 +496,41 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         messageModal.style.display = 'flex';
     }
 
-    function showCustomConfirm(message, callback, title = 'Confirmation') {
+    function showCustomConfirm(message, callback, title = 'Confirmation', options = {}) {
         if (!messageModal) { const result = confirm(message); callback(result); return; } // Fallback
+        const previousZIndex = messageModal.style.zIndex;
+        const bringToFront = Number(options.zIndex) > 0;
         msgModalTitle.textContent = title;
         msgModalText.textContent = message;
         msgModalCancelBtn.style.display = 'inline-block';
-        msgModalOkBtn.textContent = 'Yes';
+        msgModalOkBtn.textContent = options.label || 'Yes';
+        msgModalOkBtn.classList.remove('new-form-confirm-button');
+        if (options.highlightNewForm) {
+            msgModalOkBtn.classList.add('new-form-confirm-button');
+        }
+        if (bringToFront) {
+            messageModal.classList.add('confirmation-modal-front');
+            messageModal.style.zIndex = String(options.zIndex);
+        }
+
+        const closeConfirmation = () => {
+            messageModal.style.display = 'none';
+            if (bringToFront) {
+                messageModal.classList.remove('confirmation-modal-front');
+                messageModal.style.zIndex = previousZIndex;
+            }
+        };
 
         // Use onclick to overwrite previous handlers
 
 
         msgModalOkBtn.onclick = () => {
-            messageModal.style.display = 'none';
+            closeConfirmation();
             callback(true);
         };
 
         msgModalCancelBtn.onclick = () => {
-            messageModal.style.display = 'none';
+            closeConfirmation();
             callback(false);
         };
         
@@ -513,9 +538,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     }
 
     // NEW HELPER FOR ASYNC CONFIRMATIONS
-    function showCustomConfirmAsync(message, title = 'Confirmation') {
+    function showCustomConfirmAsync(message, title = 'Confirmation', options = {}) {
         return new Promise(resolve => {
-            showCustomConfirm(message, resolve, title);
+            showCustomConfirm(message, resolve, title, options);
         });
     }
 
@@ -690,6 +715,36 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             return physicians;
         }
         return DEFAULT_PHYSICIANS.slice();
+    }
+
+    function getProcedureTemplate(type, scope = '') {
+        const savedSettings = JSON.parse(localStorage.getItem('clinicSettings') || '{}');
+        const scopeValue = scope.toLowerCase();
+        const isFlexible = scopeValue.includes('flexible');
+
+        let template = '';
+        let hardcodedDefault = '';
+
+        if (type === 'nasal') {
+            if (isFlexible) {
+                hardcodedDefault = `The nasal cavity was prepared with topical decongestant and anesthetic. Using a [scope], a systematic examination of the nasal cavity was performed. The floor of the nose, inferior and middle meatus, sphenoethmoidal recess, and nasopharynx were visualized.\n\nPatient tolerated the procedure well.`;
+                template = savedSettings.nasalFlexibleProcedureTemplate || hardcodedDefault;
+            } else {
+                hardcodedDefault = `The nasal cavity was prepared with topical decongestant and anesthetic. Using a [scope], the three-pass technique was performed:\n\n• First Pass: Floor of the nose to the nasopharynx.\n• Second Pass: Medial to the middle turbinate into the sphenoethmoidal recess.\n• Third Pass: Into the middle meatus to visualize the ostiomeatal complex.\n\nPatient tolerated the procedure well.`;
+                template = savedSettings.nasalProcedureTemplate || hardcodedDefault;
+            }
+        } else if (type === 'laryngeal') {
+            if (isFlexible) {
+                hardcodedDefault = `After preparation of the nasal cavity with topical anesthetic and decongestant, a [scope] was passed transnasally to visualize the larynx. The supraglottic, glottic, and subglottic structures were systematically inspected. Vocal cord mobility was assessed. Patient tolerated the procedure well.`;
+                template = savedSettings.laryngealFlexibleTemplate || hardcodedDefault;
+            } else {
+                hardcodedDefault = `The oropharynx was prepared with topical anesthesia. Using a [scope], the larynx was visualized. The supraglottic, glottic, and subglottic structures were inspected. Vocal cord mobility was assessed. Patient tolerated the procedure well.`;
+                template = savedSettings.laryngealRigidTemplate || hardcodedDefault;
+            }
+        }
+
+        const scopeText = scope ? scopeValue : '[select endoscopy]';
+        return template.replace(/\[scope\]/gi, scopeText);
     }
 
     // ===================================================================================
@@ -1534,7 +1589,8 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 (confirmed) => {
                     if (confirmed) clearFormWithoutConfirmation(true);
                 },
-                'New Form'
+                'New Form',
+                { label: 'New Form', highlightNewForm: true }
             );
         });
 
@@ -1656,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 { id: 'localDraftsBtn', title: '🗂️ Offline Records', text: 'Lists the records saved in offline mode on this device (IndexedDB). Open one to continue editing it. These sync to the cloud automatically when you are back online.' },
                 { id: 'myDraftsBtn', title: '📂 My Drafts', text: 'Browse saved drafts and open one to continue editing it.' },
                 { id: 'savePdfBtn', title: '📄 Save PDF', text: 'Creates the FINAL PDF copy of the completed report for printing, emailing, or archiving.' },
-                { id: 'printBtn', title: '🖨️ Print', text: 'Opens the print dialog immediately. Use this to print directly to a printer.' },
+                { id: 'printBtn', title: '🖨️ Print', text: 'Opens the print dialog using the selected paper size (A4 by default). Long reports continue to another page instead of being cut off.' },
                 { id: 'newFormBtn', title: '🆕 New Form', text: 'Starts a fresh blank form of the same type for the next patient. You can undo this.' },
                 { id: 'clearFormBtn', title: '🗑️ Clear Form', text: 'Resets all fields and removes all images to start a fresh report. You can undo this.' },
                 { id: 'helpBtn', title: '❓ Help', text: 'Shows a quick reference guide explaining these buttons anytime you need it.' }
@@ -2169,6 +2225,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 physicianSelect.appendChild(option);
             });
             if (defaultSurgeonName) physicianSelect.value = defaultSurgeonName;
+            if (window.EntDoctorSignature) window.EntDoctorSignature.refresh();
         }
 
         // NEW: Populate Assistant Surgeon dropdown from settings
@@ -2288,6 +2345,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     physicianSelect.value = restoredPhysician;
                 }
             }
+            if (window.EntDoctorSignature) window.EntDoctorSignature.refresh();
         }
 
         // ===================================================================================
@@ -2721,45 +2779,14 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 document.dispatchEvent(new Event('formDataRestored'));
             },
             startNew: () => clearFormWithoutConfirmation(true),
-            alert: showCustomAlert
+            alert: showCustomAlert,
+            confirm: (message, title, options) => showCustomConfirmAsync(message, title, options)
         };
 
         // This is placed *after* loading data, so it only applies the default if the field is truly empty.
         const procedureDescInput = document.getElementById('procedureDescription');
         const endoTypeInput = document.getElementById('endoscopyType');
         
-        // NEW: Centralized function to get procedure description templates from settings
-        function getProcedureTemplate(type, scope = '') {
-            const savedSettings = JSON.parse(localStorage.getItem('clinicSettings') || '{}');
-            const scopeValue = scope.toLowerCase();
-            const isFlexible = scopeValue.includes('flexible');
-
-            let template = '';
-            let hardcodedDefault = '';
-
-            if (type === 'nasal') {
-                if (isFlexible) {
-                    hardcodedDefault = `The nasal cavity was prepared with topical decongestant and anesthetic. Using a [scope], a systematic examination of the nasal cavity was performed. The floor of the nose, inferior and middle meatus, sphenoethmoidal recess, and nasopharynx were visualized.\n\nPatient tolerated the procedure well.`;
-                    template = savedSettings.nasalFlexibleProcedureTemplate || hardcodedDefault;
-                } else { // Rigid
-                    hardcodedDefault = `The nasal cavity was prepared with topical decongestant and anesthetic. Using a [scope], the three-pass technique was performed:\n\n• First Pass: Floor of the nose to the nasopharynx.\n• Second Pass: Medial to the middle turbinate into the sphenoethmoidal recess.\n• Third Pass: Into the middle meatus to visualize the ostiomeatal complex.\n\nPatient tolerated the procedure well.`;
-                    template = savedSettings.nasalProcedureTemplate || hardcodedDefault;
-                }
-            } else if (type === 'laryngeal') {
-                if (isFlexible) {
-                    hardcodedDefault = `After preparation of the nasal cavity with topical anesthetic and decongestant, a [scope] was passed transnasally to visualize the larynx. The supraglottic, glottic, and subglottic structures were systematically inspected. Vocal cord mobility was assessed. Patient tolerated the procedure well.`;
-                    template = savedSettings.laryngealFlexibleTemplate || hardcodedDefault;
-                } else {
-                    hardcodedDefault = `The oropharynx was prepared with topical anesthesia. Using a [scope], the larynx was visualized. The supraglottic, glottic, and subglottic structures were inspected. Vocal cord mobility was assessed. Patient tolerated the procedure well.`;
-                    template = savedSettings.laryngealRigidTemplate || hardcodedDefault;
-                }
-            }
-
-            // Replace placeholder
-            const scopeText = scope ? scopeValue : '[select endoscopy]';
-            return template.replace(/\[scope\]/gi, scopeText);
-        }
-
         // Auto-bullet points on Enter for Procedure Description
         if (procedureDescInput) {
             procedureDescInput.addEventListener('keydown', function(e) {
@@ -3461,7 +3488,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 const hospitalNameSpan = previewContainer.querySelector('.hospital-name-span');
                 const subtitleSpan = previewContainer.querySelector('.subtitle-span');
                 const textBlockContainer = previewContainer.querySelector('.header-text-block');
-                adjustFontSizeToFit(hospitalNameSpan, textBlockContainer);
+                adjustFontSizeToFit(hospitalNameSpan, textBlockContainer, true);
                 adjustFontSizeToFit(subtitleSpan, textBlockContainer);
             };
 
@@ -6135,6 +6162,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 const physician = document.getElementById('physician');
                 if (physician) physician.value = defaultSurgeonName;
             }
+            if (saveBackup) {
+                const endoscopyType = document.getElementById('endoscopyType');
+                const procedureDescription = document.getElementById('procedureDescription');
+                if (procedureDescription) {
+                    procedureDescription.value = getProcedureTemplate(
+                        currentReportType,
+                        endoscopyType ? endoscopyType.value : ''
+                    );
+                    procedureDescription.dispatchEvent(new Event('input'));
+                }
+            }
             // Clear images
             selectedImages = [];
             selectedImageDetails = [];
@@ -6189,20 +6227,24 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         procedureDateInput.value = getTodayDate();
     }
 
+    function formatReportText(value) {
+        return escapeHtml(value).replace(/\r\n?/g, '\n').replace(/\n/g, '<br>');
+    }
+
     // Function to generate Nasal Findings HTML
     function getNasalFindingsHtml(data) {
         return `
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Nasal Findings</h3>
             <div style="font-size: 12px;">
-                <p style="margin: 0 0 3px;"><strong>Septum:</strong> ${escapeHtml(data.septum)}</p>
-                <p style="margin: 0 0 3px;"><strong>Discharge:</strong> ${escapeHtml(data.discharge)}</p>
-                <p style="margin: 0 0 3px;"><strong>Mucosa:</strong> ${escapeHtml(data.mucosa)}</p>
-                <p style="margin: 0 0 3px;"><strong>Inferior Turbinate:</strong> ${escapeHtml(data.it)}</p>
-                <p style="margin: 0 0 3px;"><strong>Middle Turbinate:</strong> ${escapeHtml(data.mt)}</p>
-                <p style="margin: 0 0 3px;"><strong>Middle Meatus:</strong> ${escapeHtml(data.mm)}</p>
-                <p style="margin: 0 0 3px;"><strong>Inferior Meatus:</strong> ${escapeHtml(data.im)}</p>
-                <p style="margin: 0 0 3px;"><strong>Ostiomeatal Complex:</strong> ${escapeHtml(data.omc)}</p>
-                <p style="margin: 0;"><strong>Nasopharynx:</strong> ${escapeHtml(data.nasopharynx)}</p>
+                <p style="margin: 0 0 3px;"><strong>Septum:</strong> ${formatReportText(data.septum)}</p>
+                <p style="margin: 0 0 3px;"><strong>Discharge:</strong> ${formatReportText(data.discharge)}</p>
+                <p style="margin: 0 0 3px;"><strong>Mucosa:</strong> ${formatReportText(data.mucosa)}</p>
+                <p style="margin: 0 0 3px;"><strong>Inferior Turbinate:</strong> ${formatReportText(data.it)}</p>
+                <p style="margin: 0 0 3px;"><strong>Middle Turbinate:</strong> ${formatReportText(data.mt)}</p>
+                <p style="margin: 0 0 3px;"><strong>Middle Meatus:</strong> ${formatReportText(data.mm)}</p>
+                <p style="margin: 0 0 3px;"><strong>Inferior Meatus:</strong> ${formatReportText(data.im)}</p>
+                <p style="margin: 0 0 3px;"><strong>Ostiomeatal Complex:</strong> ${formatReportText(data.omc)}</p>
+                <p style="margin: 0;"><strong>Nasopharynx:</strong> ${formatReportText(data.nasopharynx)}</p>
             </div>
         `;
     }
@@ -6212,41 +6254,162 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         return `
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Laryngeal Findings</h3>
             <div style="font-size: 12px;">
-                <p style="margin: 0;"><strong>Epiglottis:</strong> ${escapeHtml(data.epiglottis)}</p>
-                <p style="margin: 0;"><strong>Vallecula:</strong> ${escapeHtml(data.vallecula)}</p>
-                <p style="margin: 0;"><strong>Pyriform Sinuses:</strong> ${escapeHtml(data.pyriformSinuses)}</p>
-                <p style="margin: 0;"><strong>Arytenoids:</strong> ${escapeHtml(data.arytenoids)}</p>
-                <p style="margin: 0;"><strong>False Vocal Cords:</strong> ${escapeHtml(data.falseVocalCords)}</p>
-                <p style="margin: 0;"><strong>True Vocal Cords:</strong> ${escapeHtml(data.trueVocalCords)}</p>
-                <p style="margin: 0;"><strong>Vocal Cord Mobility:</strong> ${escapeHtml(data.vocalCordMobility)}</p>
-                <p style="margin: 0;"><strong>Subglottis:</strong> ${escapeHtml(data.subglottis)}</p>
+                <p style="margin: 0;"><strong>Epiglottis:</strong> ${formatReportText(data.epiglottis)}</p>
+                <p style="margin: 0;"><strong>Vallecula:</strong> ${formatReportText(data.vallecula)}</p>
+                <p style="margin: 0;"><strong>Pyriform Sinuses:</strong> ${formatReportText(data.pyriformSinuses)}</p>
+                <p style="margin: 0;"><strong>Arytenoids:</strong> ${formatReportText(data.arytenoids)}</p>
+                <p style="margin: 0;"><strong>False Vocal Cords:</strong> ${formatReportText(data.falseVocalCords)}</p>
+                <p style="margin: 0;"><strong>True Vocal Cords:</strong> ${formatReportText(data.trueVocalCords)}</p>
+                <p style="margin: 0;"><strong>Vocal Cord Mobility:</strong> ${formatReportText(data.vocalCordMobility)}</p>
+                <p style="margin: 0;"><strong>Subglottis:</strong> ${formatReportText(data.subglottis)}</p>
             </div>
         `;
     }
 
-    // Original layout: a tall, fixed-width image column on the right of the
-    // report. Images are stacked vertically, not in a grid.
+    const A4_PAGE_SIZE = { widthMm: 210, heightMm: 297 };
+    const PRINT_PAGE_MARGIN_MM = 6;
+    const PRINT_PX_PER_MM = 96 / 25.4;
+
+    function getPrintPaperMetrics() {
+        const marginPx = PRINT_PAGE_MARGIN_MM * PRINT_PX_PER_MM;
+        return {
+            format: 'A4',
+            widthMm: A4_PAGE_SIZE.widthMm,
+            heightMm: A4_PAGE_SIZE.heightMm,
+            pageWidthPx: A4_PAGE_SIZE.widthMm * PRINT_PX_PER_MM,
+            pageHeightPx: A4_PAGE_SIZE.heightMm * PRINT_PX_PER_MM,
+            printableWidthPx: A4_PAGE_SIZE.widthMm * PRINT_PX_PER_MM - marginPx * 2,
+            printableHeightPx: A4_PAGE_SIZE.heightMm * PRINT_PX_PER_MM - marginPx * 2
+        };
+    }
+
+    function getPrintColumnWidths(paperMetrics) {
+        const hasImages = selectedImages.some(image => typeof image === 'string' && image.length > 0);
+        const gap = hasImages ? 15 : 0;
+        const usableWidthPx = paperMetrics.printableWidthPx - 30 - gap;
+        const imageColWidth = hasImages ? Math.min(220, Math.floor(usableWidthPx * 0.32)) : 0;
+        return {
+            contentColWidth: usableWidthPx - imageColWidth,
+            imageColWidth
+        };
+    }
+
+    function setNativePrintPaperFormat() {
+        let style = document.getElementById('endoscopyPrintPageSize');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'endoscopyPrintPageSize';
+            document.head.appendChild(style);
+        }
+        style.textContent = `@media print { @page { size: ${A4_PAGE_SIZE.widthMm}mm ${A4_PAGE_SIZE.heightMm}mm; margin: ${PRINT_PAGE_MARGIN_MM}mm; } }`;
+    }
+
+    function fitPrintDocumentToPaper(printDiv, paperMetrics) {
+        const reportPage = printDiv.querySelector('.print-report-page');
+        if (!reportPage) throw new Error('The printable report layout is missing.');
+        const layout = reportPage.querySelector('.print-layout-container');
+        const contentPanel = reportPage.querySelector('.print-content-panel');
+        if (!layout || !contentPanel) throw new Error('The printable report sections are missing.');
+
+        reportPage.style.position = 'relative';
+        reportPage.style.top = '0';
+        reportPage.style.left = '0';
+        reportPage.style.width = `${paperMetrics.printableWidthPx}px`;
+        reportPage.style.height = 'auto';
+        reportPage.style.minHeight = '0';
+        reportPage.style.boxSizing = 'border-box';
+        reportPage.style.transform = 'none';
+        reportPage.style.overflow = 'visible';
+        layout.style.height = 'auto';
+        layout.style.minHeight = '0';
+        layout.style.alignItems = 'stretch';
+        contentPanel.style.boxSizing = 'border-box';
+
+        const fontElements = Array.from(reportPage.querySelectorAll(
+            '.patient-info-print-section, .patient-info-print-section *, .print-content-panel, .print-content-panel *, .print-image-panel, .print-image-panel *'
+        )).map(element => ({
+            element,
+            fontSize: parseFloat(window.getComputedStyle(element).fontSize)
+        })).filter(item => Number.isFinite(item.fontSize) && item.fontSize > 0);
+        const signature = reportPage.querySelector('.doctor-signature-section');
+        const minimumFontScale = 0.6;
+
+        function prepareAtFontScale(fontScale) {
+            fontElements.forEach(item => {
+                item.element.style.fontSize = `${item.fontSize * fontScale}px`;
+            });
+            layout.style.minHeight = '0';
+            contentPanel.style.minHeight = '0';
+            if (signature) signature.style.marginTop = '10px';
+            reportPage.style.height = 'auto';
+            reportPage.style.minHeight = '0';
+            void layout.offsetHeight;
+
+            const remainingHeight = Math.max(
+                0,
+                paperMetrics.printableHeightPx - layout.offsetTop - 10
+            );
+            layout.style.minHeight = `${remainingHeight}px`;
+            contentPanel.style.minHeight = `${remainingHeight}px`;
+            if (signature) signature.style.marginTop = 'auto';
+            reportPage.style.minHeight = `${paperMetrics.printableHeightPx}px`;
+            return Math.max(reportPage.scrollHeight, reportPage.offsetHeight);
+        }
+
+        let fontScale = 1;
+        let measuredHeight = prepareAtFontScale(fontScale);
+        if (measuredHeight > paperMetrics.printableHeightPx + 1) {
+            let fittingScale = minimumFontScale;
+            let overflowingScale = 1;
+            measuredHeight = prepareAtFontScale(fittingScale);
+            if (measuredHeight > paperMetrics.printableHeightPx + 1) {
+                throw new Error('This report is too long to fit on one A4 page. Shorten the long text fields and try again.');
+            }
+
+            for (let attempt = 0; attempt < 8; attempt++) {
+                const candidateScale = (fittingScale + overflowingScale) / 2;
+                const candidateHeight = prepareAtFontScale(candidateScale);
+                if (candidateHeight <= paperMetrics.printableHeightPx + 1) {
+                    fittingScale = candidateScale;
+                } else {
+                    overflowingScale = candidateScale;
+                }
+            }
+            fontScale = fittingScale;
+            prepareAtFontScale(fontScale);
+        }
+
+        reportPage.style.height = `${paperMetrics.printableHeightPx}px`;
+        printDiv.style.width = `${paperMetrics.printableWidthPx}px`;
+        printDiv.style.height = `${paperMetrics.printableHeightPx}px`;
+        printDiv.style.minHeight = `${paperMetrics.printableHeightPx}px`;
+        printDiv.style.maxWidth = 'none';
+        printDiv.style.overflow = 'visible';
+        return fontScale;
+    }
+
+    // Images share the right column; their boxes shrink with the selected paper size.
     function buildImageColumnHtml(availableHeightPx = 800) {
         if (selectedImages.length === 0) {
             return '';
         }
 
-        // Limit to a maximum of 6 images and ensure they are valid strings
-        const imagesToPrint = selectedImages.filter(img => typeof img === 'string' && img.length > 0).slice(0, 6);
+        const imagesToPrint = selectedImages
+            .map((image, index) => ({ image, details: selectedImageDetails[index] }))
+            .filter(item => typeof item.image === 'string' && item.image.length > 0);
+        if (imagesToPrint.length === 0) return '';
         const numImages = imagesToPrint.length;
 
         const maxImagePanelHeightPx = availableHeightPx;
         const imageGapPx = 5; // Gap between images
+        const imageHeadingHeightPx = 36;
+        const imageContentHeightPx = Math.max(120, maxImagePanelHeightPx - imageHeadingHeightPx);
 
-        let individualImageMaxHeightPx;
-        if (numImages <= 2) {
-            individualImageMaxHeightPx = 200;
-        } else {
-            const totalGaps = (numImages - 1) * imageGapPx;
-            individualImageMaxHeightPx = (maxImagePanelHeightPx - totalGaps) / numImages;
-        }
-
-        individualImageMaxHeightPx = Math.max(individualImageMaxHeightPx, 60); // Minimum 60px height
+        const totalGaps = (numImages - 1) * imageGapPx;
+        const availableImageHeightPx = (imageContentHeightPx - totalGaps) / numImages;
+        const individualImageMaxHeightPx = numImages <= 2
+            ? Math.max(60, Math.min(200, availableImageHeightPx))
+            : Math.max(48, availableImageHeightPx);
 
         let savedSettings = {};
         try {
@@ -6256,22 +6419,21 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         }
         const objectFit = savedSettings.imageObjectFit || 'cover';
 
-        // Remove margin-bottom for the last image to avoid overflow clipping
-        const imageElements = imagesToPrint.map((base64, index) => {
+        const imageElements = imagesToPrint.map((imageEntry, index) => {
             const marginBottom = index === numImages - 1 ? 0 : imageGapPx;
-            const details = selectedImageDetails[index] || {};
+            const details = imageEntry.details || {};
             const caption = details.finding || details.description
-                ? `<div style="width:100%; flex:0 0 auto; max-height:30%; padding:3px 5px; box-sizing:border-box; font-size:8px; line-height:1.2; text-align:left; overflow:hidden; overflow-wrap:anywhere; color:#111; background:#fff; border-top:1px solid #d1d5db;">
-                    ${details.finding ? `<strong>${escapeHtml(details.finding)}</strong>` : ''}
-                    ${details.description ? `<div>${escapeHtml(details.description)}</div>` : ''}
+                ? `<div style="width:100%; flex:0 0 auto; padding:3px 5px; box-sizing:border-box; font-size:8px; line-height:1.2; text-align:left; overflow-wrap:anywhere; color:#111; background:#fff; border-top:1px solid #d1d5db;">
+                    ${details.finding ? `<strong>${formatReportText(details.finding)}</strong>` : ''}
+                    ${details.description ? `<div>${formatReportText(details.description)}</div>` : ''}
                 </div>`
                 : '';
             const imageContainerLayout = caption
-                ? 'display: flex; flex-direction: column; justify-content: center; align-items: center;'
+                ? 'display: flex; flex-direction: column; align-items: center;'
                 : 'display: flex; justify-content: center; align-items: center;';
             return `
-            <div class="image-container" style="width: 100%; height: ${individualImageMaxHeightPx}px; margin-bottom: ${marginBottom}px; ${imageContainerLayout} background-color: var(--image-bg, #f0f0f0); border-radius: 4px; overflow: hidden; page-break-inside: avoid; flex-shrink: 0;">
-                <img src="${base64}" alt="Endoscopy Image" style="width: 100%; ${caption ? 'flex: 1 1 auto; min-height: 0;' : 'height: 100%;'} object-fit: ${objectFit};">
+            <div class="image-container" style="width: 100%; min-height: ${individualImageMaxHeightPx}px; margin-bottom: ${marginBottom}px; ${imageContainerLayout} background-color: var(--image-bg, #f0f0f0); border-radius: 4px; overflow: visible; page-break-inside: avoid; break-inside: avoid; flex-shrink: 0;">
+                <img src="${imageEntry.image}" alt="Endoscopy Image" style="width: 100%; height: ${individualImageMaxHeightPx}px; flex: 0 0 auto; object-fit: ${objectFit};">
                 ${caption}
             </div>
         `;
@@ -6279,39 +6441,43 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         return `
             <h3 style="font-size: 15px; margin: 10px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Endoscopy Images (${numImages})</h3>
-            <div class="image-column" style="max-height: ${maxImagePanelHeightPx}px; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="image-column" style="display: flex; flex-direction: column;">
                 ${imageElements}
             </div>
         `;
     }
 
     function buildEndoscopyDocumentHtml({ headerHTML, patientInfoHtml, mainContentHtml, imageColumnHTML, reportTypeDisplay, containerHeightPx = 780, contentColWidth = null, imageColWidth = 220 }) {
-        // Original layout: "OPERATIVE RECORD" banner, then a two-column row.
-        // Text fills the left side, images sit in a fixed 220px right column.
+        const hasImages = !!imageColumnHTML;
         const textPanelStyle = contentColWidth
-            ? `width: ${contentColWidth}px; flex: none; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;`
-            : `flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;`;
+            ? `width: ${contentColWidth}px; flex: none; min-width: 0; overflow: visible; display: flex; flex-direction: column; justify-content: flex-start;`
+            : `flex: 1; min-width: 0; overflow: visible; display: flex; flex-direction: column; justify-content: flex-start;`;
+        const imagePanelStyle = hasImages
+            ? `width: ${imageColWidth}px; flex: none; overflow: visible;`
+            : 'display: none;';
 
         return `
-            ${headerHTML}
-            ${patientInfoHtml}
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; font-size: 18px; font-weight: bold; margin: 5px 0; background-color: #2c3e50; color: white; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                <span>OPERATIVE RECORD</span>
-                <span>${reportTypeDisplay}</span>
-            </div>
-            <div class="print-layout-container" style="display: flex; gap: 15px; font-size: 12px; padding: 0 15px; margin-bottom: 10px; line-height: 1.3; color: black; height: ${containerHeightPx}px; overflow: hidden;">
-                <div class="print-content-panel" style="${textPanelStyle}">
-                    ${mainContentHtml}
+            <div class="print-report-page">
+                ${headerHTML}
+                ${patientInfoHtml}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; font-size: 18px; font-weight: bold; margin: 5px 0; background-color: #2c3e50; color: white; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                    <span>OPERATIVE RECORD</span>
+                    <span>${reportTypeDisplay}</span>
                 </div>
-                <div class="print-image-panel" style="width: ${imageColWidth}px; flex: none; overflow: hidden;">
-                    ${imageColumnHTML}
+                <div class="print-layout-container${hasImages ? ' has-images' : ''}" style="display: flex; align-items: flex-start; gap: ${hasImages ? 15 : 0}px; font-size: 12px; padding: 0 15px; margin-bottom: 10px; line-height: 1.3; color: black; min-height: ${containerHeightPx}px; overflow: visible; box-sizing: border-box;">
+                    <div class="print-content-panel" style="${textPanelStyle}">
+                        ${mainContentHtml}
+                    </div>
+                    <div class="print-image-panel" style="${imagePanelStyle}">
+                        ${imageColumnHTML}
+                    </div>
                 </div>
             </div>
         `;
     }
 
     // Helper to build all report sections
-    function buildReportSections(data, findingsHtml) {
+    function buildReportSections(data, findingsHtml, signatureDataUrl) {
         function formatProcedureDescription(text) {
             if (!text) return '';
             const safeText = escapeHtml(text);
@@ -6372,22 +6538,22 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         const patientInfoHtml = `
             <div class="patient-info-print-section" style="padding: 0 15px 10px 15px; margin-bottom: 10px; font-size: 13px; line-height: 1.5;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr 2fr; gap: 4px 15px; white-space: nowrap;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr 2fr; gap: 4px 15px; white-space: normal; overflow-wrap: anywhere;">
                     <!-- Row 1 -->
-                    <div><strong>Case Number:</strong> ${escapeHtml(data.caseNumber)}</div>
-                    <div><strong>Room No:</strong> ${escapeHtml(data.roomNumber)}</div>
-                    <div><strong>MRN:</strong> ${escapeHtml(data.mrn)}</div>
+                    <div><strong>Case Number:</strong> ${formatReportText(data.caseNumber)}</div>
+                    <div><strong>Room No:</strong> ${formatReportText(data.roomNumber)}</div>
+                    <div><strong>MRN:</strong> ${formatReportText(data.mrn)}</div>
                     <div><strong>Date:</strong> ${dateStr}</div>
                     <!-- Row 2 -->
-                    <div><strong>Last Name:</strong> ${escapeHtml(data.patientLastName) || ''}</div>
-                    <div><strong>First Name:</strong> ${escapeHtml(data.patientFirstName) || ''}</div>
-                    <div><strong>Middle Name:</strong> ${escapeHtml(data.patientMiddleName) || ''}</div>
-                    <div><strong>Surgeon:</strong> ${escapeHtml(surgeonNameOnly)}</div>
+                    <div><strong>Last Name:</strong> ${formatReportText(data.patientLastName) || ''}</div>
+                    <div><strong>First Name:</strong> ${formatReportText(data.patientFirstName) || ''}</div>
+                    <div><strong>Middle Name:</strong> ${formatReportText(data.patientMiddleName) || ''}</div>
+                    <div><strong>Surgeon:</strong> ${formatReportText(surgeonNameOnly)}</div>
                     <!-- Row 3 -->
-                    <div><strong>Sex:</strong> ${escapeHtml(data.patientSex)}</div>
-                    <div><strong>Age:</strong> ${escapeHtml(data.patientAge)}</div>
-                    <div><strong>Suffix:</strong> ${escapeHtml(data.suffix)}</div>
-                    <div><strong>Asst. Surgeon:</strong> ${escapeHtml(data.assistantSurgeon)}</div>
+                    <div><strong>Sex:</strong> ${formatReportText(data.patientSex)}</div>
+                    <div><strong>Age:</strong> ${formatReportText(data.patientAge)}</div>
+                    <div><strong>Suffix:</strong> ${formatReportText(data.suffix)}</div>
+                    <div><strong>Asst. Surgeon:</strong> ${formatReportText(data.assistantSurgeon)}</div>
                 </div>
             </div>
         `;
@@ -6402,40 +6568,45 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Procedure Details</h3>
 
             <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
-                <div style="grid-column: 1 / -1;"><strong>Pre-Operative Diagnosis:</strong> ${escapeHtml(data.preOpDiagnosis)}</div>
-                <div style="grid-column: 1 / -1;"><strong>Type of Endoscopy / Operation Performed:</strong> ${escapeHtml(data.endoscopyType)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Pre-Operative Diagnosis:</strong> ${formatReportText(data.preOpDiagnosis)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Type of Endoscopy / Operation Performed:</strong> ${formatReportText(data.endoscopyType)}</div>
             </div>
 
             ${procedureDescHtml}
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; font-size: 12px; line-height: 1.4; padding-bottom: 5px;">
-                <div style="grid-column: 1 / -1;"><strong>Classification:</strong> ${escapeHtml(data.classification)}</div>
-                <div><strong>ICD 10 Code:</strong> ${escapeHtml(data.icd10Code)}</div>
-                <div><strong>RVS Code:</strong> ${escapeHtml(data.rvsCode)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Classification:</strong> ${formatReportText(data.classification)}</div>
+                <div><strong>ICD 10 Code:</strong> ${formatReportText(data.icd10Code)}</div>
+                <div><strong>RVS Code:</strong> ${formatReportText(data.rvsCode)}</div>
                 <div><strong>Operation Started:</strong> ${escapeHtml(formatTime12Hour(data.operationStarted))}</div>
                 <div><strong>Operation Ended:</strong> ${escapeHtml(formatTime12Hour(data.operationEnded))}</div>
-                <div><strong>Scrub Nurse:</strong> ${escapeHtml(data.scrubNurse)}</div>
-                <div><strong>Duration:</strong> ${escapeHtml(data.durationOfOperation)}</div>
-                <div style="grid-column: 1 / -1;"><strong>Type of Anesthesia:</strong> ${escapeHtml(data.anesthesiaUsed)}</div>
-                <div style="grid-column: 1 / -1; margin-top: 2px;"><strong>Indication:</strong> ${escapeHtml(data.indication)}</div>
+                <div><strong>Scrub Nurse:</strong> ${formatReportText(data.scrubNurse)}</div>
+                <div><strong>Duration:</strong> ${formatReportText(data.durationOfOperation)}</div>
+                <div style="grid-column: 1 / -1;"><strong>Type of Anesthesia:</strong> ${formatReportText(data.anesthesiaUsed)}</div>
+                <div style="grid-column: 1 / -1; margin-top: 2px;"><strong>Indication:</strong> ${formatReportText(data.indication)}</div>
             </div>
 
             ${findingsHtml}
             
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Impression / Post-Operative Diagnosis</h3>
-            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.impression)}</p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${formatReportText(data.impression)}</p>
 
             <h3 style="font-size: 15px; margin: 5px 0 5px 0; border-bottom: 1px solid var(--border-color, #eee); padding-bottom: 3px;">Recommendation / Plan</h3>
-            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${escapeHtml(data.recommendation)}</p>
+            <p style="margin: 0 0 8px 0; font-size: 12px; line-height: 1.4;">${formatReportText(data.recommendation)}</p>
         `;
 
         const physicianFullName = data.physician || '';
         const physicianTitle = 'Surgeon';
 
+        const signatureImage = signatureDataUrl
+            ? `<img src="${escapeHtml(signatureDataUrl)}" alt="" aria-hidden="true" style="display:block;max-width:220px;max-height:60px;object-fit:contain;object-position:center bottom;">`
+            : '';
         const physicianBlock = `
             <div class="doctor-signature-section" style="margin-top: 10px; text-align: left; page-break-inside: avoid;">
-                <div style="display: inline-block; min-width: 200px; text-align: center;">
-                    <div style="height: 40px; border-bottom: 1px solid var(--text-color, #333); margin-bottom: 2px;"></div>
+                <div style="display: inline-block; min-width: 230px; text-align: center;">
+                    <div style="height: 64px; display:flex; align-items:flex-end; justify-content:center; border-bottom: 1px solid var(--text-color, #333); margin-bottom: 2px;">
+                        ${signatureImage}
+                    </div>
                     <strong class="physician-name" style="margin: 0; padding: 0; font-size: 13px; white-space: nowrap; display: block;">${escapeHtml(physicianFullName)}</strong>
                     <span style="margin: 0; padding: 0; font-size: 12px; display: block;">${physicianTitle}</span>
                 </div>
@@ -6671,10 +6842,24 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             right: printLogos.right,
             cumc: printLogos.left
         });
-        const { patientInfoHtml, mainContentHtml } = buildReportSections(data, findingsHtml);
-        // Native print uses the original 780px container and 730px image panel.
+        let signatureDataUrl = '';
+        try {
+            if (!window.EntDoctorSignature
+                || typeof window.EntDoctorSignature.forSurgeon !== 'function') {
+                throw new Error('The saved-signature service did not load.');
+            }
+            signatureDataUrl = await window.EntDoctorSignature.forSurgeon(data.physician);
+        } catch (error) {
+            const signatureStatus = document.getElementById('doctorSignaturePreviewStatus');
+            if (signatureStatus) {
+                signatureStatus.textContent = 'Could not load the saved signature for printing. ' + ((error && error.message) || error);
+                signatureStatus.classList.add('is-error');
+            }
+            console.error('Unable to load the selected surgeon signature for printing:', error);
+        }
+        const { patientInfoHtml, mainContentHtml } = buildReportSections(data, findingsHtml, signatureDataUrl);
         const containerHeightPx = layout.containerHeightPx || 780;
-        const imagePanelHeightPx = layout.imagePanelHeightPx || (containerHeightPx - 50);
+        const imagePanelHeightPx = layout.imagePanelHeightPx || containerHeightPx;
         return buildEndoscopyDocumentHtml({
             headerHTML,
             patientInfoHtml,
@@ -6723,22 +6908,26 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         try {
             const data = getFormData();
-            // Native print keeps the original 780px container and 730px image panel.
+            const paperMetrics = getPrintPaperMetrics();
+            setNativePrintPaperFormat();
+            const containerHeightPx = Math.floor(paperMetrics.printableHeightPx * 0.68);
+            const { contentColWidth, imageColWidth } = getPrintColumnWidths(paperMetrics);
             const finalHtml = await getEndoscopyPrintDocument(data, null, {
-                containerHeightPx: 780,
-                imagePanelHeightPx: 730
+                containerHeightPx,
+                imagePanelHeightPx: containerHeightPx,
+                contentColWidth,
+                imageColWidth
             });
 
             // Only the generated report is printed. The print stylesheet already
             // hides the live form, header, breadcrumb, and section navigation.
-            printDiv.style.cssText = '';
+            printDiv.style.cssText = `display:block;width:${paperMetrics.printableWidthPx}px;box-sizing:border-box;`;
             printDiv.innerHTML = finalHtml;
-            printDiv.style.display = 'block';
 
             const hospitalNameSpanNative = printDiv.querySelector('.hospital-name-span');
             const subtitleSpanNative = printDiv.querySelector('.subtitle-span');
             const textBlockContainerNative = printDiv.querySelector('.header-text-block');
-            adjustFontSizeToFit(hospitalNameSpanNative, textBlockContainerNative);
+            adjustFontSizeToFit(hospitalNameSpanNative, textBlockContainerNative, true);
             adjustFontSizeToFit(subtitleSpanNative, textBlockContainerNative);
 
             const physicianNameNative = printDiv.querySelector('.physician-name');
@@ -6759,10 +6948,16 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     img.addEventListener('error', resolve, { once: true });
                 });
             }));
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            fitPrintDocumentToPaper(printDiv, paperMetrics);
+            await new Promise(resolve => requestAnimationFrame(resolve));
             if (loadingSpinner) loadingSpinner.style.display = 'none';
             await waitForNativePrintToFinish();
+        } catch (error) {
+            console.error('Unable to prepare the report for native printing:', error);
+            showCustomAlert('Could not fit the report to one A4 page: ' + ((error && error.message) || error), 'Print error');
         } finally {
             printDiv.style.display = 'none';
             printDiv.innerHTML = '';
@@ -6775,10 +6970,11 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     }
 
     async function printReport(options = {}) {
-        const { isForEmail = false, paperFormat = 'A4', showPreview = false } = options;
+        const { isForEmail = false, showPreview = false } = options;
         
         // Show spinner
         if (loadingSpinner) loadingSpinner.style.display = 'flex';
+        const paperMetrics = getPrintPaperMetrics();
 
         const data = getFormData();
         const pageTitle = document.title; // e.g., "Nasal Endoscopy Report" or "Laryngeal Endoscopy Report"
@@ -6793,30 +6989,12 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         const reportLabel = pageTitle.includes('Laryngeal') ? 'Laryngeal' : 'Nasal';
         pdfFilename = `${displayName || reportLabel}_${reportLabel}_Endoscopy_Report.pdf`;
 
-        // Calculate dimensions based on paper format (96 DPI)
-        let pdfPageWidthPx = 794; // A4 Default
-        let pdfPageHeightPx = 1123; // A4 Default
-        
-        if (paperFormat === 'Letter') {
-            pdfPageWidthPx = 816;
-            pdfPageHeightPx = 1056;
-        } else if (paperFormat === 'Legal') {
-            pdfPageWidthPx = 816;
-            pdfPageHeightPx = 1344;
-        }
-        
-        // Original PDF layout maths: the content container is ~70% of the page
-        // height, and the image column is a fixed 220px on the right.
-        const containerHeight = Math.floor(pdfPageHeightPx * 0.70);
-        const containerPadding = 30; // 15px * 2
-        const columnGap = 15;
-        const usableWidth = pdfPageWidthPx - containerPadding - columnGap;
-        const imageColWidth = 220;
-        const contentColWidth = usableWidth - imageColWidth;
+        const containerHeight = Math.floor(paperMetrics.printableHeightPx * 0.68);
+        const { contentColWidth, imageColWidth } = getPrintColumnWidths(paperMetrics);
 
         const documentHtml = await getEndoscopyPrintDocument(data, null, {
             containerHeightPx: containerHeight,
-            imagePanelHeightPx: containerHeight - 50,
+            imagePanelHeightPx: containerHeight,
             contentColWidth,
             imageColWidth
         });
@@ -6827,15 +7005,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         const isDarkMode = false;
         const themeStyles = `--bg-color: #ffffff; --text-color: #111111; --border-color: #d8dee6; --image-bg: #f8fafc;`;
 
-        // Original PDF setup: fixed A4 page width with the same page height used
-        // before, so the printed page fills correctly on the first sheet.
-        printDiv.style.cssText = `display: block; width: ${pdfPageWidthPx}px; height: ${pdfPageHeightPx}px; box-sizing: border-box; background-color: #ffffff; color: #111111; position: fixed; top: 0; left: 0; z-index: 9999; overflow: hidden; ${themeStyles}`;
+        printDiv.style.cssText = `display:block;width:${paperMetrics.printableWidthPx}px;height:auto;box-sizing:border-box;background-color:#ffffff;color:#111111;position:fixed;top:0;left:0;z-index:9999;overflow:visible;${themeStyles}`;
 
         // *** NEW: Adjust font size after rendering in the fixed-width div ***
         const hospitalNameSpanForPdf = printDiv.querySelector('.hospital-name-span');
         const subtitleSpanForPdf = printDiv.querySelector('.subtitle-span');
         const textBlockContainerForPdf = printDiv.querySelector('.header-text-block');
-        adjustFontSizeToFit(hospitalNameSpanForPdf, textBlockContainerForPdf);
+        adjustFontSizeToFit(hospitalNameSpanForPdf, textBlockContainerForPdf, true);
         adjustFontSizeToFit(subtitleSpanForPdf, textBlockContainerForPdf);
 
         // Adjust physician name font size to fit in one line
@@ -6849,6 +7025,28 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         if (physicianTitleSpanPdf && physicianContainerPdf) {
             adjustFontSizeToFit(physicianTitleSpanPdf, physicianContainerPdf);
         }
+
+        const pdfImages = Array.from(printDiv.querySelectorAll('img'));
+        await Promise.all(pdfImages.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        }));
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        try {
+            fitPrintDocumentToPaper(printDiv, paperMetrics);
+        } catch (error) {
+            console.error('Unable to fit the report text on one A4 page:', error);
+            showCustomAlert((error && error.message) || 'Could not fit the report on one A4 page.', 'A4 fit error');
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
+            printDiv.style.display = 'none';
+            printDiv.innerHTML = '';
+            return;
+        }
+
         // Use a short timeout to allow the browser to render the printDiv
         // before the PDF generation tries to capture it. This prevents blank/stuck PDFs.
         return new Promise((resolve, reject) => {
@@ -6907,21 +7105,23 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                         const pdf = new jsPDF({
                             orientation: 'p',
                             unit: 'mm',
-                            format: paperFormat.toLowerCase()
+                            format: [paperMetrics.widthMm, paperMetrics.heightMm]
                         });
 
                         const pdfWidth = pdf.internal.pageSize.getWidth();
                         const pdfHeight = pdf.internal.pageSize.getHeight();
+                        const pdfMargin = PRINT_PAGE_MARGIN_MM;
 
                         // PRIMARY APPROACH: Use pdf.html() for text-based/selectable PDF
                         // This produces PDFs with selectable text rather than flat images
                         let pdfGenerated = false;
                         
                         pdf.html(printDiv, {
-                            x: 10,
-                            y: 10,
-                            width: pdfWidth - 20, // Leave margins
-                            windowWidth: printDiv.scrollWidth,
+                            x: pdfMargin,
+                            y: pdfMargin,
+                            width: pdfWidth - (pdfMargin * 2),
+                            windowWidth: paperMetrics.printableWidthPx,
+                            autoPaging: 'text',
                             callback: function(pdf) {
                                 clearTimeout(safetyTimeout);
                                 pdfGenerated = true;
@@ -6936,7 +7136,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                                     } else {
                                         pdf.setTextColor(80, 80, 80);
                                     }
-                                    pdf.text(`Page ${i} of ${totalPages}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+                                    pdf.text(`Page ${i} of ${totalPages}`, pdfWidth / 2, pdfHeight - (pdfMargin / 2), { align: 'center' });
                                 }
                                 
                                 if (showPreview) {
@@ -6980,30 +7180,32 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                                     return;
                                 }
 
-                                let imgHeight = canvas.height * pdfWidth / canvas.width;
-                                let heightLeft = imgHeight; 
-                                let position = 0;
-                                const totalPages = Math.ceil(imgHeight / pdfHeight);
+                                const contentWidth = pdfWidth - (pdfMargin * 2);
+                                const contentHeight = pdfHeight - (pdfMargin * 2);
+                                const imgHeight = canvas.height * contentWidth / canvas.width;
+                                let heightLeft = imgHeight;
+                                let position = pdfMargin;
+                                const totalPages = Math.max(1, Math.ceil(imgHeight / contentHeight));
 
                                 const addFooter = (pageNum) => {
                                     const str = `Page ${pageNum} of ${totalPages}`;
                                     pdf.setFontSize(9);
                                     if (isDarkMode) pdf.setTextColor(200, 200, 200);
                                     else pdf.setTextColor(80, 80, 80);
-                                    pdf.text(str, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+                                    pdf.text(str, pdfWidth / 2, pdfHeight - (pdfMargin / 2), { align: 'center' });
                                 };
 
-                                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                                pdf.addImage(imgData, 'PNG', pdfMargin, position, contentWidth, imgHeight);
                                 addFooter(1);
-                                heightLeft -= pdfHeight;
+                                heightLeft -= contentHeight;
                                 let pageCount = 1;
-                                while (heightLeft > 0) {
-                                    position = heightLeft - imgHeight;
-                                    pdf.addPage(paperFormat.toLowerCase(), 'p');
-                                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+                                while (heightLeft > 0.5) {
+                                    position = pdfMargin + heightLeft - imgHeight;
+                                    pdf.addPage([paperMetrics.widthMm, paperMetrics.heightMm], 'p');
+                                    pdf.addImage(imgData, 'PNG', pdfMargin, position, contentWidth, imgHeight);
                                     pageCount++;
                                     addFooter(pageCount);
-                                    heightLeft -= pdfHeight;
+                                    heightLeft -= contentHeight;
                                 }
 
                                 if (showPreview) {

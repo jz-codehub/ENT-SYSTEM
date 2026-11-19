@@ -11,6 +11,7 @@
     'use strict';
 
     const SAVED_KEYS_STORAGE = 'entDbSavedRecordKeysV1';
+    const SAVE_DIAGNOSTIC_KEY = 'entLastDbSaveDiagnosticV1';
     const LIST_PAGE_SIZE = 100;
     const MAX_LIST_OFFSET = 1000000;
     const MAX_STATS_FALLBACK_ROWS = 50000;
@@ -20,6 +21,34 @@
         nasal: 'Nasal Endoscopy',
         laryngeal: 'Laryngeal Endoscopy'
     };
+
+    function recordDatabaseSaveDiagnostic(status, error) {
+        const result = {
+            status: status,
+            updatedAt: new Date().toISOString()
+        };
+        if (error) {
+            const httpStatus = Number(error.status) || 0;
+            const serverCode = String(error.serverCode || '').trim();
+            const message = String(error.message || '');
+            let code = 'DATABASE_ERROR';
+            if (error.photoUploadFailed) code = 'PHOTO_UPLOAD_FAILED';
+            else if (httpStatus === 401) code = 'AUTH_REQUIRED';
+            else if (httpStatus === 403 || serverCode === '42501') code = 'PERMISSION_DENIED';
+            else if (httpStatus === 413 || /payload_ceiling|request entity too large|payload too large/i.test(message)) code = 'PAYLOAD_TOO_LARGE';
+            else if (httpStatus === 409 || serverCode === '23505') code = 'DUPLICATE_CONFLICT';
+            else if (!httpStatus && /failed to fetch|network|load failed/i.test(message)) code = 'NETWORK_ERROR';
+            result.code = code;
+            if (httpStatus) result.httpStatus = httpStatus;
+            if (/^[A-Z0-9_]{1,32}$/i.test(serverCode)) result.serverCode = serverCode;
+            if (status === 'success') result.confirmationIssue = true;
+        }
+        try {
+            window.localStorage.setItem(SAVE_DIAGNOSTIC_KEY, JSON.stringify(result));
+        } catch (storageError) {
+            console.warn('Could not store the database save diagnostic status.', storageError);
+        }
+    }
 
     let modal = null;
     let confirmBox = null;
@@ -933,6 +962,7 @@ function doctorFilter() {
         if (saveButton) saveButton.disabled = true;
         if (mainLabel) mainLabel.textContent = 'Saving...';
         let databaseWriteCompleted = false;
+        recordDatabaseSaveDiagnostic('pending');
 
         try {
             const record = window.PatientRecords
@@ -1183,6 +1213,7 @@ function doctorFilter() {
             }
 
             databaseWriteCompleted = true;
+            recordDatabaseSaveDiagnostic('success');
             markKeySaved(record.key);
             if (racedWinner && racedWinner !== record.key) markKeySaved(racedWinner);
             document.dispatchEvent(new Event('databaseRecordSaved'));
@@ -1244,6 +1275,7 @@ function doctorFilter() {
         } catch (error) {
             console.error('Save to database failed:', error);
             if (databaseWriteCompleted) {
+                recordDatabaseSaveDiagnostic('success', error);
                 showAlert(
                     'The database accepted this report, but the app could not finish showing its confirmation.\n\n' +
                     'Check DB Records before retrying to avoid creating a duplicate.',
@@ -1251,6 +1283,7 @@ function doctorFilter() {
                 );
                 return;
             }
+            recordDatabaseSaveDiagnostic('failed', error);
             const conflict = /\(409\)|23505|on_conflict|ON CONFLICT/.test(String(error.message || ''));
             // A failed photo upload gets its own message: nothing was written,
             // the report is still on screen, and the local draft is untouched.

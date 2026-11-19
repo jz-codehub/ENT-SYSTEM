@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0056_report_version_history.sql`). Isa-isa; hintayin ang
+   (ngayon: `0057_doctor_signatures.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -121,11 +121,19 @@ separate files, walang all-in-one.
     versions araw-araw gamit ang Supabase Cron (`pg_cron`). Hindi kinokopya
     ang image binaries o photo references; kapag nag-restore, nananatili ang
     kasalukuyang attachments. Kailangang available ang `pg_cron`; malinaw na
-    hihinto ang migration kung hindi. Ito ay bagong report-history migration,
-    hiwalay sa dating Doctor-work 0056 na isinama sa 0055. Dahil wala pang
-    staging project, huwag muna itong i-apply sa live database hangga't hindi
-    nasusubukan ang capture, RLS, restore, photo preservation, at Cron purge sa
-    staging.
+    hihinto ang migration kung hindi. Magsisimula ang history sa mga susunod na
+    edit pagkatapos mailapat ang migration; walang historical versions na
+    bina-backfill.
+
+17. Ang `0057_doctor_signatures.sql` ay nag-iimbak ng PNG signature. Doctor
+    lang ang puwedeng gumawa, magbago, o magtanggal; ang assigned secretary ay
+    read-only at makakakita lang ng pirma ng doktor na assigned sa kanya.
+    Makikita ang signature preview sa Nasal/Laryngeal form at awtomatiko itong
+    isasama sa print kapag may pirma para sa napiling Surgeon. Kung na-run na
+    ang dating bersyon ng 0057, i-run ulit ang updated na 0057 nang isang beses
+    para mapalitan ang read policy; idempotent ito at hindi binabago ang
+    signatures na naka-save na. Kasama lang ang signature images sa `--full`
+    backups; panatilihing private ang mga backup.
 
 ## Mga tuntunin
 

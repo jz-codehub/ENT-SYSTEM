@@ -685,7 +685,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      !/max-width:\s*1080px/.test(adminCss2.replace(/\/\*[\s\S]*?\*\//g, '')),
      'a 218px rail fits every label, so no icon-only breakpoint is needed')
   is('A16g', 'the admin stylesheet loads after shared mobile styles',
-     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v68-admin-drawer-close/.test(adminHtml),
+     /mobile\.css[^>]*>[\s\S]*?admin\.css\?v=v69-admin-diagnostics/.test(adminHtml),
      'admin-specific responsive design wins over shared page styles')
   is('A16g1', 'admin panels use one clear heading and align content consistently',
      /\.ent-admin-page\s*\{\s*text-align:\s*left;/.test(adminCss2)
@@ -1338,9 +1338,9 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
   is('A77d', 'the redesigned JavaScript and service worker have fresh cache versions',
      /admin\.js\?v=v\d+-[a-z0-9-]+/.test(html)
        && /auth\.js\?v=v36p-admin-clinic-context/.test(html)
-       &&        /admin\.css\?v=v68-admin-drawer-close/.test(html)
-         && /notificationCenter\.js\?v=v9-shared-notification-design/.test(html)
-         && /notifications\.css\?v=v11-shared-notification-design/.test(html)
+       &&        /admin\.css\?v=v69-admin-diagnostics/.test(html)
+         && /notificationCenter\.js\?v=v11-doctor-work-patient-name/.test(html)
+         && /notifications\.css\?v=v13-doctor-work-patient-name/.test(html)
        && /settings\.css\?v=v4-settings-header/.test(settingsHtml)
        && /function\/index\.js\?v=v36z-physician-scope-fix/.test(settingsHtml)
        && /settings-header-brand[\s\S]*?ent-logo\.webp/.test(settingsHtml)
@@ -1659,6 +1659,7 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
 }
 
 {
+  const adminJs = readFileSync(join(APP, 'function', 'admin.js'), 'utf8')
   const authJs = readFileSync(join(APP, 'function', 'auth.js'), 'utf8')
   const dashboardJs = readFileSync(join(APP, 'function', 'dashboard.js'), 'utf8')
   const recordsJs = readFileSync(join(APP, 'function', 'dbRecords.js'), 'utf8')
@@ -1693,6 +1694,30 @@ is('A13e', 'saving the secretary persists the newly selected doctor',
      /await Auth\.clearAdminClinicContext\(\)/.test(readFileSync(join(APP, 'function', 'admin.js'), 'utf8'))
        && /FUNCTION public\.ent_clear_admin_active_clinic\(\)/.test(adminContextSql),
      'the console keeps its existing all-managed-clinics behavior')
+
+  const adminCss = readFileSync(join(APP, 'style', 'admin.css'), 'utf8')
+  const saveDiagnosticHelper = (recordsJs.match(/function recordDatabaseSaveDiagnostic\(status, error\) \{[\s\S]*?\n    \}/) || [''])[0]
+  is('A123', 'admin Settings has safe system diagnostics for database and app failures',
+     /id="runAdminDiagnosticsBtn"/.test(adminHtml)
+       && /id="adminDiagnosticsSummary"/.test(adminHtml)
+       && /id="adminDiagnosticsResults"/.test(adminHtml)
+       && /staff_profiles\?select=id&limit=0/.test(adminJs)
+       && /reports\?select=record_key,report_type,is_draft&limit=0/.test(adminJs)
+       && /system_flags\?select=flag_key&limit=0/.test(adminJs)
+       && /window\.addEventListener\('unhandledrejection'/.test(adminHtml)
+       && /__entAdminRuntimeDiagnostics/.test(adminJs)
+       && /entLastDbSaveDiagnosticV1/.test(adminJs)
+       && /ent-diagnostic-row\.is-error/.test(adminCss),
+     'read-only database probes, runtime failure count and diagnostic UI are wired')
+
+  is('A124', 'real Save to Database results are tracked without storing patient information',
+     !!saveDiagnosticHelper
+       && /localStorage\.setItem\(SAVE_DIAGNOSTIC_KEY, JSON\.stringify\(result\)\)/.test(saveDiagnosticHelper)
+       && /recordDatabaseSaveDiagnostic\('pending'\)/.test(recordsJs)
+       && /recordDatabaseSaveDiagnostic\('success'\)/.test(recordsJs)
+       && /recordDatabaseSaveDiagnostic\('failed', error\)/.test(recordsJs)
+       && !/patientName|patientId|formData|recordKey/.test(saveDiagnosticHelper),
+     'diagnostics report the last real save outcome and only retain status/error codes')
 }
 
 console.log('')

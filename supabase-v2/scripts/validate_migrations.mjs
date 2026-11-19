@@ -23,6 +23,8 @@
      V8  clinic suggestions are allowlisted, private, and server-scoped
      V9  the combined clinic-wide doctor-work migration is safe and scoped
      V10 clinic-wide doctor-work totals and status rows share one private result
+     V11 report history is data-only, scoped, and expires after 90 days
+     V12 doctors manage their own PNG signature; assigned secretaries can read it
 
    WHAT THIS DOES NOT PROVE, SAID PLAINLY
 
@@ -40,6 +42,7 @@ import { fileURLToPath } from 'node:url'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..')
 const MIG = join(ROOT, 'migrations')
+const source = file => readFileSync(join(ROOT, '..', file), 'utf8')
 
 let pass = 0, fail = 0
 const problems = []
@@ -607,6 +610,49 @@ chk('V11.8', 'the restore RPC is callable only by authenticated users',
   /REVOKE ALL ON FUNCTION public\.ent_restore_report_version\(uuid\) FROM PUBLIC, anon, authenticated/.test(M56)
     && /GRANT EXECUTE ON FUNCTION public\.ent_restore_report_version\(uuid\) TO authenticated/.test(M56))
 
+/* ----------------------------------------------------------------- V12 */
+console.log('')
+console.log('--- V12 · doctors manage their own signatures ---')
+const M57 = stripComments(raw('0057_doctor_signatures.sql'))
+const M57_SELECT = M57.match(/CREATE POLICY doctor_signatures_select_assigned[\s\S]*?;/)
+const M57_INSERT = M57.match(/CREATE POLICY doctor_signatures_insert_own[\s\S]*?;/)
+const M57_UPDATE = M57.match(/CREATE POLICY doctor_signatures_update_own[\s\S]*?;/)
+const M57_DELETE = M57.match(/CREATE POLICY doctor_signatures_delete_own[\s\S]*?;/)
+chk('V12.1', 'one PNG signature per doctor account with a bounded data URL',
+  /doctor_id\s+uuid\s+PRIMARY KEY REFERENCES public\.staff_profiles\(id\) ON DELETE CASCADE/.test(M57)
+    && M57.includes('length(signature_data_url) <= 150000')
+    && M57.includes('data:image/png;base64,'))
+chk('V12.2', 'signatures are RLS-enabled and never available to anon',
+  M57.includes('ALTER TABLE public.doctor_signatures ENABLE ROW LEVEL SECURITY')
+    && /REVOKE ALL ON TABLE public\.doctor_signatures FROM PUBLIC, anon, authenticated/.test(M57)
+    && /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public\.doctor_signatures TO authenticated/.test(M57)
+    && /GRANT ALL ON TABLE public\.doctor_signatures TO service_role/.test(M57))
+chk('V12.3', 'signature insert, update, and delete require the caller to own an active doctor profile',
+  [M57_INSERT, M57_UPDATE, M57_DELETE].every(policy =>
+    policy && policy[0].includes('doctor_id = public.ent_auth_uid()')
+      && policy[0].includes("profile.role = 'doctor'")
+      && policy[0].includes('profile.is_active')))
+chk('V12.4', 'signature management UI is present on both endoscopy forms',
+  /id="manageDoctorSignature"/.test(source('pages/nasalEndoscopy.html'))
+    && /id="manageDoctorSignature"/.test(source('pages/laryngealEndoscopy.html'))
+    && M57.includes('doctor_signatures'))
+chk('V12.5', 'the print builder uses a saved signature only for the matching surgeon name',
+  /normalizedName\(surgeonName\)/.test(source('function/doctorSignature.js'))
+    && /EntDoctorSignature\.forSurgeon\(data\.physician\)/.test(source('function/index.js'))
+    && /signatureImage/.test(source('function/index.js')))
+chk('V12.6', 'assigned secretaries can read signatures only through the live doctor-assignment predicate',
+  !!M57_SELECT && M57_SELECT[0].includes('public.ent_is_my_doctor(doctor_id)')
+    && M57_SELECT[0].includes('doctor_id = public.ent_auth_uid()'))
+chk('V12.7', 'the signature form previews authorized doctors on both endoscopy pages',
+  /id="doctorSignaturePreview"/.test(source('pages/nasalEndoscopy.html'))
+    && /id="doctorSignaturePreview"/.test(source('pages/laryngealEndoscopy.html'))
+    && /fetchAssignedDoctors/.test(source('function/doctorSignature.js'))
+    && /doctor_signatures\?select=signature_data_url&doctor_id=eq\./.test(source('function/doctorSignature.js')))
+chk('V12.8', 'secretaries cannot write signatures and selected signatures are included in print',
+  [M57_INSERT, M57_UPDATE, M57_DELETE].every(policy =>
+    policy && !policy[0].includes('secretary') && policy[0].includes("profile.role = 'doctor'")
+  ) && /signatureImage/.test(source('function/index.js')))
+
 /* ------------------------------------------------------------------ report */
 console.log('')
 console.log('==== RESULT ====')
@@ -619,7 +665,7 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0056 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0057 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
   'sign in as a Super Secretary and verify switching clinic changes the',
