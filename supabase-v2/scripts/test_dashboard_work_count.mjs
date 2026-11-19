@@ -21,36 +21,43 @@ function extractFn(name) {
     throw new Error(`unbalanced braces in ${name}`)
 }
 
-const waitingReports = [
-    { report_type: 'cf4', record_key: 'cf4-1', isFinalized: true, doctorWorkPercent: 50, created_by: 'doctor-1' },
-    { report_type: 'nasal', record_key: 'nasal-1', isFinalized: true, doctorWorkPercent: 25, created_by: 'secretary-1' },
-    { report_type: 'laryngeal', record_key: 'laryngeal-1', isFinalized: true, doctorWorkPercent: 75, created_by: 'secretary-1' },
-    { report_type: 'nasal', record_key: 'nasal-done', isFinalized: true, doctorWorkPercent: 100, created_by: 'secretary-1' },
-    { report_type: 'other', record_key: 'unknown', isFinalized: true, doctorWorkPercent: null, created_by: 'secretary-1' }
+const clinicStatusRows = [
+    { report_type: 'cf4', record_key: '', isFinalized: false, doctorWorkPercent: 50, clinicWideStatus: true },
+    { report_type: 'nasal', record_key: '', isFinalized: false, doctorWorkPercent: 25, clinicWideStatus: true },
+    { report_type: 'laryngeal', record_key: '', isFinalized: false, doctorWorkPercent: 75, clinicWideStatus: true },
+    { report_type: 'nasal', record_key: '', isFinalized: true, doctorWorkPercent: 100, clinicWideStatus: true },
 ]
 
 function makeQueueLists(rows, user) {
     const factory = new Function(
         'queueRows', 'me', 'isMine',
-        extractFn('isDoctorWorkComplete') + '\n' + extractFn('queueLists') + '\nreturn queueLists;'
+        extractFn('isDoctorWorkComplete') + '\n'
+            + extractFn('isDoctorWorkIncomplete') + '\n'
+            + extractFn('queueLists') + '\nreturn queueLists;'
     )
     return factory(rows, user, row => row.created_by === user.id)()
 }
 
-const doctorLists = makeQueueLists(waitingReports, { role: 'doctor', id: 'doctor-1' })
-assert.equal(doctorLists.review.length, 3, 'doctor count includes incomplete CF4, Nasal, and Laryngeal reports')
-assert.equal(doctorLists.saved.length, 1, 'fully completed report is not counted as waiting')
+const doctorLists = makeQueueLists(clinicStatusRows, { role: 'doctor', id: 'doctor-1' })
+assert.equal(doctorLists.review.length, 3, 'clinic status includes incomplete CF4, Nasal, and Laryngeal patient/date rows')
+assert.equal(doctorLists.saved.length, 1, '100% doctor work is classified as completed')
 
-const secretaryLists = makeQueueLists(waitingReports, { role: 'secretary', id: 'secretary-1' })
-assert.equal(secretaryLists.review.length, 2, 'secretary sees assigned doctor work for her own reports')
+const secretaryLists = makeQueueLists(clinicStatusRows, { role: 'secretary', id: 'secretary-1' })
+assert.equal(secretaryLists.review.length, 3, 'secretary sees the same active-clinic status rows')
+assert.equal(secretaryLists.saved.length, 1, 'secretary completed count matches the clinic-wide status rows')
 
-const uniqueQueueRecords = new Function(extractFn('uniqueQueueRecords') + '\nreturn uniqueQueueRecords;')()
-assert.equal(uniqueQueueRecords([
-    { report_type: 'cf4', record_key: 'same' },
-    { report_type: 'cf4', record_key: 'same' },
-    { report_type: 'nasal', record_key: 'same' },
-    { report_type: 'nasal', record_key: '' }
-]).length, 3, 'duplicate report keys count once while different report types stay separate')
+const normalizeStatus = new Function(extractFn('normalizeClinicWorkStatus') + '\nreturn normalizeClinicWorkStatus;')()
+const normalized = normalizeStatus({
+    completed_count: 1, incomplete_count: 1, total_count: 2,
+    records: [
+        { patient_name: 'Finished', visit_date: '2026-10-05', report_types: ['cf4'], is_complete: true, doctor_work_percent: 100 },
+        { patient_name: 'Waiting', visit_date: '2026-10-06', report_types: ['nasal'], is_complete: false, doctor_work_percent: 93 },
+    ]
+})
+assert.equal(normalized.records.length, normalized.total, 'visible patient/date rows equal the aggregate denominator')
+assert.throws(() => normalizeStatus({
+    completed_count: 1, incomplete_count: 0, total_count: 1, records: []
+}), /do not match/, 'mismatched totals fail closed instead of showing inconsistent counts')
 
 for (const page of ['nasalEndoscopy.html', 'laryngealEndoscopy.html']) {
     const html = readFileSync(resolve(root, 'pages', page), 'utf8')
@@ -61,4 +68,4 @@ assert.match(formScript, /display-mode: standalone[\s\S]*?cameraFileInput\.click
 assert.match(styles, /input\[type="file"\]\[hidden\]\s*\{\s*display:\s*none\s*!important;/,
     'hidden camera input stays invisible despite the generic file-input styling')
 
-console.log('==== DASHBOARD WORK COUNT & PWA CAMERA CHECKS PASSED — 8 passed ====')
+console.log('==== DASHBOARD WORK COUNT & PWA CAMERA CHECKS PASSED — 10 passed ====')

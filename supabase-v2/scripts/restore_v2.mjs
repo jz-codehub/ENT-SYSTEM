@@ -98,6 +98,7 @@ const TABLES = [
   ['clinics', 'id'],
   ['staff_profiles', 'id'],
   ['reports', 'id'],
+  ['report_versions', 'id'],
   ['report_photos', 'id'],
   ['activity_logs', 'id'],
   ['user_presence', 'user_id,device_label'],
@@ -110,6 +111,7 @@ const TABLES = [
   ['secretary_assignments', 'secretary_id,doctor_id']
 ]
 for (const [table] of TABLES) {
+  if (table === 'report_versions' && !manifest.tables?.[table]) continue
   if (!manifest.tables || !manifest.tables[table]
     || !Number.isInteger(manifest.tables[table].rows)
     || !/^[a-f0-9]{64}$/.test(manifest.tables[table].sha256 || '')) {
@@ -183,6 +185,7 @@ const checkPhotoArchive = photoRows => {
 if (phase === '--check') {
   try {
     for (const [table] of TABLES) {
+      if (table === 'report_versions' && !manifest.tables?.[table]) continue
       const rows = readJson(`${table}.json`, manifest.tables[table].sha256)
       if (rows.length !== manifest.tables[table].rows) {
         throw new Error(`${table}: manifest expected ${manifest.tables[table].rows} rows, file contains ${rows.length}.`)
@@ -341,6 +344,7 @@ async function restorePhotoObjects(photoRows) {
 const restoredCounts = {}
 try {
   for (const [table, conflictColumns] of TABLES) {
+    if (table === 'report_versions' && !manifest.tables?.[table]) continue
     const rows = readJson(`${table}.json`, manifest.tables[table].sha256)
     const expected = manifest.tables[table].rows
     if (rows.length !== expected) {

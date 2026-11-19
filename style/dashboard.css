@@ -588,6 +588,38 @@ body.dark-mode .ent-dash-actions-row .ent-dash-ghost:hover { color: #7dd3fc; }
     background: var(--panel-bg-color);
 }
 .ent-queue { display: flex; flex-direction: column; gap: 8px; }
+.ent-clinic-work-totals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 5px;
+}
+.ent-clinic-work-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    padding: 11px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--panel-bg-color);
+    color: var(--secondary-text-color);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.ent-clinic-work-total b {
+    color: var(--text-color);
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+.ent-clinic-work-total.is-complete b { color: var(--success-color); }
+.ent-clinic-work-total.is-incomplete b { color: var(--warning-color); }
+.ent-clinic-work-note { margin: 0 0 8px; }
+@media (max-width: 520px) {
+    .ent-clinic-work-totals { gap: 7px; }
+    .ent-clinic-work-total { padding: 9px 10px; font-size: 0.72rem; }
+}
 .ent-queue-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

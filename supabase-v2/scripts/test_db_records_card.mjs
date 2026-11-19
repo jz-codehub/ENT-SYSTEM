@@ -111,12 +111,13 @@ function makeEl(tag) {
                         page BOUNDARY row repeats on the next page (the
                         row-shift that a save mid-paging causes)
    -------------------------------------------------------------------- */
-function boot({ mode = 'normal', user, listRows, statsRows, rpcAvailable = false }) {
+function boot({ mode = 'normal', user, listRows, statsRows, historyRows = [], rpcAvailable = false }) {
   // Each scenario builds a NEW modal; the exported selector nodes must
   // belong to THIS browser, not to the previous one's.
   for (const k of Object.keys(firstBySel)) delete firstBySel[k]
   const calls = []
   const rpcCalls = []
+  const restoreCalls = []
   const patches = []        // bodies the Set/Move button PATCHed, for assertions
   const alerts = []
   const docListeners = {}
@@ -194,6 +195,10 @@ function boot({ mode = 'normal', user, listRows, statsRows, rpcAvailable = false
           try { patches.push(JSON.parse(opts.body)) } catch (e) { patches.push(null) }
           return [{}]
         }
+        if (endpoint === 'rpc/ent_restore_report_version') {
+          restoreCalls.push(JSON.parse(opts.body || '{}'))
+          return { ok: true, report_id: 'history-report' }
+        }
         if (endpoint.includes('record_key=eq.')) {        // startSiteMove's row read
           const m = /record_key=eq\.([^&]+)/.exec(endpoint)
           const key = m ? decodeURIComponent(m[1]) : ''
@@ -202,6 +207,10 @@ function boot({ mode = 'normal', user, listRows, statsRows, rpcAvailable = false
         }
         const isList = endpoint.includes('report_type=eq.')
         const wantsName = endpoint.includes('created_by_name')
+        if (endpoint.startsWith('report_versions?')) {
+          if (mode === 'failHistory') throw new Error('history permission denied')
+          return historyRows
+        }
         // Honour the admission filter EXACTLY like PostgREST, in both
         // spellings the code has used:
         //   · v33ah three-clause or= form - false OR IS NULL OR saved
@@ -298,7 +307,7 @@ function boot({ mode = 'normal', user, listRows, statsRows, rpcAvailable = false
   const src = readFileSync(join(APP, 'function', 'dbRecords.js'), 'utf8')
   vm.createContext(win)
   vm.runInContext(src, win, { filename: 'dbRecords.js' })
-  return { win, calls, rpcCalls, patches, alerts, docListeners, dialogs }
+  return { win, calls, rpcCalls, restoreCalls, patches, alerts, docListeners, dialogs }
 }
 
 /* --------------------------------------------------------------------
@@ -940,6 +949,104 @@ console.log('')
        && body.payload && body.payload.is_draft === true
        && body.payload.dbSaved === false,
      JSON.stringify(body))
+}
+
+/* ---- 19 · incomplete Doctor work names its missing fields ------------- */
+{
+  const progressRow = {
+    ...base,
+    report_type: 'nasal',
+    record_key: 'nasal|MISSING-FIELDS',
+    patient_name: 'PROGRESS, TEST',
+    procedure_date: '2026-10-02',
+    'payload->formData': {
+      preOpDiagnosis: 'Deviated septum',
+      endoscopyType: 'Nasal endoscopy',
+      indication: 'Nasal obstruction',
+      anesthesiaUsed: 'Topical',
+      septum: 'Midline',
+      discharge: '',
+      mucosa: 'Pink',
+      it: 'Normal',
+      mt: 'Normal',
+      mm: 'Clear',
+      im: 'Clear',
+      omc: 'Patent',
+      nasopharynx: '',
+      impression: '',
+      recommendation: ''
+    }
+  }
+  const env = boot({ mode: 'normal', user: USER, listRows: [progressRow], statsRows: [] })
+  await flush()
+  env.win.EntDbRecords.openRecordsModal()
+  await flush()
+  const card = firstBySel['.ent-db-list'].children[0]
+  const html = card ? card.innerHTML : ''
+  ok('C86', 'the Doctor work progress reveals its missing field names on demand',
+     html.includes('Missing Doctor work fields (4)')
+       && html.includes('<li>Discharge</li>')
+       && html.includes('<li>Nasopharynx</li>')
+       && html.includes('<li>Impression</li>')
+       && html.includes('<li>Recommendation</li>'),
+     html.match(/<details class="ent-db-missing-work">[\s\S]*?<\/details>/)?.[0] || 'details missing')
+  ok('C87', 'Doctor work and whole-form progress remain separate',
+     html.includes('Doctor\'s work') && html.includes('Form completion'))
+  ok('C88', 'DB Records cards expose the history action without embedding report data',
+     html.includes('class="ent-db-history-btn"')
+       && html.includes('class="ent-db-history-panel" hidden')
+       && !/report_versions[^`]*payload/.test(html))
+
+  const historyEnv = boot({
+    mode: 'normal', user: USER, listRows: [progressRow], statsRows: [],
+    historyRows: [{
+      id: '00000000-0000-4000-8000-000000000017',
+      actor_label: 'Dr. Example',
+      captured_at: '2026-10-05T09:32:00Z'
+    }]
+  })
+  await flush()
+  const historyPanel = historyEnv.win.document.createElement('div')
+  await historyEnv.win.EntDbRecords.loadReportHistory(UUID_TARA, historyPanel)
+  const historyRequest = historyEnv.calls.find(call => call.startsWith('report_versions?')) || ''
+  ok('C89', 'history reads only version metadata through the report-scoped RLS table',
+     historyRequest.includes('select=id,actor_label,captured_at,expires_at')
+       && historyRequest.includes('report_id=eq.' + UUID_TARA)
+       && historyRequest.includes('expires_at=gt.')
+       && historyRequest.includes('limit=100')
+       && !historyRequest.includes('payload'),
+     historyRequest)
+  ok('C90', 'history lists a restorable prior version and its staff attribution',
+     historyPanel.innerHTML.includes('data-report-version="00000000-0000-4000-8000-000000000017"')
+       && historyPanel.innerHTML.includes('Before save by Dr. Example'))
+
+  const failedHistoryEnv = boot({
+    mode: 'failHistory', user: USER, listRows: [progressRow], statsRows: []
+  })
+  await flush()
+  const failedHistoryPanel = failedHistoryEnv.win.document.createElement('div')
+  await failedHistoryEnv.win.EntDbRecords.loadReportHistory(UUID_TARA, failedHistoryPanel)
+  ok('C91', 'a denied history read is shown as an error and can be retried',
+     failedHistoryPanel.innerHTML.includes('Could not load report history: history permission denied')
+       && failedHistoryPanel.dataset.historyLoaded === 'false')
+
+  const restoreEnv = boot({ mode: 'normal', user: USER, listRows: [progressRow], statsRows: [] })
+  await flush()
+  restoreEnv.win.EntDbRecords.openRecordsModal()
+  await flush()
+  const restoreButton = restoreEnv.win.document.createElement('button')
+  const versionId = '00000000-0000-4000-8000-000000000017'
+  const restorePromise = restoreEnv.win.EntDbRecords.restoreReportVersion(UUID_TARA, versionId, restoreButton)
+  await flush()
+  const confirmButton = firstBySel['.ent-db-confirm-yes']
+  if (confirmButton && confirmButton._listeners.click && confirmButton._listeners.click[0]) {
+    confirmButton._listeners.click[0]()
+  }
+  await restorePromise
+  ok('C92', 'restore asks for confirmation and sends only the selected version id',
+     restoreEnv.restoreCalls.length === 1
+       && restoreEnv.restoreCalls[0].p_version_id === versionId
+       && Object.keys(restoreEnv.restoreCalls[0]).length === 1)
 }
 
 console.log('')

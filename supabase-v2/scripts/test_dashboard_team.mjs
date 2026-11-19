@@ -98,7 +98,8 @@ function domIds() {
 /* ------------------------------------------------------------------ */
 function boot({
   user, team, onLine = true, queue = [], counters = [], directory = null,
-  dashboardSummary, exportPages, assignedDoctors = [], clinicIdentityLookup
+  dashboardSummary, exportPages, assignedDoctors = [], clinicIdentityLookup,
+  clinicWorkStatus = { completed_count: 0, incomplete_count: 0, total_count: 0, records: [] }
 }) {
   const calls = []
   const nodes = {}
@@ -215,6 +216,7 @@ function boot({
       getAccessToken: async () => 'JWT',
       apiRequest: async (endpoint, opts = {}) => {
         calls.push({ endpoint, method: opts.method || 'GET', body: opts.body })
+        if (endpoint.includes('rpc/ent_clinic_doctor_work_status')) return clinicWorkStatus
         if (endpoint.includes('rpc/ent_dashboard_summary')) {
           if (dashboardSummary === undefined) {
             throw new Error('Supabase API error (404): PGRST202 ent_dashboard_summary does not exist')
@@ -319,6 +321,27 @@ const LARYNGEAL_COMPLETE = {
   doctor_work_recommendation: 'Recommendation',
 }
 const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).'
+
+function statusRow(patient_name, report_type, doctor_work_percent, options = {}) {
+  const isComplete = doctor_work_percent === 100
+  return {
+    patient_name,
+    case_number: options.case_number || '',
+    visit_date: options.visit_date || '2026-10-05',
+    report_types: options.report_types || [report_type],
+    is_complete: isComplete,
+    doctor_work_percent,
+    record_key: options.record_key || '',
+    action_report_type: options.action_report_type || (options.record_key ? report_type : ''),
+    updated_at: options.updated_at || '2026-10-05T12:00:00.000Z',
+  }
+}
+
+function clinicStatus(records) {
+  const completed_count = records.filter(row => row.is_complete).length
+  const incomplete_count = records.length - completed_count
+  return { completed_count, incomplete_count, total_count: records.length, records }
+}
 
 /* ---- 1 · the reported bug, in two acts ------------------------------ */
 {
@@ -425,76 +448,63 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
      !env.calls.some(c => c.endpoint.includes('my_secretaries')))
 }
 
-/* ---- 6 · the queue's "who" column (same uuid bug, same fix) ---------- */
+/* ---- 6 · clinic-wide status rows and matching aggregates ------------- */
 {
-  const recent = new Date(Date.now() - 3600e3).toISOString()
+  const records = [
+    statusRow('QUEUE PATIENT', 'cf4', 83, { record_key: 'cf4|Q1', action_report_type: 'cf4' }),
+    statusRow('OWN QUEUE PATIENT', 'nasal', 60, { record_key: 'nasal|Q2', action_report_type: 'nasal' }),
+    ...Array.from({ length: 15 }, (_, i) => statusRow('INCOMPLETE ' + i, 'cf4', 50)),
+    ...Array.from({ length: 12 }, (_, i) => statusRow('COMPLETE ' + i, 'laryngeal', 100)),
+  ]
   const env = boot({
     user: DOC, team: { kind: 'rows', rows: [TARA] },
-    queue: [
-      { record_key: 'cf4|Q1', created_by: '94978594-afad-4c81-9e4e-8bc8b13966e3',
-        created_by_name: 'Tara Bautista', draftShared: true, doctor_id: 'doc-jardin', clinic_id: 'c1',
-        report_type: 'cf4', patient_name: 'QUEUE PATIENT', case_number: '',
-        procedure_date: '2026-10-05', created_at: recent, updated_at: recent, dbSaved: false },
-      { record_key: 'cf4|Q2', created_by: 'doc-jardin', created_by_name: 'Jesus Jardin',
-        draftShared: true, doctor_id: 'doc-jardin', clinic_id: 'c1', report_type: 'cf4',
-        patient_name: 'OWN QUEUE PATIENT', case_number: '', procedure_date: '2026-10-05',
-        created_at: recent, updated_at: recent, dbSaved: false },
-      // The background sync's formless row: is_draft, metadata, no form.
-      { record_key: 'cf4|Q3', created_by: 'sec-tara', created_by_name: '',
-        doctor_id: 'doc-jardin', clinic_id: 'c1', report_type: 'cf4',
-        patient_name: 'GHOST, ROW', case_number: '', procedure_date: '2026-10-05',
-        created_at: recent, updated_at: recent, dbSaved: false },
-    ],
+    clinicWorkStatus: clinicStatus(records),
   })
   await flush()
   const q = () => env.nodes.dashQueue.innerHTML
 
-  ok('T23', 'the queue names the saver', q().includes('Tara Bautista'), q().slice(0, 60))
-  ok('T24', 'the queue never prints a raw uuid', !q().includes('94978594-'))
-  ok('T25', 'all incomplete reports include the doctor\'s own report',
+  ok('T23', 'the clinic-wide queue includes statuses from the same clinic',
      q().includes('QUEUE PATIENT') && q().includes('OWN QUEUE PATIENT')
-       && env.nodes.dashQueuePill.textContent.includes('2 waiting for doctor work'))
-  ok('T25b', 'a formless draft row is not offered as work waiting for anybody',
-     !q().includes('GHOST, ROW'), 'nothing in that row could ever be opened')
+       && env.nodes.dashQueuePill.textContent.includes('17 patient/date records with incomplete doctor work'))
+  ok('T24', 'the clinic-wide status list does not expose a doctor UUID', !q().includes('doc-jardin'))
+  ok('T25', 'every patient/date status has exactly one completed or incomplete classification',
+     env.nodes.dashClinicWorkCompleted.textContent === '12'
+       && env.nodes.dashClinicWorkIncomplete.textContent === '17'
+       && env.nodes.dashClinicWorkNote.textContent.includes('29 final saved patient/date records')
+       && env.nodes.dashQueueFoot.textContent.includes('12 completed \u00b7 17 incomplete \u00b7 29 patient/date records')
+       && env.nodes.dashQueuePill.textContent.includes('incomplete doctor work'),
+     env.nodes.dashQueueFoot.textContent)
+  const statusCall = env.calls.find(c => c.endpoint.includes('rpc/ent_clinic_doctor_work_status'))
+  ok('T25a2', 'one clinic-scoped RPC supplies both statuses and totals',
+     statusCall && statusCall.method === 'POST'
+       && JSON.parse(statusCall.body).p_doctor_id === DOC.id
+       && !Object.prototype.hasOwnProperty.call(JSON.parse(statusCall.body), 'p_clinic_id')
+       && !env.calls.some(c => c.endpoint.includes('select=record_key,created_by')))
+  ok('T25b', 'rows without an eligible report are not included in clinic status',
+     !q().includes('GHOST, ROW'))
 }
 
 /* ---- 6b · exact doctor-work status on both dashboards --------------- */
 {
-  const recent = new Date(Date.now() - 3600e3).toISOString()
-  const secretaryRow = (overrides = {}) => ({
-    record_key: 'cf4|SEC', created_by: 'sec-tara', created_by_name: 'Tara Bautista',
-    draftShared: true, dbSaved: true, is_draft: false, doctor_id: 'doc-jardin',
-    clinic_id: 'c1', report_type: 'cf4', patient_name: 'DOCTOR WORK PATIENT',
-    case_number: '', procedure_date: '2026-10-05', created_at: recent, updated_at: recent,
-    ...CF4_COMPLETE, ...overrides,
-  })
-  const doctorRow = (overrides = {}) => ({
-    record_key: 'cf4|DOC', created_by: 'doc-jardin', created_by_name: 'Jesus Jardin',
-    draftShared: true, dbSaved: true, is_draft: false, doctor_id: 'doc-jardin',
-    clinic_id: 'c1', report_type: 'cf4', patient_name: 'DOCTOR COMPLETED PATIENT',
-    case_number: '', procedure_date: '2026-10-05', created_at: recent, updated_at: recent,
-    ...CF4_COMPLETE, ...overrides,
-  })
   const doctorEnv = boot({
     user: DOC, team: { kind: 'rows', rows: [TARA] },
-    queue: [
-      secretaryRow({ patient_name: 'WAITING PATIENT', doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
-      secretaryRow({ record_key: 'cf4|DONE', patient_name: 'SECRETARY-ENTERED COMPLETE PATIENT' }),
-      doctorRow(),
-      secretaryRow({ record_key: 'nasal|DONE', report_type: 'nasal',
-        patient_name: 'NASAL COMPLETE PATIENT', ...NASAL_COMPLETE }),
-      doctorRow({ record_key: 'laryngeal|DONE', report_type: 'laryngeal',
-        patient_name: 'LARYNGEAL COMPLETE PATIENT', ...LARYNGEAL_COMPLETE }),
-      doctorRow({ record_key: 'cf4|OLD', patient_name: 'OLDER COMPLETED PATIENT',
-        created_at: '2025-01-01T00:00:00.000Z', updated_at: '2025-01-01T00:00:00.000Z' }),
-    ],
+    clinicWorkStatus: clinicStatus([
+      statusRow('WAITING PATIENT', 'cf4', 83, {
+        report_types: ['cf4', 'nasal'], record_key: 'cf4|WAIT', action_report_type: 'cf4',
+      }),
+      statusRow('SECRETARY-ENTERED COMPLETE PATIENT', 'cf4', 100),
+      statusRow('DOCTOR COMPLETED PATIENT', 'cf4', 100, {
+        record_key: 'cf4|DONE', action_report_type: 'cf4',
+      }),
+      statusRow('NASAL COMPLETE PATIENT', 'nasal', 100),
+      statusRow('LARYNGEAL COMPLETE PATIENT', 'laryngeal', 100),
+      statusRow('OLDER COMPLETED PATIENT', 'cf4', 100, { visit_date: '2025-01-01' }),
+    ]),
   })
   await flush()
-  const queueCall = doctorEnv.calls.find(c => c.endpoint.includes('select=record_key,created_by'))
-  ok('T25c', 'only the exact doctor-work payload fields are selected',
-     queueCall && queueCall.endpoint.includes('doctor_work_courseOrder:payload->formData->courseOrder')
-       && queueCall.endpoint.includes('doctor_work_im:payload->formData->im')
-       && !queueCall.endpoint.includes('select=*'))
+  const statusCall = doctorEnv.calls.find(c => c.endpoint.includes('rpc/ent_clinic_doctor_work_status'))
+  ok('T25c', 'the clinic-wide status list is not built from RLS-limited report reads',
+     statusCall && !doctorEnv.calls.some(c => c.endpoint.includes('select=record_key,created_by')))
   ok('T25d', 'incomplete secretary-entered records show the SQL-matching 83% status',
      doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
        && doctorEnv.nodes.dashQueue.innerHTML.includes('Waiting for doctor \u00b7 83%')
@@ -508,15 +518,16 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
        && doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
        && !doctorEnv.nodes.dashQueue.innerHTML.includes('SECRETARY-ENTERED COMPLETE PATIENT'))
   clickQueueView(doctorEnv, 'saved')
+  const completedHtml = doctorEnv.nodes.dashQueue.innerHTML
+  const completedNeeds = [
+    'Secretary-entered Complete Patient', 'DOCTOR COMPLETED PATIENT',
+    'Nasal Complete Patient', 'Laryngeal Complete Patient',
+    'Older Completed Patient', 'Doctor completed \u00b7 100%',
+    'class="ent-qdate"', '2026-10-05',
+  ]
   ok('T25f', '100% finalized doctor work appears for all report types and historical records',
-     doctorEnv.nodes.dashQueue.innerHTML.includes('SECRETARY-ENTERED COMPLETE PATIENT')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('DOCTOR COMPLETED PATIENT')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('NASAL COMPLETE PATIENT')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('LARYNGEAL COMPLETE PATIENT')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('OLDER COMPLETED PATIENT')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('Doctor completed \u00b7 100%')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('class="ent-qdate"')
-       && doctorEnv.nodes.dashQueue.innerHTML.includes('2026-10-05'))
+     completedNeeds.every(text => completedHtml.includes(text)),
+     completedNeeds.filter(text => !completedHtml.includes(text)).join(', '))
   clickQueueView(doctorEnv, 'review')
   ok('T25f2', 'switching back hides completed rows and shows the incomplete list',
      doctorEnv.nodes.dashQueue.innerHTML.includes('WAITING PATIENT')
@@ -526,52 +537,53 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
                 assigned_doctor_id: 'doc-jardin', is_active: true }
   const secretaryEnv = boot({
     user: SEC, team: { kind: 'rows', rows: [TARA] },
-    queue: [
-      secretaryRow({ record_key: 'cf4|SEC-WAITING', created_by: 'sec-tara',
-        patient_name: 'MY WAITING PATIENT', doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
-      secretaryRow({ record_key: 'cf4|SEC-DONE',
-        patient_name: 'SECRETARY ENTRY COMPLETED BY DOCTOR' }),
-      doctorRow({ record_key: 'cf4|DOC-DONE',
-        patient_name: 'MY DOCTOR COMPLETED PATIENT' }),
-      doctorRow({ record_key: 'cf4|DOC-UNCONFIRMED',
-        patient_name: 'PREEXISTING COMPLETE PATIENT' }),
-      doctorRow({ record_key: 'cf4|DOC-WAITING', patient_name: 'DOCTOR STILL WORKING',
-        is_draft: true, doctor_work_courseOrder: COURSE_ORDER_PLACEHOLDER }),
-    ],
+    clinicWorkStatus: clinicStatus([
+      statusRow('MY WAITING PATIENT', 'cf4', 83),
+      statusRow('DOCTOR STILL WORKING', 'nasal', 67),
+      statusRow('SECRETARY ENTRY COMPLETED BY DOCTOR', 'cf4', 100),
+      statusRow('MY DOCTOR COMPLETED PATIENT', 'cf4', 100),
+      statusRow('PREEXISTING COMPLETE PATIENT', 'laryngeal', 100),
+    ]),
   })
   await flush()
-  ok('T25g', 'secretaries see their own unfinished entries waiting for doctor work',
-     secretaryEnv.nodes.dashQueue.innerHTML.includes('MY WAITING PATIENT')
-       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Incomplete')
-       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Completed')
-       && !secretaryEnv.nodes.dashQueue.innerHTML.includes('MY DOCTOR COMPLETED PATIENT')
-       && !secretaryEnv.nodes.dashQueue.innerHTML.includes('DOCTOR STILL WORKING'))
+  const secretaryReviewHtml = secretaryEnv.nodes.dashQueue.innerHTML
+  ok('T25g', 'secretaries see the same clinic-scoped incomplete status rows as doctors',
+     secretaryReviewHtml.includes('My Waiting Patient')
+       && secretaryReviewHtml.includes('Doctor Still Working')
+       && secretaryReviewHtml.includes('Incomplete')
+       && secretaryReviewHtml.includes('Completed')
+       && !secretaryReviewHtml.includes('MY DOCTOR COMPLETED PATIENT')
+       && !secretaryReviewHtml.includes('PREEXISTING COMPLETE PATIENT'),
+     ['My Waiting Patient', 'Doctor Still Working', 'Incomplete', 'Completed']
+       .filter(text => !secretaryReviewHtml.includes(text)).join(', '))
   clickQueueView(secretaryEnv, 'saved')
-  ok('T25h', 'secretaries see finalized 100% work within their assigned-doctor scope',
-     secretaryEnv.nodes.dashQueue.innerHTML.includes('MY DOCTOR COMPLETED PATIENT')
-       && secretaryEnv.nodes.dashQueue.innerHTML.includes('SECRETARY ENTRY COMPLETED BY DOCTOR')
-       && secretaryEnv.nodes.dashQueue.innerHTML.includes('PREEXISTING COMPLETE PATIENT')
-       && secretaryEnv.nodes.dashQueue.innerHTML.includes('Doctor completed \u00b7 100%'))
+  const secretarySavedHtml = secretaryEnv.nodes.dashQueue.innerHTML
+  ok('T25h', 'secretaries see the completed statuses in the same clinic-scoped list',
+     secretarySavedHtml.includes('My Doctor Completed Patient')
+       && secretarySavedHtml.includes('Secretary Entry Completed By Doctor')
+       && secretarySavedHtml.includes('Preexisting Complete Patient')
+       && secretarySavedHtml.includes('Doctor completed \u00b7 100%'),
+     ['My Doctor Completed Patient', 'Secretary Entry Completed By Doctor',
+       'Preexisting Complete Patient', 'Doctor completed \u00b7 100%']
+       .filter(text => !secretarySavedHtml.includes(text)).join(', '))
   ok('T25i', 'historical completion does not depend on a newly-created notification',
      !secretaryEnv.calls.some(c => c.endpoint.includes('app_notifications?kind=eq.doctor_work_complete')))
 }
 
-/* ---- 7 · the counters must not count drafts ------------------------ */
+/* ---- 7 · status and totals use the same RPC result ------------------ */
 {
   const env = boot({ user: DOC, team: { kind: 'rows', rows: [TARA] } })
   await flush()
   const counters = env.calls.filter(c => c.endpoint.includes('select=created_at,'))
-  const queue = env.calls.filter(c => c.endpoint.includes('select=record_key,created_by'))
+  const statusCalls = env.calls.filter(c => c.endpoint.includes('rpc/ent_clinic_doctor_work_status'))
 
   ok('T26', 'the counter read asks for FINISHED records only',
      counters.length === 1 && counters[0].endpoint.includes('is_draft=eq.false'),
      counters.map(c => c.endpoint).join(' ').slice(0, 90))
-  ok('T27', 'the queue includes drafts without restricting itself to finalized rows',
-     queue.length === 1 && !queue[0].endpoint.includes('is_draft=eq.')
-       && !queue[0].endpoint.includes('created_at=gte.')
-       && queue[0].endpoint.includes('deleted_at=is.null')
-       && queue[0].endpoint.includes('limit=400'),
-     queue.map(c => c.endpoint).join(' ').slice(0, 90))
+  ok('T27', 'one clinic-scoped status RPC supplies totals and rows without a separate report read',
+     statusCalls.length === 1 && statusCalls[0].method === 'POST'
+       && JSON.parse(statusCalls[0].body).p_doctor_id === DOC.id
+       && !env.calls.some(c => c.endpoint.includes('select=record_key,created_by')))
   const period = new Date()
   env.nodes.dashPeriodSelect.value = (period.getMonth() + 1) + '/' + period.getFullYear()
   const periodChange = env.nodes.dashPeriodSelect.listeners.change[0]
@@ -1067,7 +1079,7 @@ const COURSE_ORDER_PLACEHOLDER = 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANES
   const serviceWorker = readFileSync(join(APP, 'sw.js'), 'utf8')
   ok('T56', 'the selected-clinic dashboard ships with fresh script, style and service-worker versions',
      /dashboard\.js\?v=v\d+-[a-z0-9-]+/.test(indexHtml)
-       && /dashboard\.css\?v=v42-shared-notification-design/.test(indexHtml)
+       && /dashboard\.css\?v=v43-clinic-work-totals/.test(indexHtml)
        && /mobile\.css\?v=v\d+-[a-z0-9-]+/.test(indexHtml)
        && /notificationCenter\.js\?v=v9-shared-notification-design/.test(indexHtml)
        && /notifications\.css\?v=v11-shared-notification-design/.test(indexHtml)

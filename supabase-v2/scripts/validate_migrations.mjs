@@ -20,6 +20,9 @@
      V5  the delete / restore / bin authorization MATRIX, read off the real SQL
      V6  nothing disables RLS or grants anything to anon
      V7  admin clinic context is live-validated and session-bound
+     V8  clinic suggestions are allowlisted, private, and server-scoped
+     V9  the combined clinic-wide doctor-work migration is safe and scoped
+     V10 clinic-wide doctor-work totals and status rows share one private result
 
    WHAT THIS DOES NOT PROVE, SAID PLAINLY
 
@@ -461,6 +464,149 @@ chk('V7.7', 'editing an existing doctor shelf preserves its clinic and doctor id
     && /record_key,clinic_id,doctor_id,payload/.test(
       readFileSync(join(ROOT, '..', 'function', 'dbRecords.js'), 'utf8')))
 
+/* ------------------------------------------------------------------ V8 */
+console.log('')
+console.log('--- V8 · clinic clinical suggestions are restricted --------------')
+const M54 = stripComments(raw('0054_clinic_clinical_suggestions.sql'))
+const M54_RPC = lastFunctionDefinition(M54, 'ent_clinic_clinical_suggestions(')
+const M54_EXTRACTOR = lastFunctionDefinition(M54, 'ent_clinical_suggestion_values(')
+chk('V8.1', 'suggestion rows are RLS-enabled and inaccessible to direct client queries',
+  /ALTER TABLE public\.ent_clinic_clinical_suggestions ENABLE ROW LEVEL SECURITY/.test(M54)
+    && /REVOKE ALL ON TABLE public\.ent_clinic_clinical_suggestions FROM PUBLIC, anon, authenticated/.test(M54))
+chk('V8.2', 'historical and live extraction use explicit clinical fields and omit patient/HCI fields',
+  M54_EXTRACTOR.includes("'chiefComplaint'")
+    && M54_EXTRACTOR.includes("'preOpDiagnosis'")
+    && M54_EXTRACTOR.includes("'imageFinding'")
+    && !M54_EXTRACTOR.includes("'patientFirstName'")
+    && !M54_EXTRACTOR.includes("'patientPin'")
+    && !M54_EXTRACTOR.includes("'originatingHci'"))
+chk('V8.3', 'backfill and trigger ignore deleted/draft reports and exclude known patient identifiers',
+  /report\.deleted_at IS NULL[\s\S]*?NOT report\.is_draft/.test(M54)
+    && /NEW\.deleted_at IS NOT NULL OR NEW\.is_draft/.test(M54)
+    && M54.includes('NEW.patient_name')
+    && M54.includes('report.patient_name')
+    && M54.includes('report.case_number'))
+chk('V8.4', 'live report changes refresh only the report-scoped suggestion rows',
+  /CREATE TRIGGER trg_reports_refresh_clinical_suggestions[\s\S]*?AFTER INSERT OR UPDATE OR DELETE[\s\S]*?EXECUTE FUNCTION public\.ent_refresh_clinical_suggestions\(\)/.test(M54)
+    && M54.includes('DELETE FROM public.ent_clinic_clinical_suggestions WHERE report_id = NEW.id'))
+chk('V8.5', 'the RPC validates doctor, secretary assignment, and admin clinic scope',
+  M54_RPC.includes("me.role = 'doctor'")
+    && M54_RPC.includes('me.id <> target_doctor.id')
+    && M54_RPC.includes("me.role = 'secretary'")
+    && M54_RPC.includes('public.ent_is_my_doctor(target_doctor.id)')
+    && M54_RPC.includes('public.ent_admin_covers_clinic(target_doctor.clinic_id)')
+    && M54_RPC.includes('public.ent_admin_active_clinic_id()')
+    && M54_RPC.includes('target_doctor.clinic_id IS DISTINCT FROM me.clinic_id'))
+chk('V8.6', 'only authenticated users can execute the data-minimized RPC',
+  /REVOKE ALL ON FUNCTION public\.ent_clinic_clinical_suggestions\(text, uuid\) FROM PUBLIC, anon/.test(M54)
+    && /GRANT EXECUTE ON FUNCTION public\.ent_clinic_clinical_suggestions\(text, uuid\) TO authenticated/.test(M54)
+    && M54_RPC.includes('RETURNS TABLE (field_key text, suggestion_value text)'))
+
+/* ------------------------------------------------------------------ V9 */
+console.log('')
+console.log('--- V9 · combined clinic-wide Doctor work migration ---------------')
+const M55 = stripComments(raw('0055_clinic_doctor_work_counts.sql'))
+const M55_COUNTS = lastFunctionDefinition(M55, 'ent_clinic_doctor_work_counts(p_doctor_id uuid)')
+const M55_STATUS = lastFunctionDefinition(M55, 'ent_clinic_doctor_work_status(p_doctor_id uuid)')
+chk('V9.1', 'the combined migration keeps the report index idempotent',
+  M55.includes('CREATE INDEX IF NOT EXISTS idx_reports_clinic_doctor_work_counts'))
+chk('V9.2', 'the legacy counts RPC delegates to the status RPC',
+  M55_COUNTS.includes('public.ent_clinic_doctor_work_status(p_doctor_id)'))
+chk('V9.3', 'the combined migration uses replaceable RPC definitions',
+  M55.includes('CREATE OR REPLACE FUNCTION public.ent_clinic_doctor_work_status')
+    && M55.includes('CREATE OR REPLACE FUNCTION public.ent_clinic_doctor_work_counts'))
+
+/* ----------------------------------------------------------------- V10 */
+console.log('')
+console.log('--- V10 · clinic status rows and totals share one scoped result -----')
+chk('V10.1', 'status access is validated and reports are restricted to the selected doctor clinic',
+  M55_STATUS.includes("me.role = 'doctor'")
+    && M55_STATUS.includes("me.role = 'secretary'")
+    && M55_STATUS.includes('public.ent_is_my_doctor(target_doctor.id)')
+    && M55_STATUS.includes('public.ent_admin_active_clinic_id()')
+    && M55_STATUS.includes('report.clinic_id = target_doctor.clinic_id'))
+chk('V10.2', 'status rows use only Doctor work completion and the same patient/date grouping',
+  M55_STATUS.includes('public.ent_doctor_work_percent(report.report_type, report.payload)')
+    && M55_STATUS.includes('GROUP BY patient_key, visit_date')
+    && M55_STATUS.includes('bool_and(is_complete) AS is_complete')
+    && M55_STATUS.includes('count(*) FILTER (WHERE is_complete)')
+    && M55_STATUS.includes('count(*) FILTER (WHERE NOT is_complete)')
+    && M55_STATUS.includes('report.is_draft IS FALSE')
+    && !M55_STATUS.includes('draftShared'))
+chk('V10.3', 'one JSON result returns counts and matching status rows without patient IDs or form payload',
+  M55_STATUS.includes("'completed_count', completed_count")
+    && M55_STATUS.includes("'incomplete_count', incomplete_count")
+    && M55_STATUS.includes("'total_count', completed_count + incomplete_count")
+    && M55_STATUS.includes("'records', records")
+    && !M55_STATUS.includes("'patient_id',")
+    && !M55_STATUS.includes("'payload',"))
+chk('V10.4', 'open-report keys are included only for reports on the selected doctor shelf',
+  M55_STATUS.includes('FILTER (WHERE doctor_id = target_doctor.id)')
+    && M55_STATUS.includes("'record_key', record_key")
+    && M55_STATUS.includes("'action_report_type', action_report_type"))
+chk('V10.5', 'the status RPC is executable only by authenticated users',
+  /REVOKE ALL ON FUNCTION public\.ent_clinic_doctor_work_status\(uuid\)[\s\S]*?FROM PUBLIC, anon, authenticated/.test(M55)
+    && /GRANT EXECUTE ON FUNCTION public\.ent_clinic_doctor_work_status\(uuid\)[\s\S]*?TO authenticated/.test(M55)
+    && M55.includes('has_function_privilege(\'anon\'')
+    && M55.includes('0055 verified'))
+chk('V10.6', 'the legacy counts RPC reads the same final-only status result',
+  M55.includes('public.ent_clinic_doctor_work_status(p_doctor_id)')
+    && /REVOKE ALL ON FUNCTION public\.ent_clinic_doctor_work_counts\(uuid\)[\s\S]*?FROM PUBLIC, anon, authenticated/.test(M55)
+    && /GRANT EXECUTE ON FUNCTION public\.ent_clinic_doctor_work_counts\(uuid\)[\s\S]*?TO authenticated/.test(M55))
+
+/* ----------------------------------------------------------------- V11 */
+console.log('')
+console.log('--- V11 · report versions are scoped, data-only, and time-limited ---')
+const M56 = stripComments(raw('0056_report_version_history.sql'))
+const M56_CAPTURE = lastFunctionDefinition(M56, 'ent_capture_report_version()')
+const M56_RESTORE = lastFunctionDefinition(M56, 'ent_restore_report_version(p_version_id uuid)')
+const M56_PURGE = lastFunctionDefinition(M56, 'ent_purge_expired_report_versions()')
+const M56_PAYLOAD = lastFunctionDefinition(M56, 'ent_report_history_payload(p_payload jsonb)')
+chk('V11.1', 'history rows link to reports, keep actor attribution, and expire after 90 days',
+  /report_id\s+uuid\s+NOT NULL REFERENCES public\.reports\(id\) ON DELETE CASCADE/.test(M56)
+    && M56.includes('actor_id')
+    && M56.includes('actor_label')
+    && /expires_at\s+timestamptz NOT NULL DEFAULT \(now\(\) \+ interval '90 days'\)/.test(M56))
+chk('V11.2', 'version rows are RLS-enabled and clients receive SELECT only',
+  M56.includes('ALTER TABLE public.report_versions ENABLE ROW LEVEL SECURITY')
+    && /REVOKE ALL ON TABLE public\.report_versions FROM PUBLIC, anon, authenticated/.test(M56)
+    && /GRANT SELECT ON TABLE public\.report_versions TO authenticated/.test(M56)
+    && !/GRANT (?:INSERT|UPDATE|DELETE|ALL)[^;]*report_versions[^;]* TO authenticated/i.test(M56))
+chk('V11.3', 'history reads require an unexpired version and access to its parent report',
+  /CREATE POLICY report_versions_select_report_access ON public\.report_versions[\s\S]*?expires_at > now\(\)[\s\S]*?FROM public\.reports report[\s\S]*?WHERE report\.id = public\.report_versions\.report_id/.test(M56))
+chk('V11.4', 'only edits to existing final reports capture the previous version',
+  M56.includes('CREATE TRIGGER trg_reports_capture_version')
+    && /BEFORE UPDATE ON public\.reports[\s\S]*?EXECUTE FUNCTION public\.ent_capture_report_version\(\)/.test(M56)
+    && M56_CAPTURE.includes('OLD.is_draft')
+    && M56_CAPTURE.includes("OLD.payload -> 'formData'")
+    && M56_CAPTURE.includes('OLD.id')
+    && M56_CAPTURE.includes('OLD.patient_name')
+    && M56_CAPTURE.includes('OLD.payload'))
+chk('V11.5', 'snapshots omit photo data and ignore image-only changes',
+  /-\s*'images'/.test(M56_PAYLOAD)
+    && M56_PAYLOAD.includes("'photos'")
+    && M56_PAYLOAD.includes("'photos'")
+    && M56_CAPTURE.includes('ent_report_history_payload(OLD.payload)')
+    && M56_CAPTURE.includes('ent_report_history_payload(NEW.payload)'))
+chk('V11.6', 'restore runs as the caller, validates an unexpired version, and preserves current photos',
+  /SECURITY INVOKER/.test(M56_RESTORE)
+    && M56_RESTORE.includes('expires_at > now()')
+    && M56_RESTORE.includes('v_current.payload')
+    && M56_RESTORE.includes("'{images}'")
+    && M56_RESTORE.includes('v_current_images')
+    && !/SET[\s\S]*?photo_count\s*=/.test(M56_RESTORE)
+    && !M56_RESTORE.includes('report_photos'))
+chk('V11.7', 'daily pg_cron purges expired versions and stops clearly if Cron is unavailable',
+  M56.includes("name = 'pg_cron'")
+    && M56.includes('RAISE EXCEPTION')
+    && M56_PURGE.includes('DELETE FROM public.report_versions')
+    && M56_PURGE.includes('expires_at <= now()')
+    && M56.includes("'17 3 * * *'")
+    && M56.includes('ent-report-version-retention'))
+chk('V11.8', 'the restore RPC is callable only by authenticated users',
+  /REVOKE ALL ON FUNCTION public\.ent_restore_report_version\(uuid\) FROM PUBLIC, anon, authenticated/.test(M56)
+    && /GRANT EXECUTE ON FUNCTION public\.ent_restore_report_version\(uuid\) TO authenticated/.test(M56))
+
 /* ------------------------------------------------------------------ report */
 console.log('')
 console.log('==== RESULT ====')
@@ -473,7 +619,7 @@ if (fail) {
 console.log('')
 console.log('==== NOT PROVEN HERE â€” needs a real Supabase project ============')
 ;[
-  'apply migrations/0001…0052 in order on a NEW project; every guard DO-block',
+  'apply migrations/0001…0056 in order on a NEW project; every guard DO-block',
   '   must print its NOTICE (they read pg_policies / pg_proc, so they are the',
   '   real proof the objects exist and no arm was traded away)',
   'sign in as a Super Secretary and verify switching clinic changes the',
@@ -489,6 +635,9 @@ console.log('==== NOT PROVEN HERE â€” needs a real Supabase project =======
   'confirm a doctor sees ONLY his own shelf, and a stranger in another clinic',
   '   sees nothing at all',
   'confirm dbRecords lists the expected saved records and myDrafts the drafts',
+  'verify clinic suggestions backfill only allowlisted clinical fields and stay isolated across doctor, secretary, and admin clinic contexts',
+  'verify clinic-wide Doctor work totals equal the patient/date status rows and never include another clinic',
+  'with pg_cron enabled, verify report version capture, permission-scoped restore, photo preservation, and daily expiry purge',
   'verify report_photos metadata resolves to a REAL Storage object, and count',
   '   the objects in the bucket â€” metadata alone is not a migrated photo',
   'confirm the frontend URL + anon key match the new project, and that no',

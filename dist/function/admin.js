@@ -660,7 +660,8 @@
     }
     function activityDetail(row) {
         const detail = String(row.detail || '');
-        if (row.action !== 'OPEN_RECORD' || row.target_type !== 'report' || !row.target_id) return detail;
+        if ((row.action !== 'OPEN_RECORD' && row.action !== 'SAVE_RECORD')
+            || row.target_type !== 'report' || !row.target_id) return detail;
         return detail + ' \u00b7 Patient: ' + (row.patient_name || 'unavailable');
     }
 
@@ -697,7 +698,7 @@
 
     async function loadActivityPatientNames() {
         const reportIds = Array.from(new Set(activity.filter(function (row) {
-            return row && row.action === 'OPEN_RECORD'
+            return row && (row.action === 'OPEN_RECORD' || row.action === 'SAVE_RECORD')
                 && row.target_type === 'report'
                 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(row.target_id || ''))
                 && !Object.prototype.hasOwnProperty.call(activityPatientNames, row.target_id);
@@ -720,7 +721,8 @@
         }
 
         activity = activity.map(function (row) {
-            if (!row || row.action !== 'OPEN_RECORD' || row.target_type !== 'report') return row;
+            if (!row || (row.action !== 'OPEN_RECORD' && row.action !== 'SAVE_RECORD')
+                || row.target_type !== 'report') return row;
             const id = String(row.target_id || '');
             if (!Object.prototype.hasOwnProperty.call(activityPatientNames, id)) return row;
             return Object.assign({}, row, { patient_name: activityPatientNames[id] });

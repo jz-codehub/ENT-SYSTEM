@@ -27,6 +27,11 @@ user-scoped report export, not a full project backup; separately stored photos,
 deleted rows, and auth accounts are excluded. The reminder state is per
 browser/device.
 
+The manual `backup_v2.mjs --full` archive includes 90-day report-version
+snapshots when migration 0056 is installed; metadata-only backups omit them.
+These snapshots contain clinical report data, so keep the full backup private.
+`restore_v2.mjs` accepts older full backups that predate the history table.
+
 ## What changes, in one line each
 
 | Was | Now |
@@ -69,6 +74,10 @@ browser/device.
 | `migrations/0050_super_secretary_network_scope.sql` | Super Secretary selected-doctor assignments and active-clinic access, plus recipient-scoped staff chat delivery/read receipts |
 | `migrations/0051_global_announcements.sql` | Admin-only global announcement RPC that sends each active account a private, read-tracked notification |
 | `migrations/0052_admin_active_clinic_context.sql` | Session-bound admin clinic/doctor selection, verified against live clinic ownership and enforced for report reads and writes |
+| `migrations/0053_grant_report_trigger_context.sql` | Grants the report-trigger context required by the report save hooks |
+| `migrations/0054_clinic_clinical_suggestions.sql` | Backfills and maintains allowlisted, clinic-scoped clinical suggestions behind a server-validated RPC |
+| `migrations/0055_clinic_doctor_work_counts.sql` | Adds the active-clinic doctor-work index and a single final-saved-only RPC for matching totals and patient/date status rows |
+| `migrations/0056_report_version_history.sql` | Adds RLS-scoped, data-only report snapshots with restore support and a daily 90-day pg_cron purge; current photo attachments are preserved |
 | `migrations/README.md` | the paste-order guide that ships WITH the set — one file at a time in the SQL Editor; `0009b` goes through Dashboard → Storage instead |
 
 Test/synthetic seeds were **removed** on 2026-10-10 so nothing

@@ -14,7 +14,7 @@ separate files, walang all-in-one.
 
 1. **I-paste ang bawat file nang sunod-sunod** sa Supabase **SQL Editor** —
    mula `0001_extensions_enums_helpers.sql` hanggang ang pinakabagong
-   (ngayon: `0052_admin_active_clinic_context.sql`). Isa-isa; hintayin ang
+   (ngayon: `0056_report_version_history.sql`). Isa-isa; hintayin ang
    bawat "Success" bago ang susunod. Kapag bumagsak ang isa, doon ka pa
    lang mag-troubleshoot — hindi mo mahihiwalayan ang problema sa one-shot.
 
@@ -91,6 +91,41 @@ separate files, walang all-in-one.
     active sa bawat Supabase session; nire-recheck ng database ang admin,
     managed clinic, at aktibong doctor bago magbasa o gumawa/mag-edit ng report.
     I-run ito matapos ang 0051 at bago i-deploy ang admin clinic switcher.
+
+13. Ang `0053_grant_report_trigger_context.sql` ay nagbibigay ng kinakailangang
+    trigger context sa report save hooks. I-apply ito matapos ang 0052.
+
+14. Ang `0054_clinic_clinical_suggestions.sql` ay nagba-backfill ng mga
+    allowlisted clinical field values mula sa final Nasal, Laryngeal, at CF4
+    reports at nag-a-update ng clinic-scoped suggestions kapag nagsa-save.
+    Ang private suggestion table ay hindi direktang mababasa ng browser; ang
+    RPC ay nagbabalik lamang ng field/value pairs matapos i-validate ang
+    kasalukuyang doctor assignment at clinic context. I-apply ito bago
+    i-deploy ang browser build na may `clinicSuggestions.js`.
+
+15. Ang `0055_clinic_doctor_work_counts.sql` ay pinagsamang migration para sa
+    clinic-wide completed/incomplete totals at patient/date Doctor work status
+    rows. Iisang clinic-scoped RPC ang pinanggagalingan ng totals at listahan;
+    final saved reports lang ang kasama, hindi shared drafts. Walang patient ID
+    o form payload na ibinabalik, at ang Open report action ay limitado sa
+    report ng piniling doctor.
+
+    Kung na-run na ang dating 0055 counts-only file, i-run nang isang beses
+    ang updated na 0055 file na ito. Idempotent ang index at `CREATE OR REPLACE`
+    RPCs nito. Hindi na kailangan ang dating hiwalay na Doctor-work 0056;
+    pinagsama na ito rito. I-apply bago i-deploy ang matching dashboard build.
+
+16. Ang bagong `0056_report_version_history.sql` ay nagtatago ng data-only
+    snapshots bago magbago ang isang final report, puwedeng mag-restore sa
+    ilalim ng parehong report RLS/edit permissions, at nag-aalis ng expired
+    versions araw-araw gamit ang Supabase Cron (`pg_cron`). Hindi kinokopya
+    ang image binaries o photo references; kapag nag-restore, nananatili ang
+    kasalukuyang attachments. Kailangang available ang `pg_cron`; malinaw na
+    hihinto ang migration kung hindi. Ito ay bagong report-history migration,
+    hiwalay sa dating Doctor-work 0056 na isinama sa 0055. Dahil wala pang
+    staging project, huwag muna itong i-apply sa live database hangga't hindi
+    nasusubukan ang capture, RLS, restore, photo preservation, at Cron purge sa
+    staging.
 
 ## Mga tuntunin
 

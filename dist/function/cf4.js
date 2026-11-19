@@ -152,8 +152,80 @@ document.addEventListener('DOMContentLoaded', () => {
         { fieldId: 'admittingDiagnosis', storageKey: 'cf4AdmittingDiagnosisTemplates', placeholder: 'Select Admitting Diagnosis...' },
         { fieldId: 'dischargeDiagnosis', storageKey: 'cf4DischargeDiagnosisTemplates', placeholder: 'Select Discharge Diagnosis...' },
         { fieldId: 'historyPresentIllness', storageKey: 'cf4HpiTemplates', placeholder: 'Select HPI Template...' },
-        { fieldId: 'pertinentPastMedicalHistory', storageKey: 'cf4PmhTemplates', placeholder: 'Select PMH Template...' }
+        { fieldId: 'pertinentPastMedicalHistory', storageKey: 'cf4PmhTemplates', placeholder: 'Select PMH Template...' },
+        { fieldId: 'symptomOthers', storageKey: 'cf4SymptomOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'heentOthers', storageKey: 'cf4HeentOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'chestLungsOthers', storageKey: 'cf4ChestLungsOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'cvsOthers', storageKey: 'cf4CvsOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'abdomenOthers', storageKey: 'cf4AbdomenOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'guOthers', storageKey: 'cf4GuOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'skinExtremitiesOthers', storageKey: 'cf4SkinExtremitiesOthers', placeholder: 'Choose a saved clinical entry...' },
+        { fieldId: 'neuroExamOthers', storageKey: 'cf4NeuroExamOthers', placeholder: 'Choose a saved clinical entry...' }
     ];
+    const CLINICAL_SUGGESTIONS_KEY = 'entClinicalFieldSuggestionsV1';
+    const CF4_SUGGESTION_EXCLUDED_FIELDS = new Set(['originatingHci']);
+
+    function getCf4SuggestionFieldId(input) {
+        const name = input.name || '';
+        return name.endsWith('[]') ? name.slice(0, -2) : (input.id || name);
+    }
+
+    function getCf4SuggestionFields() {
+        const fields = new Set(CF4_TEMPLATE_CONFIG.map(config => config.fieldId).concat('courseOrder'));
+        document.querySelectorAll('#section2, #section3, #section4, #section5, #section6, #section7, #section8')
+            .forEach(section => {
+                section.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                    const fieldId = getCf4SuggestionFieldId(input);
+                    if (fieldId && !/^patient/i.test(fieldId) && !CF4_SUGGESTION_EXCLUDED_FIELDS.has(fieldId)) {
+                        fields.add(fieldId);
+                    }
+                });
+            });
+        return Array.from(fields);
+    }
+
+    const CF4_SUGGESTION_FIELDS = getCf4SuggestionFields();
+
+    function readLearnedCf4Suggestions(fieldId) {
+        const saved = readStoredJson(CLINICAL_SUGGESTIONS_KEY, {});
+        const values = saved.cf4 && saved.cf4[fieldId];
+        const localValues = Array.isArray(values) ? values.filter(value => typeof value === 'string') : [];
+        const clinicValues = window.EntClinicSuggestions
+            ? window.EntClinicSuggestions.values('cf4', fieldId) : [];
+        const seen = new Set();
+        return localValues.concat(clinicValues).filter(value => {
+            const key = value.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function rememberCf4Suggestions(formData) {
+        if (!formData) return;
+        const saved = readStoredJson(CLINICAL_SUGGESTIONS_KEY, {});
+        if (!saved.cf4 || typeof saved.cf4 !== 'object') saved.cf4 = {};
+
+        CF4_SUGGESTION_FIELDS.forEach(fieldId => {
+            const rawValue = formData[fieldId];
+            const valuesToAdd = Array.isArray(rawValue) ? rawValue : [rawValue];
+            const values = Array.isArray(saved.cf4[fieldId]) ? saved.cf4[fieldId] : [];
+            valuesToAdd.forEach(raw => {
+                const value = typeof raw === 'string' ? raw.trim() : '';
+                if (!value || (fieldId === 'courseOrder' && value === DOCTORS_NOTE_TEMPLATE)) return;
+                if (!values.some(item => typeof item === 'string' && item.toLowerCase() === value.toLowerCase())) {
+                    values.push(value);
+                }
+            });
+            saved.cf4[fieldId] = values;
+        });
+
+        try {
+            localStorage.setItem(CLINICAL_SUGGESTIONS_KEY, JSON.stringify(saved));
+        } catch (error) {
+            console.error('Unable to save learned CF4 suggestions on this device:', error);
+        }
+    }
 
     // Keep one standard doctor's-note template. It fills the actual textarea so
     // all existing save/load, print, and PDF code continues to receive the text.
@@ -216,7 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (orderInput) {
             orderInput.dataset.templateKey = 'cf4DoctorsNoteTemplates';
+            orderInput.dataset.suggestionField = 'courseOrder';
             applyDefaultDoctorsNoteTemplate(orderInput);
+            createTemplateSelectV2(orderInput);
             if (templateControlsHeader) createSimpleCourseControls(templateControlsHeader, orderInput);
         }
 
@@ -277,7 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const orderInput = row ? row.querySelector('textarea[name="courseOrder[]"]') : null;
         if (orderInput) {
             orderInput.dataset.templateKey = 'cf4DoctorsNoteTemplates';
+            orderInput.dataset.suggestionField = 'courseOrder';
             if (!orderInput.value.trim()) applyDefaultDoctorsNoteTemplate(orderInput);
+            createTemplateSelectV2(orderInput);
             createSimpleCourseControls(controlsHeader, orderInput);
         }
     });
@@ -313,7 +389,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const row = document.createElement('div'); row.className = 'drugs-row';
         row.innerHTML = `<input type="text" name="drugGenericName[]" placeholder="Generic Name"><input type="text" name="drugQuantity[]" placeholder="Quantity/Dosage/Route"><input type="text" name="drugTotalCost[]" placeholder="Total Cost"><button type="button" class="btn-remove-drug btn-danger" title="Remove this drug row" aria-label="Remove this drug row">✕</button>`;
         row.querySelector('.btn-remove-drug')?.addEventListener('click', () => { row.remove(); saveFormData(); });
-        row.querySelectorAll('input').forEach(input => { input.addEventListener('input', saveFormData); });
+        row.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', saveFormData);
+            if (input.type === 'text') setupCf4InputSuggest(input, getCf4SuggestionFieldId(input));
+        });
         return row;
     }
     if (addDrugRowBtn && drugsContainer) {
@@ -337,17 +416,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // CF4 QUICK TEMPLATES (SELECT INSTEAD OF TYPE)
     // ===================================================================================
     function getCf4Templates(storageKey, defaultValues = []) {
+        let templates = [];
         if (storageKey === 'cf4DoctorsNoteTemplates') {
             // This CF4 course note intentionally has one standard default only.
-            return [DOCTORS_NOTE_TEMPLATE];
-        }
-
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-            try {
-                const items = JSON.parse(stored);
-                if (Array.isArray(items) && items.length > 0) return items;
-            } catch (e) {}
+            templates = [DOCTORS_NOTE_TEMPLATE];
+        } else {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                try {
+                    const items = JSON.parse(stored);
+                    if (Array.isArray(items) && items.length > 0) templates = items;
+                } catch (e) {}
+            }
         }
         // Fallback defaults if nothing stored yet
         const fallbackDefaults = {
@@ -390,7 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 'THE PATIENT UNDERWENT (     ) UNDER LOCAL ANESTHESIA FOR (     ). DURING THE PROCEDURE, PATIENT WAS SITTING COMFORTABLY, COOPERATIVE, AND NOT IN PAIN. THE PROCEDURE WAS WELL TOLERATED WITH NO COMPLICATIONS. AFTER THE PROCEDURE, PATIENT WAS AWAKE, ALERT, COHERENT, AMBULANT WITH (     ).'
             ]
         };
-        return fallbackDefaults[storageKey] || defaultValues;
+        if (!templates.length) templates = fallbackDefaults[storageKey] || defaultValues;
+        const config = CF4_TEMPLATE_CONFIG.find(item => item.storageKey === storageKey);
+        const fieldId = config ? config.fieldId : (storageKey === 'cf4DoctorsNoteTemplates' ? 'courseOrder' : '');
+        const merged = [];
+        const seen = new Set();
+        templates.concat(fieldId ? readLearnedCf4Suggestions(fieldId) : []).forEach(value => {
+            const text = typeof value === 'string' ? value.trim() : '';
+            const key = text.toLowerCase();
+            if (text && !seen.has(key)) { seen.add(key); merged.push(text); }
+        });
+        return merged;
     }
 
     // =====================================================================
@@ -450,13 +540,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // that reads the same in light and dark mode.
                 border: '1px solid #333', borderRadius: '4px',
                 background: '#000', color: '#fff',
-                boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.35)', padding: '0',
+                overscrollBehavior: 'contain', padding: '0',
                 zIndex: '998', display: 'none'
             });
             wrapper.appendChild(panel);
 
-            function render() {
-                const q = input.value.trim().toLowerCase();
+            function render(showAll) {
+                const q = showAll ? '' : input.value.trim().toLowerCase();
                 const list = (storageKey ? getCf4Templates(storageKey) : [])
                     .filter(t => !q || t.toLowerCase().includes(q));
                 panel.innerHTML = '';
@@ -467,13 +557,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.textContent = text;
                     Object.assign(item.style, {
                         display: 'block', width: '100%', textAlign: 'left',
-                        // Native-datalist look: no separator lines, compact rows.
+                        // Compact rows separated by a simple divider line.
                         padding: '5px 10px', border: 'none',
+                        borderBottom: '1px solid rgba(255,255,255,0.16)',
                         background: 'transparent',
                         // Force light text: the panel is solid black, so the
                         // theme's own text colour would be unreadable in light mode.
                         color: '#fff', fontSize: '13px', lineHeight: '1.4',
-                        cursor: 'pointer', borderRadius: '0'
+                        cursor: 'pointer', borderRadius: '0',
+                        boxShadow: 'none', transform: 'none', transition: 'none'
                     });
                     item.addEventListener('mouseenter', () => { item.style.background = 'rgba(255, 255, 255, 0.18)'; });
                     item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
@@ -516,24 +608,128 @@ document.addEventListener('DOMContentLoaded', () => {
                     panel.style.display = 'none';
                 } else {
                     input.focus();
-                    render(); // render() shows the list only when there are matches
+                    render(true);
                 }
             });
             wrapper.appendChild(toggle);
 
-            input.addEventListener('input', render);
-            input.addEventListener('focus', render);
+            input.addEventListener('input', () => render(false));
+            input.addEventListener('focus', () => render(true));
+            input.addEventListener('click', () => render(true));
             input.addEventListener('blur', () => { window.setTimeout(() => { panel.style.display = 'none'; }, 150); });
             input.addEventListener('keydown', (e) => { if (e.key === 'Escape') panel.style.display = 'none'; });
-            // Hide the list the moment the page scrolls so it never floats
-            // over a different field. Listened for on window (the panel is
-            // absolute, not fixed), non-capture: a scroll INSIDE the panel
-            // does not bubble, so an overflowing list stays scrollable.
-            window.addEventListener('scroll', () => { panel.style.display = 'none'; }, { passive: true });
+            window.addEventListener('scroll', event => {
+                if (event.target === panel || panel.contains(event.target)) return;
+                panel.style.display = 'none';
+            }, { capture: true, passive: true });
         }
 
         input.dataset.templateEnabled = 'true';
     }
+
+    function setupCf4InputSuggest(input, fieldId) {
+        if (!input || input.dataset.suggestReady === 'true') return;
+        input.dataset.suggestReady = 'true';
+        input.setAttribute('aria-haspopup', 'listbox');
+        input.setAttribute('aria-expanded', 'false');
+
+        let panel = null;
+        const close = () => {
+            if (panel) {
+                panel.remove();
+                panel = null;
+            }
+            input.setAttribute('aria-expanded', 'false');
+        };
+        const open = (filterByValue) => {
+            const query = filterByValue ? input.value.trim().toLowerCase() : '';
+            const options = readLearnedCf4Suggestions(fieldId)
+                .filter(value => !query || value.toLowerCase().includes(query));
+            if (!options.length) { close(); return; }
+
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.className = 'cf4-autosuggest';
+                panel.setAttribute('role', 'listbox');
+                Object.assign(panel.style, {
+                    position: 'fixed', maxHeight: '220px', overflowY: 'auto',
+                    overscrollBehavior: 'contain',
+                    border: '1px solid #333', borderRadius: '4px',
+                    background: '#000', color: '#d6dde6', zIndex: '10000'
+                });
+                document.body.appendChild(panel);
+            }
+            panel.replaceChildren();
+            options.forEach(text => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.textContent = text;
+                item.setAttribute('role', 'option');
+                Object.assign(item.style, {
+                    display: 'block', width: '100%', padding: '6px 10px',
+                    border: '0', borderBottom: '1px solid rgba(255,255,255,0.16)',
+                    background: 'transparent', color: '#d6dde6',
+                    font: 'inherit', textAlign: 'left', cursor: 'pointer',
+                    boxShadow: 'none', transform: 'none', transition: 'none'
+                });
+                item.addEventListener('mouseenter', () => { item.style.background = 'rgba(255,255,255,0.12)'; });
+                item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
+                item.addEventListener('mousedown', event => {
+                    event.preventDefault();
+                    input.value = text;
+                    close();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                panel.appendChild(item);
+            });
+
+            const rect = input.getBoundingClientRect();
+            Object.assign(panel.style, {
+                left: rect.left + 'px',
+                top: (rect.bottom + 4) + 'px',
+                width: rect.width + 'px'
+            });
+            const panelHeight = Math.min(panel.scrollHeight, 220);
+            if (rect.bottom + panelHeight + 4 > window.innerHeight && rect.top > panelHeight) {
+                panel.style.top = (rect.top - panelHeight - 4) + 'px';
+            }
+            input.setAttribute('aria-expanded', 'true');
+        };
+
+        input.addEventListener('focus', () => open(false));
+        input.addEventListener('click', () => open(false));
+        input.addEventListener('input', event => { if (event.isTrusted) open(true); });
+        input.addEventListener('blur', () => { window.setTimeout(close, 150); });
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Escape') close();
+            else if (event.key === 'ArrowDown' && !panel) open(false);
+        });
+        window.addEventListener('scroll', event => {
+            if (panel && (event.target === panel || panel.contains(event.target))) return;
+            close();
+        }, true);
+        window.addEventListener('resize', close);
+    }
+
+    function setupCf4DoctorFieldSuggestions() {
+        const fieldsHandledByTemplateSelect = new Set([
+            'chiefComplaint', 'admittingDiagnosis', 'dischargeDiagnosis',
+            'historyPresentIllness', 'pertinentPastMedicalHistory', 'courseOrder'
+        ]);
+        document.querySelectorAll('#section2, #section3, #section4, #section5, #section6, #section7, #section8')
+            .forEach(section => {
+                section.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                    const fieldId = getCf4SuggestionFieldId(input);
+                    if (!fieldId
+                        || /^patient/i.test(fieldId)
+                        || CF4_SUGGESTION_EXCLUDED_FIELDS.has(fieldId)
+                        || fieldsHandledByTemplateSelect.has(fieldId)) return;
+                    setupCf4InputSuggest(input, fieldId);
+                });
+            });
+    }
+
     // Clipboard fallback + result flash — shared by the copy buttons above.
     function copyViaExecCommand(text) {
         const scratch = document.createElement('textarea');
@@ -1725,6 +1921,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cf4Form.addEventListener('change', saveFormData);
     }
     loadFormData();
+    setupCf4DoctorFieldSuggestions();
     if (navigator.onLine === false) {
         offlineDraftDirty = true;
     }
@@ -2960,7 +3157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save to Edit button - Save form data as JSON file
     const saveDataBtn = document.getElementById('saveDataBtn');
     if (saveDataBtn) {
-        saveDataBtn.addEventListener('click', () => {
+        saveDataBtn.addEventListener('click', async () => {
             try {
                 const formData = getFormData();
                 const dataStr = JSON.stringify(formData, null, 2);
@@ -2968,11 +3165,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const firstName = formData.patientFirstName ? formData.patientFirstName.replace(/[^a-z0-9\s-]/gi, '').trim().replace(/\s+/g, '_') : '';
                 const filename = firstName ? `${safeName}, ${firstName}_CF4_Data.json` : `${safeName}_CF4_Data.json`;
                 
+                let saveConfirmed = false;
                 if (window.EntDrafts && typeof window.EntDrafts.saveAndOpen === 'function') {
                     // v28: Save Draft stores the draft on THIS DEVICE (localStorage),
                     // flashes "✓ Saved" on the button and shows a small "Draft saved"
                     // popup with Open it / All drafts / .json download actions.
-                    window.EntDrafts.saveAndOpen('cf4', formData, filename);
+                    saveConfirmed = !!(await window.EntDrafts.saveAndOpen('cf4', formData, filename));
                 } else {
                     // Fallback: previous behavior - download the .json right away.
                     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -2984,7 +3182,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
+                    saveConfirmed = true;
                 }
+                if (saveConfirmed) rememberCf4Suggestions(formData);
                 window.PatientRecords?.recordSave('cf4', formData, { format: 'Draft', fileName: filename });
                 
                 // v26: success feedback now appears inside the Saved Drafts popup.
@@ -2992,6 +3192,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error saving data:', err);
                 showCustomAlert('❌ ERROR SAVING DATA\n\n' + err.message, 'ERROR');
             }
+        });
+    }
+    document.addEventListener('databaseRecordSaved', () => {
+        rememberCf4Suggestions(getFormData());
+        if (window.EntClinicSuggestions) {
+            window.EntClinicSuggestions.refresh('cf4').catch(error => {
+                console.error('Unable to refresh clinic-wide CF4 suggestions:', error);
+            });
+        }
+    });
+    if (window.EntClinicSuggestions) {
+        window.EntClinicSuggestions.refresh('cf4').catch(error => {
+            console.error('Unable to load clinic-wide CF4 suggestions:', error);
         });
     }
 
@@ -3061,14 +3274,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sticky header collapse on scroll - hide logos/title, show only buttons
     const reportHeader = document.querySelector('.report-header');
     if (reportHeader) {
+        // Avoid collapsing while the header's own height can push scrollY back across the threshold.
+        let expandedHeaderHeight = reportHeader.offsetHeight;
+        let isHeaderCollapsed = reportHeader.classList.contains('header-scrolled');
+
         function handleHeaderScroll() {
-            if (window.scrollY > 10) {
+            if (!isHeaderCollapsed) expandedHeaderHeight = reportHeader.offsetHeight;
+            const scrollY = window.scrollY || window.pageYOffset;
+            if (!isHeaderCollapsed && scrollY > expandedHeaderHeight + 20) {
                 reportHeader.classList.add('header-scrolled');
-            } else {
+                isHeaderCollapsed = true;
+            } else if (isHeaderCollapsed && scrollY <= 10) {
                 reportHeader.classList.remove('header-scrolled');
+                isHeaderCollapsed = false;
+                expandedHeaderHeight = reportHeader.offsetHeight;
             }
         }
         window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+        window.addEventListener('resize', function() {
+            if (!isHeaderCollapsed) expandedHeaderHeight = reportHeader.offsetHeight;
+        }, { passive: true });
         handleHeaderScroll(); // Initial check
     }
 

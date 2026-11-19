@@ -10,15 +10,27 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const RESTORE = join(HERE, 'restore_v2.mjs')
+const BACKUP = join(HERE, 'backup_v2.mjs')
 const ROOT = mkdtempSync(join(tmpdir(), 'ent-backup-restore-test-'))
 const FIXTURE = join(ROOT, 'backup')
 const sha256 = value => createHash('sha256').update(value).digest('hex')
 const tables = [
-  'clinics', 'staff_profiles', 'reports', 'report_photos', 'activity_logs',
+  'clinics', 'staff_profiles', 'reports', 'report_versions', 'report_photos', 'activity_logs',
   'user_presence', 'system_flags', 'clinic_settings', 'tickets',
   'ticket_messages', 'report_access_grants', 'report_access_requests',
   'secretary_assignments'
 ]
+const backupSource = readFileSync(BACKUP, 'utf8')
+const restoreSource = readFileSync(RESTORE, 'utf8')
+assert.match(backupSource, /if \(FULL\) TABLES\.splice\(3, 0, \{ name: 'report_versions', order: 'id' \}\)/)
+assert.match(backupSource, /table\.name === 'report_versions' && \/\^HTTP 404/)
+assert.ok(
+  restoreSource.indexOf("['report_versions', 'id']")
+    > restoreSource.indexOf("['reports', 'id']")
+  && restoreSource.indexOf("['report_versions', 'id']")
+    < restoreSource.indexOf("['report_photos', 'id']"),
+  'report versions must restore after reports and before report photos'
+)
 
 function writeJson(file, value) {
   const content = JSON.stringify(value)
@@ -70,6 +82,16 @@ try {
   let result = runRestore('--check')
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /No Supabase connection was made/)
+
+  const reportVersionsEntry = manifest.tables.report_versions
+  delete manifest.tables.report_versions
+  rmSync(join(FIXTURE, 'report_versions.json'))
+  writeFileSync(join(FIXTURE, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))
+  result = runRestore('--check')
+  assert.equal(result.status, 0, result.stderr)
+  manifest.tables.report_versions = reportVersionsEntry
+  writeJson('report_versions.json', [])
+  writeFileSync(join(FIXTURE, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))
 
   manifest.complete = false
   writeFileSync(join(FIXTURE, 'MANIFEST.json'), JSON.stringify(manifest, null, 2))

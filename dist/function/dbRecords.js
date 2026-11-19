@@ -1013,6 +1013,8 @@ function doctorFilter() {
             };
 
             let photoPaths = [];
+            let seededReportId = '';
+            let savedReportId = '';
             const inlineImages = Array.isArray(formData.images) ? formData.images.filter(Boolean) : [];
             // photo_count used to be a running local (`photoCount`) seeded from
             // inlineImages and patched in two places below. It is now derived
@@ -1046,6 +1048,7 @@ function doctorFilter() {
                     if (!reportId) {
                         throw new Error('The record could not be created, so its photos were not uploaded.');
                     }
+                    seededReportId = String(reportId);
                     if (mainLabel) mainLabel.textContent = 'Uploading photos...';
                     const upload = await store.uploadAll(images, reportId, function (done, total) {
                         if (mainLabel) mainLabel.textContent = 'Uploading photos ' + done + '/' + total + '...';
@@ -1144,11 +1147,16 @@ function doctorFilter() {
             // key, so re-saving raised 23505 (409). The target is unchanged in v2.
             let racedWinner = '';
             try {
-                await window.EntSupabase.apiRequest('reports?on_conflict=clinic_id,doctor_id,record_key', {
-                    method: 'POST',
-                    headers: { 'Prefer': 'resolution=merge-duplicates' },
-                    body: JSON.stringify([row])
-                });
+                const saved = await window.EntSupabase.apiRequest(
+                    'reports?on_conflict=clinic_id,doctor_id,record_key&select=id',
+                    {
+                        method: 'POST',
+                        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+                        body: JSON.stringify([row])
+                    }
+                );
+                const savedRow = Array.isArray(saved) ? saved[0] : saved;
+                savedReportId = savedRow && savedRow.id ? String(savedRow.id) : seededReportId;
             } catch (saveError) {
                 // 0041 RACE RECOVERY: two devices passed the pre-check and
                 // both inserted; uniq_reports_patient_day (or its
@@ -1162,11 +1170,16 @@ function doctorFilter() {
                     ? ((await findSameIdentityRecord(record.reportType, formData, today)) || '')
                     : '';
                 if (!racedWinner || racedWinner === record.key) throw saveError;
-                await window.EntSupabase.apiRequest('reports?on_conflict=clinic_id,doctor_id,record_key', {
-                    method: 'POST',
-                    headers: { 'Prefer': 'resolution=merge-duplicates' },
-                    body: JSON.stringify([{ ...row, record_key: racedWinner }])
-                });
+                const saved = await window.EntSupabase.apiRequest(
+                    'reports?on_conflict=clinic_id,doctor_id,record_key&select=id',
+                    {
+                        method: 'POST',
+                        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+                        body: JSON.stringify([{ ...row, record_key: racedWinner }])
+                    }
+                );
+                const savedRow = Array.isArray(saved) ? saved[0] : saved;
+                savedReportId = savedRow && savedRow.id ? String(savedRow.id) : '';
             }
 
             databaseWriteCompleted = true;
@@ -1182,7 +1195,8 @@ function doctorFilter() {
             // patient's name. See the OPEN_RECORD note and DEC-07: the
             // audit detail is read by every clinic admin and must not
             // carry patient-identifying text.
-            logActivity('SAVE_RECORD', `Record saved (${record.reportType})`);
+            logActivity('SAVE_RECORD', `Record saved (${record.reportType})`,
+                savedReportId ? 'report' : '', savedReportId);
 
             const label = TYPE_LABELS[record.reportType] || record.reportType;
             const who = record.patientName ? ` for ${record.patientName}` : '';
@@ -1944,26 +1958,45 @@ function doctorFilter() {
     function doctorWorkFields(reportType) {
         if (reportType === 'cf4') {
             return [
-                { key: 'chiefComplaint' },
-                { key: 'admittingDiagnosis' },
-                { key: 'dischargeDiagnosis' },
-                { key: 'historyPresentIllness' },
-                { key: 'pertinentPastMedicalHistory' },
-                { key: 'courseOrder', json: true }
+                { key: 'chiefComplaint', label: 'Chief complaint' },
+                { key: 'admittingDiagnosis', label: 'Admitting diagnosis' },
+                { key: 'dischargeDiagnosis', label: 'Discharge diagnosis' },
+                { key: 'historyPresentIllness', label: 'History of present illness' },
+                { key: 'pertinentPastMedicalHistory', label: 'Pertinent past medical history' },
+                { key: 'courseOrder', label: 'Course and orders', json: true }
             ];
         }
 
         const findings = reportType === 'nasal'
-            ? ['septum', 'discharge', 'mucosa', 'it', 'mt', 'mm', 'im', 'omc', 'nasopharynx']
-            : ['epiglottis', 'vallecula', 'pyriformSinuses', 'arytenoids', 'falseVocalCords', 'trueVocalCords', 'vocalCordMobility', 'subglottis'];
+            ? [
+                { key: 'septum', label: 'Septum' },
+                { key: 'discharge', label: 'Discharge' },
+                { key: 'mucosa', label: 'Mucosa' },
+                { key: 'it', label: 'Inferior turbinate (I.T.)' },
+                { key: 'mt', label: 'Middle turbinate (M.T.)' },
+                { key: 'mm', label: 'Middle meatus (M.M.)' },
+                { key: 'im', label: 'Inferior meatus (I.M.)' },
+                { key: 'omc', label: 'Ostiomeatal complex (OMC)' },
+                { key: 'nasopharynx', label: 'Nasopharynx' }
+            ]
+            : [
+                { key: 'epiglottis', label: 'Epiglottis' },
+                { key: 'vallecula', label: 'Vallecula' },
+                { key: 'pyriformSinuses', label: 'Pyriform sinuses' },
+                { key: 'arytenoids', label: 'Arytenoids' },
+                { key: 'falseVocalCords', label: 'False vocal cords' },
+                { key: 'trueVocalCords', label: 'True vocal cords' },
+                { key: 'vocalCordMobility', label: 'Vocal cord mobility' },
+                { key: 'subglottis', label: 'Subglottis' }
+            ];
         return [
-            { key: 'preOpDiagnosis' },
-            { key: 'endoscopyType' },
-            { key: 'indication' },
-            { key: 'anesthesiaUsed' },
-            ...findings.map(key => ({ key })),
-            { key: 'impression' },
-            { key: 'recommendation' }
+            { key: 'preOpDiagnosis', label: 'Pre-op diagnosis' },
+            { key: 'endoscopyType', label: 'Endoscopy type' },
+            { key: 'indication', label: 'Indication' },
+            { key: 'anesthesiaUsed', label: 'Anesthesia used' },
+            ...findings,
+            { key: 'impression', label: 'Impression' },
+            { key: 'recommendation', label: 'Recommendation' }
         ];
     }
 
@@ -1995,13 +2028,13 @@ function doctorFilter() {
         const fields = doctorWorkFields(String(record.report_type || ''));
         const values = fields.map(field => selectedProgressValue(record, field));
         if (!values.some(value => value !== undefined && value !== null)) return null;
-        const completed = fields.reduce((count, field, index) => (
-            count + (isDoctorWorkFieldComplete(field, values[index]) ? 1 : 0)
-        ), 0);
+        const complete = fields.map((field, index) => isDoctorWorkFieldComplete(field, values[index]));
+        const completed = complete.filter(Boolean).length;
         return {
             completed,
             total: fields.length,
-            percent: Math.round(completed * 100 / fields.length)
+            percent: Math.round(completed * 100 / fields.length),
+            missing: fields.filter((field, index) => !complete[index]).map(field => field.label)
         };
     }
 
@@ -2519,6 +2552,96 @@ function doctorFilter() {
         }
     }
 
+    async function loadReportHistory(recordId, panel) {
+        if (!recordId || !panel) return;
+        panel.innerHTML = '<p class="ent-db-history-message">Loading report history...</p>';
+        try {
+            const path = 'report_versions?select=id,actor_label,captured_at,expires_at'
+                + '&report_id=eq.' + encodeURIComponent(String(recordId))
+                + '&expires_at=gt.' + encodeURIComponent(new Date().toISOString())
+                + '&order=captured_at.desc&limit=100';
+            const rows = await window.EntSupabase.apiRequest(path);
+            const versions = Array.isArray(rows) ? rows : [];
+            if (!versions.length) {
+                panel.innerHTML = '<p class="ent-db-history-message">No saved versions in the last 90 days.</p>';
+                return;
+            }
+            panel.innerHTML = '<div class="ent-db-history-list">'
+                + versions.map(version => `
+                    <div class="ent-db-history-entry">
+                        <div>
+                            <strong>${escapeHtml(formatTimestamp(version.captured_at))}</strong>
+                            <span>Before save by ${escapeHtml(version.actor_label || 'Clinic staff')}</span>
+                        </div>
+                        <button type="button" class="ent-db-history-restore"
+                            data-report-version="${escapeHtml(String(version.id || ''))}">Restore</button>
+                    </div>
+                `).join('')
+                + '</div>';
+            panel.querySelectorAll('[data-report-version]').forEach(button => {
+                button.addEventListener('click', () => restoreReportVersion(
+                    recordId,
+                    button.getAttribute('data-report-version'),
+                    button
+                ));
+            });
+        } catch (error) {
+            panel.dataset.historyLoaded = 'false';
+            panel.innerHTML = '<p class="ent-db-history-message is-error">Could not load report history: '
+                + escapeHtml((error && error.message) || String(error)) + '</p>';
+        }
+    }
+
+    function toggleReportHistory(record, card) {
+        const panel = card.querySelector('.ent-db-history-panel');
+        const button = card.querySelector('.ent-db-history-btn');
+        if (!panel || !button || !record.id) return;
+        panel.hidden = !panel.hidden;
+        button.setAttribute('aria-expanded', String(!panel.hidden));
+        if (panel.hidden) {
+            button.textContent = 'History';
+            return;
+        }
+        button.textContent = 'Hide history';
+        if (panel.dataset.historyLoaded === 'true') return;
+        panel.dataset.historyLoaded = 'true';
+        loadReportHistory(record.id, panel);
+    }
+
+    async function restoreReportVersion(reportId, versionId, button) {
+        const validVersionId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            .test(String(versionId || ''));
+        if (!reportId || !validVersionId) return;
+        const confirmed = await showConfirm(
+            'Restore this report version? The current saved report will first be preserved in history. ' +
+            'The photos currently attached to the report will stay unchanged.',
+            'Restore Report Version',
+            'Restore version'
+        );
+        if (!confirmed) return;
+        if (button) button.disabled = true;
+        setStatus('Restoring the earlier report version...', true, false);
+        try {
+            const result = await window.EntSupabase.apiRequest(
+                'rpc/ent_restore_report_version',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ p_version_id: String(versionId) })
+                }
+            );
+            if (!result || result.ok !== true) {
+                throw new Error((result && result.error) || 'The server refused to restore this version.');
+            }
+            setStatus('Earlier report version restored. Current photos were kept.', false, false);
+            await loadRecords(false, true);
+        } catch (error) {
+            setStatus('Could not restore report version: '
+                + String((error && error.message) || error), false, true);
+            if (button) button.disabled = false;
+        }
+    }
+
     function buildCard(record) {
         const card = document.createElement('article');
         card.className = 'ent-db-card';
@@ -2562,23 +2685,31 @@ function doctorFilter() {
             : `<h4 class="ent-db-card-name">${escapeHtml(record.patient_name || 'Unnamed patient')}</h4>`;
         const workProgress = doctorWorkProgress(record);
         const formProgress = formCompletionProgress(record);
-        const workProgressHtml = workProgress && formProgress
-            ? `<div class="ent-db-progress-pair">
-                <div class="ent-db-work-progress${workProgress.percent === 100 ? ' is-complete' : ''}">
+        const workProgressBar = workProgress
+            ? `<div class="ent-db-work-progress${workProgress.percent === 100 ? ' is-complete' : ''}">
                     <span class="ent-db-work-progress-label">Doctor's work</span>
                     <progress value="${workProgress.percent}" max="100" aria-label="Doctor's work ${workProgress.percent}%"></progress>
                     <strong>${workProgress.percent}%</strong>
-                </div>
-                <div class="ent-db-work-progress ent-db-form-progress${formProgress.percent === 100 ? ' is-complete' : ''}">
+                </div>`
+            : '<div class="ent-db-work-progress is-unavailable">Doctor\'s work unavailable</div>';
+        const formProgressBar = formProgress
+            ? `<div class="ent-db-work-progress ent-db-form-progress${formProgress.percent === 100 ? ' is-complete' : ''}">
                     <span class="ent-db-work-progress-label">Form completion</span>
                     <progress value="${formProgress.percent}" max="100" aria-label="Form completion ${formProgress.percent}%"></progress>
                     <strong>${formProgress.percent}%</strong>
-                </div>
-            </div>`
-            : `<div class="ent-db-progress-pair">
-                <div class="ent-db-work-progress is-unavailable">Doctor's work unavailable</div>
-                <div class="ent-db-work-progress is-unavailable">Form completion unavailable</div>
-            </div>`;
+                </div>`
+            : '<div class="ent-db-work-progress is-unavailable">Form completion unavailable</div>';
+        const missingWorkFieldsHtml = workProgress && workProgress.missing.length
+            ? `<details class="ent-db-missing-work">
+                <summary>Missing Doctor work fields (${workProgress.missing.length})</summary>
+                <ul>${workProgress.missing.map(field => `<li>${escapeHtml(field)}</li>`).join('')}</ul>
+            </details>`
+            : '';
+        const workProgressHtml = `<div class="ent-db-progress-pair">
+            ${workProgressBar}
+            ${formProgressBar}
+            ${missingWorkFieldsHtml}
+        </div>`;
         // Only finished database saves reach this list - shared drafts are
         // filtered out in loadRecords(), so no draft chip is needed here.
         const who = savedByLabel(record);
@@ -2610,10 +2741,14 @@ function doctorFilter() {
                     <span>saved ${escapeHtml(formatTimestamp(savedAt))}</span>
                     ${touched ? `<span>edited ${escapeHtml(formatTimestamp(editedAt))}</span>` : ''}
                 </div>
+                <div class="ent-db-history-panel" hidden></div>
             </div>
+            <button type="button" class="ent-db-history-btn" aria-expanded="false"
+                title="View or restore report versions from the last 90 days">History</button>
             <button type="button" class="ent-db-open" title="Open this record in the form">Open</button>
             <button type="button" class="ent-db-del" title="Move this record to the recycle bin - an administrator or the shelf's secretary can restore it">&#128465; Delete</button>
         `;
+        card.querySelector('.ent-db-history-btn').addEventListener('click', () => toggleReportHistory(record, card));
         card.querySelector('.ent-db-open').addEventListener('click', () => confirmAndOpen(record));
         // Soft delete only. The button asks first; the DATABASE decides -
         // 0030's policy calls ent_may_soft_delete, whose fourth arm (0034)
@@ -2979,6 +3114,8 @@ function doctorFilter() {
         // exactly the same reason: the test drives it directly, and this
         // is where the record_key -> row id resolution gets locked down.
         toggleFinalSaved,
+        loadReportHistory,
+        restoreReportVersion,
         loadMoreRecords
     };
 

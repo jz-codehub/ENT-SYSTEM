@@ -985,7 +985,9 @@
 // v221: share the Physician default with form reset and restore helpers.
 // v222: use native capture for installed endoscopy PWAs and count incomplete reports once.
 // v223: keep hidden native camera inputs invisible under the global file-input style.
-const CACHE_NAME = 'ent-report-system-v223-hidden-camera-file';
+// v224: count only reports with doctor work below 100%, including shared drafts.
+// v225: show active-clinic completed/incomplete patient-date totals.
+const CACHE_NAME = 'ent-report-system-v229-report-version-history';
 const FILES_TO_CACHE = [
     './pages/login.html',
     'pages/offlineWorkspace.html',

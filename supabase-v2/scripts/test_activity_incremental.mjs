@@ -34,9 +34,13 @@ console.log('')
 // ---- lift the real functions out of admin.js --------------------------
 const mergeSrc = /function mergeActivity\(incoming\) \{[\s\S]*?\n    \}/.exec(adminCode)
 const loadSrc = /async function loadActivity\(force\) \{[\s\S]*?\n    \}/.exec(adminCode)
+const detailSrc = /function activityDetail\(row\) \{[\s\S]*?\n    \}/.exec(adminCode)
+const patientNamesSrc = /async function loadActivityPatientNames\(\) \{[\s\S]*?\n    \}/.exec(adminCode)
 ok('S1', 'mergeActivity exists in admin.js', !!mergeSrc)
 ok('S2', 'loadActivity exists in admin.js', !!loadSrc)
 if (!mergeSrc || !loadSrc) { console.log('\nABORT: cannot locate the functions.'); process.exit(1) }
+ok('S3', 'activity detail resolves patient names for report events', !!detailSrc && !!patientNamesSrc)
+if (!detailSrc || !patientNamesSrc) { console.log('\nABORT: cannot locate report activity functions.'); process.exit(1) }
 
 // Build a runnable instance of the REAL source, with a fake `api` that
 // records every path it is asked for.
@@ -44,7 +48,10 @@ function build(api, window = 1000) {
   return new Function('api', `
     const ACTIVITY_WINDOW = ${window};
     let activity = [], activityLoaded = false, activityCursorId = 0, activityError = '';
+    let activityPatientError = '';
     let renders = 0;
+    function normaliseActivity(row) { return row; }
+    async function loadActivityPatientNames() { return false; }
     function populateActivityUsers() {}
     function populateActivityActions() {}
     function renderActivity() { renders++; }
@@ -67,6 +74,47 @@ const rows = (from, to) => {
   return out
 }
 const ids = a => a.map(r => r.id)
+
+console.log('')
+console.log('--- 0. patient identity for report activity ---')
+{
+  const openedId = '00000000-0000-0000-0000-000000000001'
+  const savedId = '00000000-0000-0000-0000-000000000002'
+  const otherId = '00000000-0000-0000-0000-000000000003'
+  const records = [
+    { action: 'OPEN_RECORD', target_type: 'report', target_id: openedId, detail: 'Record opened (nasal)' },
+    { action: 'SAVE_RECORD', target_type: 'report', target_id: savedId, detail: 'Record saved (cf4)' },
+    { action: 'LOGIN', target_type: 'report', target_id: otherId, detail: 'Signed in' }
+  ]
+  const paths = []
+  const linked = new Function('api', 'records', `
+    let activity = records;
+    const activityPatientNames = Object.create(null);
+    ${detailSrc[0]}
+    ${patientNamesSrc[0]}
+    return {
+      loadActivityPatientNames,
+      detail: activityDetail,
+      get activity() { return activity; }
+    };
+  `)(async path => {
+    paths.push(path)
+    return [
+      { id: openedId, patient_name: 'Open Patient' },
+      { id: savedId, patient_name: 'Saved Patient' }
+    ]
+  }, records)
+  await linked.loadActivityPatientNames()
+  ok('T0a', 'both open and save report IDs are resolved through the reports query',
+     paths.length === 1 && paths[0].includes(openedId) && paths[0].includes(savedId)
+       && !paths[0].includes(otherId), paths[0])
+  eq('T0b', 'open activity displays the associated patient',
+     linked.detail(linked.activity[0]), 'Record opened (nasal) · Patient: Open Patient')
+  eq('T0c', 'save activity displays the associated patient',
+     linked.detail(linked.activity[1]), 'Record saved (cf4) · Patient: Saved Patient')
+  eq('T0d', 'non-record activity remains free of patient details',
+     linked.detail(linked.activity[2]), 'Signed in')
+}
 
 console.log('--- 1. initial load ---')
 {

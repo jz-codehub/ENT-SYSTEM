@@ -2578,8 +2578,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function renderActionSummary() {
         const host = byId('dashActionItems');
         if (!host) return;
-        const queueKnown = queueLoaded && !queueError;
-        const review = queueKnown ? queueLists().review.length : null;
+        const review = clinicWorkCounts ? clinicWorkCounts.incomplete : null;
         const offlineKnown = !!offlineStats && offlineStats.engine !== 'unavailable';
         const pending = offlineKnown
             ? Math.max(Number(offlineStats.pending) || 0, Number(offlineStats.unsynced) || 0)
@@ -2602,28 +2601,25 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 ? 'Saved on this device; waiting for cloud sync'
                 : 'No unsynced reports on this device';
         const reviewDetail = review === null
-            ? 'Doctor work status unavailable'
+            ? 'Clinic-wide doctor-work count unavailable'
             : review
-                ? 'Incomplete CF4, Nasal and Laryngeal reports need doctor work'
-                : 'No reports are waiting for doctor work'
+                ? 'Final saved patient/date records with Doctor work below 100% in this clinic'
+                : 'All final saved patient/date records in this clinic have 100% Doctor work'
         host.innerHTML = [
-            item('Doctor work', review, reviewDetail, '#dashQueueCard', 'review'),
+            item('Incomplete doctor work', review, reviewDetail, '#dashQueueCard', 'review'),
             item('Offline sync', pending, offlineDetail, pageUrl('offlineWorkspace.html'), 'offline')
         ].join('');
         const hint = byId('dashActionHint');
         if (hint) {
             const known = review !== null && pending !== null;
             hint.textContent = known
-                ? 'Walk-in workflow \u00b7 counts use records visible to this account'
-                : 'Some checks need an online connection or a local sync-status read';
+                ? 'Doctor-work totals are clinic-wide \u00b7 offline sync is device-local'
+                : 'Doctor-work totals need an online connection; sync status is device-local';
         }
     }
 
 
     /* --------------------------- team queue -------------------------- */
-    // Keep this field list in sync with ent_doctor_work_percent in migration
-    // 0049. Selecting only these payload paths avoids downloading full patient
-    // forms just to calculate the dashboard's completion status.
     const DOCTOR_WORK_FIELDS = {
         cf4: ['chiefComplaint', 'admittingDiagnosis', 'dischargeDiagnosis',
             'historyPresentIllness', 'pertinentPastMedicalHistory', 'courseOrder'],
@@ -2666,11 +2662,9 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     }
     let queueRows = [];
     let queueError = '';
-    let queueLoaded = false;
     const QUEUE_PREVIEW = 5;
     let queueExpanded = false;
     let queueView = '';
-    const QUEUE_LIMIT = 400;          // hard ceiling only; the preview gates it
     const QUEUE_POLL_MS = 60000;   // the queue is what people wait for, so it
                                    // polls on its own, faster than the counters
                                    // - but halved from 30s for the same free-plan
@@ -2678,84 +2672,159 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                                    // is still well under how long a secretary
                                    // takes to look up from one task to the next.
 
-    function uniqueQueueRecords(rows) {
-        const seen = new Set();
-        return rows.filter(function (row) {
-            const recordKey = String(row.record_key || '').trim();
-            if (!recordKey) return true;
-            const identity = String(row.report_type || '').toLowerCase() + '|' + recordKey;
-            if (seen.has(identity)) return false;
-            seen.add(identity);
-            return true;
+    let clinicWorkCounts = null;
+    let clinicWorkCountsError = '';
+    let clinicWorkCountsRequest = 0;
+
+    function normalizeClinicWorkStatus(result) {
+        if (!result || typeof result !== 'object' || Array.isArray(result)) {
+            throw new Error('The database returned an invalid clinic doctor-work status.');
+        }
+        const completed = Number(result.completed_count);
+        const incomplete = Number(result.incomplete_count);
+        const total = Number(result.total_count);
+        if (!Number.isSafeInteger(completed) || completed < 0
+            || !Number.isSafeInteger(incomplete) || incomplete < 0
+            || !Number.isSafeInteger(total) || total < 0
+            || total !== completed + incomplete
+            || !Array.isArray(result.records)
+            || result.records.length !== total) {
+            throw new Error('Clinic doctor-work totals do not match the status rows.');
+        }
+
+        let completedRows = 0;
+        let incompleteRows = 0;
+        const records = result.records.map(function (row) {
+            const percent = Number(row && row.doctor_work_percent);
+            const complete = row && row.is_complete === true;
+            const visitDate = String((row && row.visit_date) || '');
+            const reportTypes = Array.isArray(row && row.report_types)
+                ? row.report_types.map(function (type) { return String(type || '').toLowerCase(); })
+                : [];
+            if (!Number.isInteger(percent) || percent < 0 || percent > 100
+                || complete !== (percent === 100)
+                || !/^\d{4}-\d{2}-\d{2}$/.test(visitDate)
+                || !reportTypes.length
+                || reportTypes.some(function (type) {
+                    return !['cf4', 'nasal', 'laryngeal'].includes(type);
+                })) {
+                throw new Error('The database returned an invalid patient/date doctor-work status row.');
+            }
+            if (complete) completedRows++;
+            else incompleteRows++;
+            const recordKey = String(row.record_key || '');
+            const actionType = String(row.action_report_type || '').toLowerCase();
+            if (recordKey && !['cf4', 'nasal', 'laryngeal'].includes(actionType)) {
+                throw new Error('The database returned an invalid report action for a status row.');
+            }
+            return {
+                clinicWideStatus: true,
+                patient_name: String(row.patient_name || ''),
+                case_number: String(row.case_number || ''),
+                procedure_date: visitDate,
+                report_types: reportTypes,
+                report_type: recordKey ? actionType : reportTypes[0],
+                action_report_type: actionType,
+                record_key: recordKey,
+                created_at: String(row.updated_at || ''),
+                updated_at: String(row.updated_at || ''),
+                saved: !!recordKey,
+                isFinalized: complete,
+                doctorWorkPercent: percent
+            };
         });
+        if (completedRows !== completed || incompleteRows !== incomplete) {
+            throw new Error('Clinic doctor-work totals do not match completed and incomplete status rows.');
+        }
+        return { completed: completed, incomplete: incomplete, total: total, records: records };
     }
 
-    async function loadQueueRows() {
-        if (!window.EntSupabase || !window.EntSupabase.isConfigured()) {
-            throw new Error('The cloud database is not configured on this device.');
+    function renderClinicWorkTotals() {
+        const completed = byId('dashClinicWorkCompleted');
+        const incomplete = byId('dashClinicWorkIncomplete');
+        const note = byId('dashClinicWorkNote');
+        if (completed) {
+            completed.textContent = clinicWorkCounts ? String(clinicWorkCounts.completed) : '\u2014';
         }
-        // v2: no clinic filter, no doctor filter — RLS decides (see loadCloudRows).
-        const plain = 'record_key,created_by,doctor_id,clinic_id,report_type,patient_name,case_number,'
-            + 'procedure_date,created_at,updated_at,is_draft';
-        const workFields = DOCTOR_WORK_FIELD_NAMES.map(function (key) {
-            return 'doctor_work_' + key + ':payload->formData->' + key;
-        }).join(',');
-        const endpoint = function (extra) {
-            return 'reports'
-                + '?deleted_at=is.null&select=' + plain + ',payload->dbSaved,payload->>draftShared,'
-                + workFields + extra
-                + '&order=updated_at.desc,created_at.desc&limit=' + QUEUE_LIMIT;
-        };
-        let result;
-        try {
-            result = await api(endpoint(',created_by_name'));
-        } catch (firstError) {
-            try {
-                // 0028 adds the author display name; keep work status exact if
-                // an older database does not have that optional column yet.
-                result = await api(endpoint(''));
-            } catch (error) {
-                throw new Error('Could not load doctor work status: '
-                    + ((error && error.message) || (firstError && firstError.message) || String(error)));
-            }
+        if (incomplete) {
+            incomplete.textContent = clinicWorkCounts ? String(clinicWorkCounts.incomplete) : '\u2014';
         }
-        // Same second opinion as the counters: a queue is a LIST OF REPORTS,
-        // so an over-wide response here is more visible and more alarming than
-        // a number being slightly too big. Filtered here too, and the notice
-        // on the counters will already have said how many were hidden.
-        const mapped = (Array.isArray(result) ? result : []).map(function (row) {
-            const work = {};
-            DOCTOR_WORK_FIELD_NAMES.forEach(function (key) {
-                work[key] = row['doctor_work_' + key];
-            });
-            return {
-                record_key: row.record_key || '',
-                created_by: row.created_by || '',
-                created_by_name: row.created_by_name || '',
-                doctor_id: row.doctor_id || '',
-                clinic_id: row.clinic_id || '',
-                report_type: row.report_type || '',
-                patient_name: row.patient_name || '',
-                case_number: row.case_number || '',
-                procedure_date: row.procedure_date || '',
-                created_at: row.created_at || row.updated_at || '',
-                updated_at: row.updated_at || row.created_at || '',
+        if (note) {
+            note.textContent = clinicWorkCountsError
+                ? 'Clinic-wide totals are unavailable right now.'
+                : clinicWorkCounts
+                    ? clinicWorkCounts.total + ' final saved patient/date records in this clinic; same-day reports count once, different dates count separately. Shared drafts are excluded.'
+                    : 'Loading final saved patient/date records...';
+        }
+    }
 
-                saved: row.dbSaved === true || row.dbSaved === 'true',
-                isFinalized: row.is_draft === false || row.is_draft === 'false',
-                doctorWorkPercent: computeDoctorWorkPercent(row.report_type, work),
-                // draftShared marks a row the drafts browser uploaded WITH its
-                // form. The background sync also writes is_draft = TRUE rows
-                // carrying metadata only, and there is nothing in those to
-                // open - so they are not work waiting for anybody.
-                draftShared: row.draftShared === true || row.draftShared === 'true'
+    function refreshClinicWorkStatus() {
+        const requestId = ++clinicWorkCountsRequest;
+        let currentScope = scopeInfo;
+        try {
+            if (Auth && typeof Auth.scope === 'function') currentScope = Auth.scope();
+        } catch (error) {
+            console.warn('[Dashboard] Could not read the active clinic doctor:', error);
+        }
+        const doctorId = String((currentScope && currentScope.doctorId) || '').trim();
+        if (!doctorId || (clinicWorkCounts && clinicWorkCounts.doctorId !== doctorId)) {
+            clinicWorkCounts = null;
+            queueRows = [];
+            queueError = '';
+        }
+        clinicWorkCountsError = '';
+        renderClinicWorkTotals();
+
+        if (!doctorId || !navigator.onLine || !window.EntSupabase || !window.EntSupabase.isConfigured()) {
+            clinicWorkCounts = null;
+            queueRows = [];
+            clinicWorkCountsError = !navigator.onLine
+                ? 'No internet connection.'
+                : !doctorId
+                    ? 'No active clinic doctor is selected.'
+                    : 'Cloud database is not configured.';
+            queueError = clinicWorkCountsError;
+            renderClinicWorkTotals();
+            renderQueue();
+            renderActionSummary();
+            return;
+        }
+
+        renderQueue();
+        renderActionSummary();
+        api('rpc/ent_clinic_doctor_work_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_doctor_id: doctorId })
+        }).then(function (result) {
+            const latestScope = Auth && typeof Auth.scope === 'function' ? Auth.scope() : scopeInfo;
+            if (requestId !== clinicWorkCountsRequest
+                || !latestScope
+                || String(latestScope.doctorId || '').trim() !== doctorId) return;
+            const status = normalizeClinicWorkStatus(result);
+            clinicWorkCounts = {
+                completed: status.completed,
+                incomplete: status.incomplete,
+                total: status.total,
+                doctorId: doctorId
             };
-        }).filter(function (r) {
-            // A finalized record, or a shared draft somebody can actually open.
-            // A formless draft stub is neither and cannot be doctor work.
-            return r.isFinalized || r.saved || r.draftShared;
+            queueRows = status.records;
+            queueError = '';
+            clinicWorkCountsError = '';
+            renderClinicWorkTotals();
+            renderQueue();
+            renderActionSummary();
+        }).catch(function (error) {
+            if (requestId !== clinicWorkCountsRequest) return;
+            console.error('[Dashboard] Could not load clinic-wide doctor-work totals:', error);
+            clinicWorkCounts = null;
+            queueRows = [];
+            clinicWorkCountsError = (error && error.message) || String(error);
+            queueError = clinicWorkCountsError;
+            renderClinicWorkTotals();
+            renderQueue();
+            renderActionSummary();
         });
-        return uniqueQueueRecords(splitByScope(mapped).kept);
     }
 
 
@@ -2809,15 +2878,19 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         return !!(row && row.isFinalized && row.doctorWorkPercent === 100);
     }
 
+    function isDoctorWorkIncomplete(row) {
+        return !!(row
+            && typeof row.doctorWorkPercent === 'number'
+            && row.doctorWorkPercent >= 0
+            && row.doctorWorkPercent < 100);
+    }
+
     function queueLists() {
         const completed = queueRows.filter(function (row) {
             return isDoctorWorkComplete(row);
         });
         const waiting = queueRows.filter(function (row) {
-            if (isDoctorWorkComplete(row)) return false;
-            if (row.doctorWorkPercent === null) return false;
-            if (me && me.role === 'secretary') return isMine(row);
-            return !!me && me.role === 'doctor';
+            return isDoctorWorkIncomplete(row);
         });
         return {
             review: waiting,
@@ -2855,15 +2928,21 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function queueRowHtml(row) {
         const t = typeKey(row);
         const meta = TYPES[t] || { label: 'Other report', short: 'Other', page: '', icon: '\u2022' };
-        const who = isMine(row) ? 'Me' : authorLabel(row);
+        const who = row.clinicWideStatus ? 'Active clinic' : (isMine(row) ? 'Me' : authorLabel(row));
         const ts = Date.parse(row.created_at || '');
+        const actionType = String(row.action_report_type || t);
+        const reportTypes = (Array.isArray(row.report_types) ? row.report_types : [t])
+            .map(function (type) {
+                const report = TYPES[type];
+                return report ? report.short : 'Other';
+            }).join(', ');
         const action = (meta.page && row.record_key)
             ? '<button type="button" class="ent-queue-open" data-qkey="' + esc(row.record_key)
-              + '" data-qtype="' + esc(t)
+              + '" data-qtype="' + esc(actionType)
               + '" data-qpatient="' + esc(row.patient_name)
               + '" data-qauthor="' + esc(who) + '"'
             + (row.saved || row.isFinalized
-                ? ' title="Open this patient record in the form and edit it">&#9998; Open &amp; edit</button>'
+                ? ' title="Open the selected doctor’s report for this patient/date">&#9998; Open report</button>'
                 : ' title="Not in the database yet - the form will show the details">&#128065; View details</button>')
             : '';
         const complete = isDoctorWorkComplete(row);
@@ -2879,11 +2958,12 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             + '<span class="ent-queue-main">'
             + '<span class="ent-queue-name">' + esc(displayNameOf(row)) + '</span>'
             + '<span class="ent-queue-meta"><span class="ent-qtype is-' + esc(t) + '">'
-            + esc(meta.icon + ' ' + (meta.short || meta.label)) + '</span>'
+            + esc(meta.icon + ' ' + reportTypes) + '</span>'
             + (procedureDate ? ' <span class="ent-qsep">\u00b7</span> ' + procedureDate : '')
             + (row.case_number ? ' <span class="ent-qsep">\u00b7</span> Case ' + esc(row.case_number) : '') + '</span>'
-            + '<span class="ent-queue-by">' + esc(who) + ' \u00b7 '
-            + esc(isNaN(ts) ? fmtTime(row.created_at) : relTime(ts)) + '</span>'
+            + '<span class="ent-queue-by">' + (row.clinicWideStatus
+                ? 'Active-clinic Doctor work status'
+                : esc(who) + ' \u00b7 ' + esc(isNaN(ts) ? fmtTime(row.created_at) : relTime(ts))) + '</span>'
             + '</span>'
             + '<span class="ent-queue-flags">'
             + (complete
@@ -2899,7 +2979,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
        the rows on screen can never disagree - which is the failure mode when
        the cap lives inside each renderer. */
     function previewRows(rows) {
-        if (queueExpanded) return rows.slice(0, QUEUE_LIMIT);
+        if (queueExpanded) return rows.slice();
         return rows.slice(0, QUEUE_PREVIEW);
     }
     function hiddenIn(rows) {
@@ -2920,7 +3000,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         }
         return '<div class="ent-queue-tabs" role="group" aria-label="Filter doctor work">'
             + button('saved', 'Completed', 'Doctor work is 100% complete', lists.saved.length, completedIcon)
-            + button('review', 'Incomplete', 'Waiting for doctor work', lists.review.length, incompleteIcon)
+            + button('review', 'Incomplete', 'Doctor work below 100%', lists.review.length, incompleteIcon)
             + '</div>';
     }
 
@@ -2935,12 +3015,11 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     function queueSections(lists, activeView) {
         if (activeView === 'review') {
             return queueSection('&#9203; Incomplete \u00b7 Waiting for doctor', lists.review,
-                'No incomplete reports are waiting for doctor work in the latest '
-                    + QUEUE_LIMIT + ' updated records.',
+                'No final saved patient/date records in this clinic have incomplete Doctor work.',
                 'wait');
         }
         return queueSection('&#9989; Doctor completed \u00b7 100%', lists.saved,
-            'No finalized records have 100% doctor work in the latest ' + QUEUE_LIMIT + ' updated records.',
+            'No final saved patient/date records in this clinic have 100% Doctor work.',
             'saved');
     }
 
@@ -2963,8 +3042,8 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         }
         if (hint) {
             hint.textContent = queueError
-                ? 'Could not load doctor work status from the cloud database'
-                : 'Counts each incomplete CF4, Nasal and Laryngeal report once';
+                ? 'Clinic-only Doctor work status could not be loaded'
+                : 'Final saved statuses match the clinic totals; drafts are excluded and open actions stay on the selected doctor’s shelf';
         }
 
         const lists = queueLists();
@@ -2990,7 +3069,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             badge.hidden = n === 0;
             if (num) num.textContent = String(n);
             if (text) text.textContent = n === 1 ? 'Report to complete' : 'Reports to complete';
-            badge.title = n + (n === 1 ? ' report needs' : ' reports need')
+            badge.title = n + (n === 1 ? ' patient/date record needs' : ' patient/date records need')
                 + ' doctor work';
         }
         refreshTicketReplies();
@@ -3001,13 +3080,13 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         // Hero pill: the fastest way to notice incomplete doctor work.
         const pill = byId('dashQueuePill');
         if (pill) {
-            const waiting = lists.review.length;
-            if (queueError || !waiting) {
+            const waiting = clinicWorkCounts ? clinicWorkCounts.incomplete : 0;
+            if (clinicWorkCountsError || !clinicWorkCounts || !waiting) {
                 pill.hidden = true;
             } else {
                 pill.hidden = false;
-                pill.textContent = '\uD83D\uDC40 ' + waiting + ' waiting for doctor work';
-                pill.title = 'Incomplete CF4, Nasal and Laryngeal reports. Each report is counted once. Tap to see them below.';
+                pill.textContent = '\uD83D\uDC40 ' + waiting + ' patient/date records with incomplete doctor work';
+                pill.title = 'Active clinic only; the count matches the incomplete patient/date rows below.';
             }
         }
 
@@ -3043,40 +3122,18 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const foot = byId('dashQueueFoot');
         if (foot) {
             if (!lists.saved.length && !lists.review.length) {
-                foot.textContent = '';
+                foot.textContent = 'No final saved CF4, Nasal, or Laryngeal patient/date records in the active clinic.';
             } else {
                 foot.textContent = lists.saved.length + ' completed \u00b7 '
-                    + lists.review.length + ' incomplete \u00b7 latest '
-                    + QUEUE_LIMIT + ' updated records';
+                    + lists.review.length + ' incomplete \u00b7 '
+                    + queueRows.length + ' patient/date records in this clinic. Open actions are limited to the selected doctor’s reports.';
             }
         }
     }
 
     // Fire and forget: the queue must never hold up the counters.
     function refreshQueue() {
-        if (navigator.onLine && window.EntSupabase && window.EntSupabase.isConfigured()) {
-            loadQueueRows().then(function (list) {
-                queueRows = list;
-                queueError = '';
-                queueLoaded = true;
-                renderQueue();
-                renderActionSummary();
-            }, function (e) {
-                queueRows = [];
-                queueError = (e && e.message) || String(e);
-                queueLoaded = true;
-                renderQueue();
-                renderActionSummary();
-            });
-        } else {
-            queueRows = [];
-            queueError = navigator.onLine
-                ? 'The cloud database is not configured on this device.'
-                : 'No internet connection right now.';
-            queueLoaded = true;
-            renderQueue();
-            renderActionSummary();
-        }
+        refreshClinicWorkStatus();
     }
 
     /* ---------------- "the admin replied to my ticket" ------------------ */
@@ -3651,7 +3708,7 @@ const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const qPill = byId('dashQueuePill');
         if (qPill) {
             qPill.addEventListener('click', function () {
-                if (queueLists().review.length) {
+                if (clinicWorkCounts && clinicWorkCounts.incomplete > 0) {
                     queueView = 'review';
                     queueExpanded = false;
                     renderQueue();

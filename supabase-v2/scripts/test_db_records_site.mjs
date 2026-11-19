@@ -55,6 +55,7 @@ function makeWindow(sink, opts = {}) {
   const user = 'user' in opts ? opts.user : { username: 'probe', role: 'doctor' }
   const clinicRows = opts.clinicRows || []
   const store = new Map()
+  const activityEvents = []
   if (opts.clinicSettings) store.set('clinicSettings', JSON.stringify(opts.clinicSettings))
 
   const opened = []          // every dialog ever appended (count of prompts)
@@ -163,6 +164,9 @@ function makeWindow(sink, opts = {}) {
         }
         let b = null; try { b = JSON.parse(o.body) } catch { b = null }
         if (b) sink.push({ path, rows: Array.isArray(b) ? b : [b] })
+        if (String(path).startsWith('reports?on_conflict=')) {
+          return [{ id: opts.reportId || '00000000-0000-0000-0000-000000000055' }]
+        }
         return []
       }
       if (String(path).indexOf('clinics') === 0) return clinicRows
@@ -173,9 +177,9 @@ function makeWindow(sink, opts = {}) {
   win.EntAuth = {
     scope: () => ({ doctorId: 'doc', seeAll: true }),
     currentUser: () => user,
-    logActivity: () => Promise.resolve(),
+    logActivity: (...args) => { activityEvents.push(args); return Promise.resolve() },
   }
-  return { win, opened, live, docListeners }
+  return { win, opened, live, docListeners, activityEvents }
 }
 
 function load(win, files) {
@@ -376,6 +380,11 @@ const nonFollowUpPrompts = (env) =>
   const hist = JSON.parse(env.win.localStorage.getItem('entPatientRecordHistoryV1') || '[]')
   is('P16', 'and the local history never grows a site key either',
      Array.isArray(hist) && hist.every(e => !e || !Object.prototype.hasOwnProperty.call(e, 'site')))
+  const saveEvent = env.activityEvents.find(event => event[0] === 'SAVE_RECORD')
+  is('P17', 'successful save activity links the report ID without putting patient details in the log',
+     !!saveEvent && saveEvent[2] === 'report'
+       && saveEvent[3] === '00000000-0000-0000-0000-000000000055'
+       && !String(saveEvent[1]).includes('ZZSITE'))
 }
 
 /* ---- a rejected cloud write is never silent or success-shaped -------- */
@@ -398,6 +407,8 @@ const nonFollowUpPrompts = (env) =>
      message.includes('still on this form'))
   is('E4', 'a failed write is not marked as a successful database save',
      env.win.EntDbRecords.readSavedKeys().size === 0)
+  is('E4b', 'a failed write does not create a SAVE_RECORD activity event',
+     env.activityEvents.every(event => event[0] !== 'SAVE_RECORD'))
 }
 
 {

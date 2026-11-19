@@ -763,6 +763,96 @@ document.addEventListener('DOMContentLoaded', async (event) => {
         });
 
         // NEW: Enhance dropdowns to be editable with suggestions (Findings & Procedure Type)
+        const CLINICAL_SUGGESTIONS_KEY = 'entClinicalFieldSuggestionsV1';
+        const NON_CLINICAL_SUGGESTION_FIELDS = new Set(['scrubNurse']);
+        const SUGGESTION_DATALISTS = {
+            preOpDiagnosis: 'preOpDiagnosisOptions',
+            trueVocalCords: 'tvf-list'
+        };
+
+        function getLearnableSuggestionFields(reportType) {
+            if ((reportType !== 'nasal' && reportType !== 'laryngeal') || !reportForm) return [];
+            const fields = Array.from(reportForm.querySelectorAll('input[type="text"], textarea'))
+                .filter(input => input.id
+                    && !input.closest('.patient-info-fieldset')
+                    && !/^patient/i.test(input.id)
+                    && !NON_CLINICAL_SUGGESTION_FIELDS.has(input.id))
+                .map(input => input.id);
+            return Array.from(new Set(fields.concat('imageFinding', 'imageDescription')));
+        }
+
+        function readLearnedSuggestions(reportType, fieldId) {
+            try {
+                const saved = JSON.parse(localStorage.getItem(CLINICAL_SUGGESTIONS_KEY) || '{}');
+                const values = saved[reportType] && saved[reportType][fieldId];
+                const localValues = Array.isArray(values) ? values.filter(value => typeof value === 'string') : [];
+                const clinicValues = window.EntClinicSuggestions
+                    ? window.EntClinicSuggestions.values(reportType, fieldId) : [];
+                const seen = new Set();
+                return localValues.concat(clinicValues).filter(value => {
+                    const key = value.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            } catch (error) {
+                console.warn('Unable to read saved clinical suggestions:', error);
+                return [];
+            }
+        }
+
+        function rememberClinicalSuggestions(reportType, formData) {
+            const fields = getLearnableSuggestionFields(reportType);
+            if (!fields || !formData) return;
+
+            let saved;
+            try {
+                saved = JSON.parse(localStorage.getItem(CLINICAL_SUGGESTIONS_KEY) || '{}');
+            } catch (error) {
+                console.warn('Saved clinical suggestions were unreadable; starting a fresh list.', error);
+                saved = {};
+            }
+            if (!saved[reportType] || typeof saved[reportType] !== 'object') saved[reportType] = {};
+
+            fields.forEach(fieldId => {
+                const rawValue = formData[fieldId];
+                const values = Array.isArray(saved[reportType][fieldId]) ? saved[reportType][fieldId] : [];
+                const valuesToAdd = fieldId === 'imageFinding' || fieldId === 'imageDescription'
+                    ? (Array.isArray(formData.imageDetails)
+                        ? formData.imageDetails.map(details => details && details[fieldId === 'imageFinding' ? 'finding' : 'description'])
+                        : [])
+                    : [rawValue];
+                valuesToAdd.forEach(raw => {
+                    const learnedValue = typeof raw === 'string' ? raw.trim() : '';
+                    if (learnedValue && !values.some(item => typeof item === 'string' && item.toLowerCase() === learnedValue.toLowerCase())) {
+                        values.push(learnedValue);
+                    }
+                });
+                saved[reportType][fieldId] = values;
+
+                const input = document.getElementById(fieldId);
+                const datalistId = (input && input.dataset.suggestionList)
+                    || SUGGESTION_DATALISTS[fieldId]
+                    || `${fieldId}-list`;
+                const datalist = document.getElementById(datalistId);
+                if (!datalist) return;
+                valuesToAdd.forEach(raw => {
+                    const learnedValue = typeof raw === 'string' ? raw.trim() : '';
+                    if (learnedValue && !Array.from(datalist.options).some(option => option.value.toLowerCase() === learnedValue.toLowerCase())) {
+                        const option = document.createElement('option');
+                        option.value = learnedValue;
+                        datalist.appendChild(option);
+                    }
+                });
+            });
+
+            try {
+                localStorage.setItem(CLINICAL_SUGGESTIONS_KEY, JSON.stringify(saved));
+            } catch (error) {
+                console.error('Unable to save learned clinical suggestions on this device:', error);
+            }
+        }
+
         function enhanceDropdowns() {
             // --- CONFIGURATION FOR SPECIFIC OPTIONS ---
             // To add more specific options, just add a new entry here.
@@ -847,6 +937,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     'Local', 'Topical Anesthesia', '10% Lidocaine Spray', '2% Xylocaine Spray', 'Co-Phenylcaine Spray', '4% Cocaine Solution', 
                     'Oxymetazoline Spray', 'Local Infiltration', 'General Anesthesia', 'None'
                 ],
+                'durationOfOperation': [],
 
                 // --- NASAL FINDINGS ---
                 'septum': ['Normal / Midline', 'Deviated to the Left', 'Deviated to the Right', 'Septal Spur Left', 'Septal Spur Right', 'Perforated Septum'],
@@ -867,7 +958,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 'falseVocalCords': ['Normal', 'Hypertrophic Left', 'Hypertrophic Right', 'Erythematous'],
                 'trueVocalCords': ['Normal', 'Erythematous', 'Edematous', 'Nodule Left', 'Nodule Right', 'Nodule Bilateral', 'Polyp Left', 'Polyp Right', 'Cyst Left', 'Cyst Right', 'Mass Lesion Left', 'Mass Lesion Right', 'Palsy / Paralysis Left', 'Palsy / Paralysis Right', 'Leukoplakia'],
                 'vocalCordMobility': ['Mobile and Symmetrical', 'Unilateral Paralysis Left', 'Unilateral Paralysis Right', 'Bilateral Paralysis', 'Paresis Left', 'Paresis Right', 'Fixed Left', 'Fixed Right', 'BILATERAL TRUE VOCAL CORD PARALYSIS AT PARAMEDIAN POSITION'],
-                'subglottis': ['Normal', 'Subglottic Stenosis', 'Mass Lesion', 'Inflamed', 'GRANULATION TISSUE AT TIP OF TRACHEOSTOMT TUBE'],
+                'subglottis': ['Normal', 'Subglottic Stenosis', 'Mass Lesion', 'Inflamed', 'GRANULATION TISSUE AT TIP OF TRACHEOSTOMT TUBE', 'Base of the tongue', 'Tonsils', 'Posterior pharyngeal wall'],
 
                 // --- IMPRESSION & RECOMMENDATION ---
                 'impression': [
@@ -934,7 +1025,12 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     datalist.innerHTML = '';
                 }
 
-                specificOptionsConfig[id].forEach(val => {
+                const options = specificOptionsConfig[id].concat(readLearnedSuggestions(currentReportType, id));
+                const seenOptions = new Set();
+                options.forEach(val => {
+                    const optionKey = val.toLowerCase();
+                    if (seenOptions.has(optionKey)) return;
+                    seenOptions.add(optionKey);
                     const optionEl = document.createElement('option');
                     
                     // NEW: Separate Code from Description for RVS and ICD-10
@@ -1102,6 +1198,45 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         // Call the new function to transform dropdowns before other logic
         enhanceDropdowns();
+        getLearnableSuggestionFields(currentReportType).forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (!input) return;
+            const datalistId = input.dataset.suggestionList
+                || SUGGESTION_DATALISTS[fieldId]
+                || `${fieldId}-list`;
+            let datalist = document.getElementById(datalistId);
+            if (!datalist) {
+                datalist = document.createElement('datalist');
+                datalist.id = datalistId;
+                input.parentNode.appendChild(datalist);
+            }
+            readLearnedSuggestions(currentReportType, fieldId).forEach(value => {
+                if (!Array.from(datalist.options).some(option => option.value.toLowerCase() === value.toLowerCase())) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    datalist.appendChild(option);
+                }
+            });
+            if (input.tagName === 'INPUT') {
+                input.setAttribute('list', datalistId);
+                setupInputSuggest(input);
+            } else {
+                setupTextareaSuggest(input, datalistId);
+            }
+        });
+        if (reportForm) {
+            reportForm.querySelectorAll('input[list]').forEach(setupInputSuggest);
+            const preOpDatalist = document.getElementById('preOpDiagnosisOptions');
+            if (preOpDatalist) {
+                readLearnedSuggestions(currentReportType, 'preOpDiagnosis').forEach(value => {
+                    if (!Array.from(preOpDatalist.options).some(option => option.value.toLowerCase() === value.toLowerCase())) {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        preOpDatalist.appendChild(option);
+                    }
+                });
+            }
+        }
         
         // ===================================================================================
         // SET ALL NORMAL BUTTON (NEW)
@@ -1411,6 +1546,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             saveDataBtn.addEventListener('click', async () => {
                 try {
                     const formData = getFormData();
+                    let saveConfirmed = false;
                     const dataStr = JSON.stringify(formData, null, 2);
                     const safeName = (formData.patientLastName || '').replace(/[^a-z0-9\s-]/gi, '').trim().replace(/\s+/g, '_');
                     const firstName = (formData.patientFirstName || '').replace(/[^a-z0-9\s-]/gi, '').trim().replace(/\s+/g, '_');
@@ -1421,7 +1557,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                         // v28: Save Draft stores the draft on THIS DEVICE (localStorage),
                         // flashes "✓ Saved" on the button and shows a small "Draft saved"
                         // popup with Open it / All drafts / .json download actions.
-                        await window.EntDrafts.saveAndOpen(currentReportType, formData, filename);
+                        saveConfirmed = !!(await window.EntDrafts.saveAndOpen(currentReportType, formData, filename));
                     } else {
                         // Fallback: previous behavior - download the .json right away.
                         const blob = new Blob([dataStr], { type: 'application/json' });
@@ -1433,7 +1569,9 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                         link.click();
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
+                        saveConfirmed = true;
                     }
+                    if (saveConfirmed) rememberClinicalSuggestions(currentReportType, formData);
                     window.PatientRecords?.recordSave(currentReportType, formData, { format: 'Draft', fileName: filename });
 
                     // v26: success feedback now appears inside the Saved Drafts popup.
@@ -1441,6 +1579,19 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     console.error('Error saving data:', err);
                     showCustomAlert('❌ ERROR SAVING DATA\n\n' + err.message, 'ERROR');
                 }
+            });
+        }
+        document.addEventListener('databaseRecordSaved', () => {
+            rememberClinicalSuggestions(currentReportType, getFormData());
+            if (window.EntClinicSuggestions) {
+                window.EntClinicSuggestions.refresh(currentReportType).catch(error => {
+                    console.error('Unable to refresh clinic-wide clinical suggestions:', error);
+                });
+            }
+        });
+        if (window.EntClinicSuggestions) {
+            window.EntClinicSuggestions.refresh(currentReportType).catch(error => {
+                console.error('Unable to load clinic-wide clinical suggestions:', error);
             });
         }
 
@@ -2696,14 +2847,26 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     // ===================================================================================
     const reportHeader = document.querySelector('.report-header');
     if (reportHeader) {
+        // Avoid collapsing while the header's own height can push scrollY back across the threshold.
+        let expandedHeaderHeight = reportHeader.offsetHeight;
+        let isHeaderCollapsed = reportHeader.classList.contains('header-scrolled');
+
         function handleHeaderScroll() {
-            if (window.scrollY > 10) {
+            if (!isHeaderCollapsed) expandedHeaderHeight = reportHeader.offsetHeight;
+            const scrollY = window.scrollY || window.pageYOffset;
+            if (!isHeaderCollapsed && scrollY > expandedHeaderHeight + 20) {
                 reportHeader.classList.add('header-scrolled');
-            } else {
+                isHeaderCollapsed = true;
+            } else if (isHeaderCollapsed && scrollY <= 10) {
                 reportHeader.classList.remove('header-scrolled');
+                isHeaderCollapsed = false;
+                expandedHeaderHeight = reportHeader.offsetHeight;
             }
         }
         window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+        window.addEventListener('resize', function() {
+            if (!isHeaderCollapsed) expandedHeaderHeight = reportHeader.offsetHeight;
+        }, { passive: true });
         handleHeaderScroll(); // Initial check
     }
 
@@ -5432,6 +5595,128 @@ document.addEventListener('DOMContentLoaded', async (event) => {
     // AUTO-FIELDS GENERATOR (Impression & Recommendation)
     // ===================================================================================
     // ===================================================================================
+    function setupInputSuggest(input) {
+        if (!input || input.dataset.suggestReady === 'true') return;
+        const datalistId = input.getAttribute('list');
+        if (!datalistId || !document.getElementById(datalistId)) return;
+
+        input.dataset.suggestReady = 'true';
+        input.dataset.suggestionList = datalistId;
+        input.removeAttribute('list');
+        input.setAttribute('aria-haspopup', 'listbox');
+        input.setAttribute('aria-expanded', 'false');
+
+        let panel = null;
+        const close = () => {
+            if (panel) {
+                panel.remove();
+                panel = null;
+            }
+            input.setAttribute('aria-expanded', 'false');
+        };
+        const open = (filterByValue) => {
+            const datalist = document.getElementById(datalistId);
+            if (!datalist) return;
+
+            const query = filterByValue ? input.value.trim().toLowerCase() : '';
+            const seen = new Set();
+            const options = [];
+            Array.from(datalist.options).forEach(option => {
+                const value = (option.value || '').trim();
+                const key = value.toLowerCase();
+                if (value && (!query || key.includes(query)) && !seen.has(key)) {
+                    seen.add(key);
+                    options.push(value);
+                }
+            });
+            if (!options.length) { close(); return; }
+
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.className = 'input-suggest-panel';
+                panel.setAttribute('role', 'listbox');
+                document.body.appendChild(panel);
+            }
+            panel.replaceChildren();
+
+            options.forEach(value => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.textContent = value;
+                item.setAttribute('role', 'option');
+                Object.assign(item.style, {
+                    display: 'block',
+                    width: '100%',
+                    padding: '7px 12px',
+                    border: '0',
+                    borderBottom: '1px solid rgba(255,255,255,0.16)',
+                    background: 'transparent',
+                    color: '#d6dde6',
+                    font: 'inherit',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    boxShadow: 'none',
+                    transform: 'none',
+                    transition: 'none'
+                });
+                item.addEventListener('mouseenter', () => {
+                    item.style.background = 'rgba(255,255,255,0.15)';
+                    item.style.boxShadow = 'none';
+                    item.style.transform = 'none';
+                });
+                item.addEventListener('mouseleave', () => {
+                    item.style.background = 'transparent';
+                    item.style.boxShadow = 'none';
+                    item.style.transform = 'none';
+                });
+                item.addEventListener('mousedown', event => {
+                    event.preventDefault();
+                    input.value = value;
+                    close();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                panel.appendChild(item);
+            });
+
+            const rect = input.getBoundingClientRect();
+            Object.assign(panel.style, {
+                position: 'fixed',
+                left: rect.left + 'px',
+                top: (rect.bottom + 4) + 'px',
+                width: rect.width + 'px',
+                maxHeight: '220px',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+                background: '#000',
+                color: '#d6dde6',
+                border: '1px solid #333',
+                borderRadius: '0',
+                zIndex: '10000',
+                fontFamily: 'inherit'
+            });
+            const panelHeight = Math.min(panel.scrollHeight, 220);
+            if (rect.bottom + panelHeight + 4 > window.innerHeight && rect.top > panelHeight) {
+                panel.style.top = (rect.top - panelHeight - 4) + 'px';
+            }
+            input.setAttribute('aria-expanded', 'true');
+        };
+
+        input.addEventListener('focus', () => open(false));
+        input.addEventListener('click', () => open(false));
+        input.addEventListener('input', event => { if (event.isTrusted) open(true); });
+        input.addEventListener('blur', () => { window.setTimeout(close, 150); });
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Escape') close();
+            else if (event.key === 'ArrowDown' && !panel) open(false);
+        });
+        window.addEventListener('scroll', event => {
+            if (panel && (event.target === panel || panel.contains(event.target))) return;
+            close();
+        }, true);
+        window.addEventListener('resize', close);
+    }
+
     // TEXTAREA SUGGESTION POPUP (preOpDiagnosis / impression / recommendation)
     //
     // These three fields are <textarea> boxes on the nasal and laryngeal pages.
@@ -5453,20 +5738,24 @@ document.addEventListener('DOMContentLoaded', async (event) => {
 
         const readOptions = () => {
             const dl = document.getElementById(datalistId);
-            if (!dl) return [];
             const seen = new Set();
             const out = [];
-            Array.from(dl.options).forEach(opt => {
-                const v = (opt.value || '').trim();
-                if (v && !seen.has(v)) { seen.add(v); out.push(v); }
+            if (dl) {
+                Array.from(dl.options).forEach(opt => {
+                    const v = (opt.value || '').trim();
+                    if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); out.push(v); }
+                });
+            }
+            readLearnedSuggestions(currentReportType, textarea.id).forEach(value => {
+                if (value && !seen.has(value.toLowerCase())) { seen.add(value.toLowerCase()); out.push(value); }
             });
             return out;
         };
 
         const close = () => { if (panel) { panel.remove(); panel = null; } };
 
-        const open = () => {
-            const q = textarea.value.trim().toLowerCase();
+        const open = (filterByValue) => {
+            const q = filterByValue ? textarea.value.trim().toLowerCase() : '';
             const list = readOptions().filter(o => !q || o.toLowerCase().includes(q));
             if (!list.length) { close(); return; }
 
@@ -5485,11 +5774,11 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                 width: rect.width + 'px',
                 maxHeight: '220px',
                 overflowY: 'auto',
+                overscrollBehavior: 'contain',
                 background: '#000000',
                 color: '#d6dde6',
                 border: '1px solid #333',
-                borderRadius: '6px',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.4)',
+                borderRadius: '0',
                 zIndex: '10000',
                 display: 'block',
                 fontFamily: 'inherit'
@@ -5503,7 +5792,7 @@ document.addEventListener('DOMContentLoaded', async (event) => {
                     cursor: 'pointer',
                     fontSize: '14px',
                     lineHeight: '1.3',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)'
+                    borderBottom: '1px solid rgba(255,255,255,0.16)'
                 });
                 item.addEventListener('mouseenter', () => { item.style.background = 'rgba(255,255,255,0.15)'; });
                 item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
@@ -5518,16 +5807,17 @@ document.addEventListener('DOMContentLoaded', async (event) => {
             });
         };
 
-        textarea.addEventListener('focus', open);
+        textarea.addEventListener('focus', () => open(false));
+        textarea.addEventListener('click', () => open(false));
         // Only react to REAL typing (isTrusted) so the auto-generate button, which
         // fires a synthetic input event, does not pop the list open.
-        textarea.addEventListener('input', (e) => { if (e.isTrusted) open(); });
+        textarea.addEventListener('input', (e) => { if (e.isTrusted) open(true); });
         textarea.addEventListener('blur', () => { window.setTimeout(close, 150); });
         textarea.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-        // The panel is position:fixed, so on page scroll it would float away
-        // from its field. Close it the moment the page scrolls so it never
-        // lingers in the wrong spot (it simply disappears, as requested).
-        window.addEventListener('scroll', close, { passive: true });
+        window.addEventListener('scroll', event => {
+            if (panel && (event.target === panel || panel.contains(event.target))) return;
+            close();
+        }, { capture: true, passive: true });
     }
     function setupAutoFields() {
         const impressionInput = document.getElementById('impression');

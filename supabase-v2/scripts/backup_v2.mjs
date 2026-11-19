@@ -36,6 +36,7 @@ const BASE = (env.SUPABASE_URL || '').replace(/\/+$/, '')
 const SVC = env.SUPABASE_SERVICE_ROLE_KEY || ''
 if (!BASE || !SVC) { console.error('SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required.'); process.exit(1) }
 
+const FULL = process.argv.includes('--full')
 // All application tables in the checked-in migrations. Sort columns give
 // stable pages even for tables whose primary key is composite.
 const TABLES = [
@@ -53,9 +54,11 @@ const TABLES = [
   { name: 'report_access_requests', order: 'id' },
   { name: 'secretary_assignments', order: 'secretary_id,doctor_id' }
 ]
+// Clinical snapshots are included only in a full backup; metadata-only
+// backups must not export report payloads through a secondary table.
+if (FULL) TABLES.splice(3, 0, { name: 'report_versions', order: 'id' })
 const PAGE_SIZE = 1000
 const MAX_ROWS_PER_TABLE = 1000000
-const FULL = process.argv.includes('--full')
 const sha256 = value => createHash('sha256').update(value).digest('hex')
 
 const stamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -145,6 +148,17 @@ let failed = false
 for (const table of TABLES) {
   const { rows: data, error } = await rows(table)
   if (error) {
+    if (table.name === 'report_versions' && /^HTTP 404\b/.test(error)) {
+      const content = '[]'
+      writeFileSync(join(OUT, `${table.name}.json`), content)
+      manifest.tables[table.name] = {
+        rows: 0,
+        sha256: sha256(content),
+        note: '0056 report history is not installed; no versions were present in this backup.'
+      }
+      console.warn('  skip  report_versions          0056 is not installed; no report history table exists.')
+      continue
+    }
     failed = true
     console.error(`  FAIL  ${table.name.padEnd(24)} ${error}`)
     manifest.tables[table.name] = { error, rows_read: data.length }

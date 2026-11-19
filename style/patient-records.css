@@ -1132,12 +1132,38 @@ body.cf4-page #patientRecordsBtn .btn-sub {
     margin: 0;
     font-size: 0.66rem;
 }
+.ent-db-missing-work {
+    grid-column: 1 / -1;
+    min-width: 0;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.67rem;
+    line-height: 1.35;
+}
+.ent-db-missing-work summary {
+    width: fit-content;
+    color: #b45309;
+    cursor: pointer;
+    font-weight: 600;
+}
+.ent-db-missing-work ul {
+    max-height: 84px;
+    margin: 4px 0 0;
+    padding-left: 18px;
+    overflow-y: auto;
+}
+.ent-db-missing-work li {
+    margin: 2px 0;
+    overflow-wrap: anywhere;
+}
 body.dark-mode .ent-db-work-progress strong {
     color: #7dd3fc;
 }
 body.dark-mode .ent-db-work-progress.is-complete strong,
 body.dark-mode .ent-db-work-progress.is-complete .ent-db-work-progress-status {
     color: #86efac;
+}
+body.dark-mode .ent-db-missing-work summary {
+    color: #fbbf24;
 }
 
 .ent-db-card-site {
@@ -1398,6 +1424,94 @@ body.dark-mode .ent-db-card .ent-db-card-editable { background: rgba(245, 158, 1
     transform: translateY(-1px);
 }
 
+.ent-db-history-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 9px;
+    padding: 9px 13px;
+    color: var(--text-color, #334155);
+    background: var(--panel-bg-color, #fff);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-db-history-btn:hover {
+    border-color: #6366f1;
+    color: #4338ca;
+}
+
+.ent-db-history-panel {
+    margin-top: 8px;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+    padding-top: 8px;
+}
+
+.ent-db-history-message {
+    margin: 0;
+    color: var(--secondary-text-color, #64748b);
+    font-size: 0.75rem;
+}
+
+.ent-db-history-message.is-error {
+    color: var(--danger-color, #dc2626);
+}
+
+.ent-db-history-list {
+    display: grid;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.ent-db-history-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border-color, #cbd5e1);
+    font-size: 0.72rem;
+}
+
+.ent-db-history-entry > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ent-db-history-entry span {
+    color: var(--secondary-text-color, #64748b);
+}
+
+.ent-db-history-restore {
+    flex: 0 0 auto;
+    border: 1px solid #059669;
+    border-radius: 7px;
+    padding: 6px 9px;
+    color: #047857;
+    background: rgba(5, 150, 105, 0.08);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ent-db-history-restore:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+body.dark-mode .ent-db-history-btn {
+    border-color: #374151;
+    color: #e5e7eb;
+    background: #111827;
+}
+
+body.dark-mode .ent-db-history-btn:hover {
+    border-color: #818cf8;
+    color: #c7d2fe;
+}
+
 /* Delete on a card - a SOFT delete into the recycle bin (0026/0034).
    Deliberately red, deliberately beside Open, and it never means "erase":
    the row, its payload and its photos all survive until an admin presses
@@ -1527,6 +1641,12 @@ body.dark-mode .ent-db-card .ent-db-card-editable { background: rgba(245, 158, 1
 
     .ent-db-open {
         width: 100%;
+    }
+
+    .ent-db-history-btn,
+    .ent-db-del {
+        width: 100%;
+        margin-left: 0;
     }
 
     .ent-db-toolbar {
